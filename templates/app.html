@@ -335,6 +335,14 @@ tbody tr:nth-child(even){ background:#f9fafb; }
 </div>
 <script>
 
+  function formatSideEffects(text) {
+  if (!text) return '-';
+  return '<ul class="list-disc list-inside">' +
+    text.split(';').map(s => `<li>${s.trim()}</li>`).join('') +
+    '</ul>';
+}
+
+
 const concInput = document.getElementById("concentration");
 const mgInput = document.getElementById("dosageMg");
 const mlInput = document.getElementById("dosageMl");
@@ -601,7 +609,8 @@ if (result.strong_match && result.best_match) {
         <div class="text-xs text-gray-600">Match: <strong>${m.percent}%</strong></div>
         <div class="text-xs text-gray-600"><strong>Active:</strong> ${(m.ingredients_active || []).join(', ') || '-'}</div>
         <div class="text-xs text-gray-600"><strong>Inactive:</strong> ${(m.ingredients_inactive || []).join(', ') || '-'}</div>
-        <div class="text-xs text-gray-600"><strong>Known side effects:</strong> ${m.known_side_effects || '-'}</div>
+        <div class="text-xs text-gray-600"><strong>Known side effects:</strong> ${formatSideEffects(m.known_side_effects)}</div>
+
       `;
       matchesList.appendChild(card);
     });
