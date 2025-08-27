@@ -157,31 +157,32 @@ tbody tr:nth-child(even){ background:#f9fafb; }
 @media(max-width:1024px){ .card{grid-template-columns:1fr;} }
 
 /* ------------------------- CHARTS FLEX & HEIGHT ------------------------- */
-.chart-container {
-  display: flex;
-  flex-direction: column; /* stack vertically on small screens */
-  gap: 1.5rem;
-}
-
-@media(min-width: 768px) {
-  .chart-container {
-    flex-direction: row; /* side by side on medium+ screens */
-  }
-}
-
+/* Chart beside table, scaled to table height */
+/* Chart beside table, scale height to table */
 .chart-box {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-height: 24rem; /* ensures both charts have same height */
-  flex: 1; /* let boxes grow equally */
+  padding: 1rem;
+  border-radius: 16px;
+  background: white; /* only for simulation chart */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 
-.chart-box canvas {
-  flex: 1; /* canvas fills the available height */
+/* Scale simulation chart to match table height */
+#simulationChart {
+  width: 100% !important;
+  height: auto;
+  max-height: 320px; /* adjust roughly to table height */
 }
 
-/* ------------------------- CHART TITLES ------------------------- */
+/* Radar chart transparent background */
+#radarChart {
+  background: transparent !important;
+  height: 320px; /* your usual radar size */
+}
+
+/* Optional: spacing for chart titles */
 .chart-box h3 {
   margin-bottom: 0.5rem;
   font-weight: 600;
@@ -350,51 +351,47 @@ tbody tr:nth-child(even){ background:#f9fafb; }
     </div>
 
     <div>
-      <h3 class="text-md font-medium text-white mb-2">Top Matches</h3>
-      <div id="matchesList" class="space-y-2"></div>
-    </div>
+      <!-- Top Matches -->
+     <div class="mt-6 flex flex-col md:flex-row gap-6">
+      <!-- Table -->
+      <div class="flex-1 overflow-x-auto">
+        <table class="table-auto w-full text-sm text-left text-gray-600">
+          <thead class="bg-blue-50">
+            <tr>
+              <th class="px-3 py-2">Attribute</th>
+              <th class="px-3 py-2">New Drug</th>
+              <th class="px-3 py-2">Known Medicine</th>
+            </tr>
+          </thead>
+          <tbody id="comparisonTableBody" class="align-top"></tbody>
+        </table>
+      </div>
 
-    <div class="text-center">
-      <div id="matchedImageArea" class="mb-2"></div>
-      <div id="matchedName" class="text-sm font-semibold text-white"></div>
-    </div>
-
-    <div class="overflow-x-auto">
-      <table class="table-auto w-full text-sm text-left text-gray-600">
-        <thead class="bg-blue-50">
-          <tr>
-            <th class="px-3 py-2">Attribute</th>
-            <th class="px-3 py-2">New Drug</th>
-            <th class="px-3 py-2">Known Medicine</th>
-          </tr>
-        </thead>
-        <tbody id="comparisonTableBody" class="align-top"></tbody>
-      </table>
-    </div>
-
-    <div class="mt-6 gap-6 chart-container">
-      <div class="chart-box bg-white rounded-xl p-2">
+      <!-- Simulation Chart beside table -->
+      <div class="chart-box">
         <h3 class="text-lg font-semibold mb-2 text-gray-800">Simulation Over Time</h3>
         <canvas id="simulationChart"></canvas>
       </div>
-      <div class="chart-box bg-white rounded-xl p-2">
-        <h3 class="text-lg font-semibold mb-2 text-gray-800">New vs Known Medicine</h3>
-        <canvas id="radarChart"></canvas>
+    </div>
+
+    <!-- Radar Chart (transparent, separate) -->
+    <div class="mt-6 chart-box">
+      <h3 class="text-lg font-semibold mb-2 text-gray-800">New vs Known Medicine</h3>
+      <canvas id="radarChart"></canvas>
+    </div>
+
+
+      <!-- Explanation Section -->
+      <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
+        <h3 class="text-lg font-semibold mb-2">Explanation</h3>
+        <div id="explanationText" class="text-sm leading-relaxed"></div>
+      </div>
+
+      <!-- Download Button -->
+      <div class="mt-4 text-center">
+        <button id="downloadPDF" class="btn-action">Download as PDF</button>
       </div>
     </div>
-
-    <!-- 🔧 Explanation Section -->
-    <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
-      <h3 class="text-lg font-semibold mb-2">Explanation</h3>
-    <div id="explanationText" class="text-sm leading-relaxed"></div>
-    </div>
-
-
-    <div class="mt-4 text-center">
-      <button id="downloadPDF" class="btn-action">Download as PDF</button>
-    </div>
-  </div>
-</div>
 <script>
 
   function formatSideEffects(text) {
