@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import joblib
@@ -42,7 +41,6 @@ def get_ingredients_for(med_name):
 def _norm(s):
     return (s or "").strip().lower()
 
-# Optional: synonyms (keep small & safe)
 INDICATION_ALIASES = {
     "her2+": "her2+",
     "sore throat": "sore throat",
@@ -64,15 +62,13 @@ def normalize_indication(name: str) -> str:
     n = _norm(name)
     return INDICATION_ALIASES.get(n, n)
 
-# Group indications into families
 INDICATION_GROUPS = {
     "analgesic_antipyretic": {
-        "headache", "fever", "toothache", "muscle pain", "sore throat"  # mild pain/fever bucket
+        "headache", "fever", "toothache", "muscle pain", "sore throat"
     },
     "allergy_upper_respiratory": {
         "flu", "cough", "allergic rhinitis", "nasal congestion", "sore throat"
     },
-    # Oncology buckets (kept specific – no cross-credit across cancers)
     "onc_colon": {"colon cancer"},
     "onc_breast": {"breast cancer", "breast cancer (her2+)"},
     "onc_lung": {"lung cancer"},
@@ -82,7 +78,6 @@ INDICATION_GROUPS = {
     "onc_melanoma": {"melanoma"},
 }
 
-# Quick lookup: indication -> group key
 INDICATION_TO_GROUP = {}
 for g, vals in INDICATION_GROUPS.items():
     for v in vals:
@@ -94,23 +89,19 @@ def indication_group(name: str) -> str:
 def is_oncology_group(g: str) -> bool:
     return g.startswith("onc_")
 
-# Ingredient-to-indication hints (minimal & conservative)
 INGREDIENT_TO_HINT_GROUPS = {
-    # OTC analgesics / antipyretics
     "paracetamol": {"analgesic_antipyretic"},
     "acetaminophen": {"analgesic_antipyretic"},
     "ibuprofen": {"analgesic_antipyretic"},
     "naproxen": {"analgesic_antipyretic"},
     "aspirin": {"analgesic_antipyretic"},
-    "caffeine": {"analgesic_antipyretic"},  # adjuvant in headache combos
-    # Upper respiratory / allergy
+    "caffeine": {"analgesic_antipyretic"},
     "cetirizine": {"allergy_upper_respiratory"},
     "loratadine": {"allergy_upper_respiratory"},
     "diphenhydramine": {"allergy_upper_respiratory"},
     "pseudoephedrine": {"allergy_upper_respiratory"},
     "dextromethorphan": {"allergy_upper_respiratory"},
     "guaifenesin": {"allergy_upper_respiratory"},
-    # Oncology: (leave strict – no cross credit)
     "cisplatin": set(),
     "carboplatin": set(),
     "paclitaxel": set(),
@@ -125,25 +116,15 @@ INGREDIENT_TO_HINT_GROUPS = {
     "pembrolizumab": set(),
 }
 
-
 def score_similarity(input_symptom,
                      input_line,
                      input_ingredients_active,
                      input_ingredients_inactive,
                      input_dosage,
                      row):
-    """
-    Clinically-informed matching with partial credit:
-    - Exact indication match dominates.
-    - Same-group (e.g., analgesic/antipyretic) gets partial credit to avoid 0% for valid uses (e.g., headache vs fever for paracetamol).
-    - Line-of-treatment matters when specified.
-    - Active ingredient overlap helps but is capped.
-    - Oncology vs OTC stays strict (no cross credit).
-    """
 
-    # ----------------- Weights -----------------
     W_SYMPTOM_EXACT        = 52.0
-    W_SYMPTOM_SAME_GROUP   = 26.0   # half of exact
+    W_SYMPTOM_SAME_GROUP   = 26.0
     W_LINE_EXACT           = 12.0
     W_ACTIVE_PER_MATCH     = 4.0
     W_ACTIVE_CAP           = 12.0
@@ -151,16 +132,13 @@ def score_similarity(input_symptom,
     W_INACTIVE_CAP         = 2.0
     W_DOSAGE_CLOSE         = 3.0
 
-    # Penalties
-    PENALTY_CROSS_DOMAIN   = 40.0   # oncology vs non-oncology
-    PENALTY_DIFF_DISEASE   = 18.0   # different indication in same domain
+    PENALTY_CROSS_DOMAIN   = 40.0
+    PENALTY_DIFF_DISEASE   = 18.0
     PENALTY_OPPOSITE_LINE  = 5.0
 
-    # Ingredient → indication compatibility bonus
     W_ING_COMPAT_PER_HIT   = 3.0
     W_ING_COMPAT_CAP       = 9.0
 
-    # ----------------- Extract / normalize -----------------
     inp_symptom = normalize_indication(input_symptom)
     inp_line    = _norm(input_line or "general")
     inp_group   = indication_group(inp_symptom)
@@ -177,23 +155,18 @@ def score_similarity(input_symptom,
     total = 0.0
     max_score = 0.0
 
-    # ----------------- 1) Indication -----------------
     if row_symptom == inp_symptom and inp_symptom:
         total += W_SYMPTOM_EXACT
         max_score += W_SYMPTOM_EXACT
     else:
-        # same group (e.g., headache vs fever)
         if inp_group and row_group and inp_group == row_group and not inp_is_onc:
             total += W_SYMPTOM_SAME_GROUP
             max_score += W_SYMPTOM_SAME_GROUP
         else:
-            # different group; penalize (stronger if crossing oncology vs OTC)
             penalty = PENALTY_CROSS_DOMAIN if (inp_is_onc != row_is_onc) else PENALTY_DIFF_DISEASE
             total -= penalty
-            # still count the "capacity" so denominator makes sense
             max_score += max(W_SYMPTOM_EXACT, W_SYMPTOM_SAME_GROUP)
 
-    # ----------------- 2) Line of treatment -----------------
     max_score += W_LINE_EXACT
     if inp_line and row_line and inp_line != "general" and row_line != "general":
         if row_line == inp_line:
@@ -201,21 +174,16 @@ def score_similarity(input_symptom,
         else:
             total -= PENALTY_OPPOSITE_LINE
 
-    # ----------------- 3) Active ingredient overlap (capped) -----------------
     overlap_active = len((input_ingredients_active or set()) & (row_active or set()))
     active_score = min(W_ACTIVE_CAP, overlap_active * W_ACTIVE_PER_MATCH)
     total += active_score
     max_score += W_ACTIVE_CAP
 
-    # ----------------- 4) Inactive ingredient overlap (tiny, capped) -----------------
     overlap_inactive = len((input_ingredients_inactive or set()) & (row_inactive or set()))
     inactive_score = min(W_INACTIVE_CAP, overlap_inactive * W_INACTIVE_PER_MATCH)
     total += inactive_score
     max_score += W_INACTIVE_CAP
 
-    # ----------------- 5) Ingredient → indication compatibility boost -----------------
-    # If any provided active ingredient is commonly used for the chosen indication group (e.g., paracetamol for headache),
-    # give small extra credit so valid OTC scenarios never show 0.
     compat_hits = 0
     for ing in (input_ingredients_active or set()):
         hint_groups = INGREDIENT_TO_HINT_GROUPS.get(_norm(ing), set())
@@ -225,7 +193,6 @@ def score_similarity(input_symptom,
     total += compat_score
     max_score += W_ING_COMPAT_CAP
 
-    # ----------------- 6) Dosage closeness -----------------
     max_score += W_DOSAGE_CLOSE
     if row_dosage > 0:
         diff = abs(row_dosage - (input_dosage or 0.0))
@@ -234,7 +201,6 @@ def score_similarity(input_symptom,
         elif diff <= 0.25 * (row_dosage + 1):
             total += W_DOSAGE_CLOSE * 0.5
 
-    # ----------------- Final -----------------
     max_score = max(1e-6, max_score)
     percent = (total / max_score) * 100.0
     percent = max(0.0, min(100.0, percent))
@@ -285,8 +251,13 @@ def auth_required(f):
 # -----------------------------
 # Flask app setup
 # -----------------------------
-app = Flask(__name__, static_folder="static", template_folder="templates")
-CORS(app)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'static')
+)
 
 # ---------- Auth API ----------
 @app.route("/api/register", methods=["POST"])
@@ -352,8 +323,7 @@ def app_page():
     return render_template("app.html")
 
 # ---------- Prediction ----------
-
-# --- Synonym map ---
+# Synonym map and normalization helpers
 synonym_map = {
     "heart_disease": ["heart disease", "heart failure"],
     "liver_disease": ["liver disease", "poor liver function", "liver dysfunction"],
@@ -365,18 +335,14 @@ synonym_map = {
     "glaucoma": ["glaucoma"]
 }
 
-# --- Normalization helper ---
 def normalize_condition(cond):
-    """Lowercase, strip spaces, remove brackets (sedation risk) → elderly"""
     if not cond:
         return ""
     cond = cond.lower().strip()
     cond = cond.split("(")[0].strip()
     return cond
 
-# --- Matching helper ---
 def condition_matches(user_cond, med_risk):
-    """Check if user condition matches medicine risk factor (via synonyms)."""
     med_risk_norm = normalize_condition(med_risk)
     for frontend_cond, synonyms in synonym_map.items():
         if user_cond == frontend_cond:
@@ -384,9 +350,17 @@ def condition_matches(user_cond, med_risk):
                 return True
     return False
 
-
-# --- Flask route ---
-# --- Flask route ---
+# --- Encode categorical inputs with fallback ---
+def safe_transform(enc, value):
+    try:
+        return enc.transform([value])[0]
+    except Exception:
+        if "unknown" in enc.classes_:
+            return enc.transform(["unknown"])[0]
+        return 0
+# -----------------------------
+# Flask route: Predict
+# -----------------------------
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -424,15 +398,7 @@ def predict():
         input_active = set(tokens)
         input_inactive = set()
 
-        # --- Encode categorical inputs with fallback ---
-        def safe_transform(enc, value):
-            try:
-                return enc.transform([value])[0]
-            except Exception:
-                if "unknown" in enc.classes_:
-                    return enc.transform(["unknown"])[0]
-                return 0
-
+        # --- Encode categorical ---
         race_e = safe_transform(race_enc, race)
         gender_e = safe_transform(gender_enc, gender)
         symptom_e = safe_transform(symptom_enc, symptom)
@@ -440,15 +406,10 @@ def predict():
         ingredient_count = len(tokens)
         input_vector = np.array([[race_e, gender_e, age, symptom_e, ingredient_count, dosage_mg]])
 
-        # --- ML predictions (new drug) ---
+        # --- ML predictions ---
         effectiveness = float(effectiveness_model.predict(input_vector)[0])
         side_effect_val = float(side_effect_model.predict(input_vector)[0])
         success_rate = float(success_rate_model.predict(input_vector)[0])
-
-       # --- Dynamic Explanations (fully dynamic) ---
-        explanations = {}
-        explanations_new = []
-        new_drug_warning = ""
 
         # --- Side effect label ---
         if side_effect_val < 0.33:
@@ -459,6 +420,7 @@ def predict():
             side_effect_label = "High"
 
         # --- Age-based explanations ---
+        explanations = {}
         if age > 60:
             explanations["success_rate"] = "Success rate slightly lower due to age factor."
         elif age < 18:
@@ -466,8 +428,8 @@ def predict():
         else:
             explanations["success_rate"] = "Success rate remains stable."
 
-        # --- Dosage / side effect explanation ---
-        if dosage_mg > 0 and dosage_mg > 500:  # threshold can be adjusted
+        # --- Dosage explanation ---
+        if dosage_mg > 0 and dosage_mg > 500:
             explanations["side_effects"] = "Higher dosage increases side effect risk."
         elif side_effect_val > 0.66:
             explanations["side_effects"] = "High predicted side effect risk."
@@ -476,50 +438,42 @@ def predict():
         else:
             explanations["side_effects"] = "Side effect risk is low."
 
-        # --- Health condition penalties (dynamic) ---
+        # --- Health condition penalties ---
         health_penalty_map = {
-            "liver_disease": {"note": "Effectiveness and success adjusted due to liver disease (metabolism impact).", "weight": 0.08},
-            "kidney_disease": {"note": "Adjusted for kidney disease (clearance reduced).", "weight": 0.10},
-            "asthma": {"note": "Caution: higher risk predicted due to asthma.", "weight": 0.07},
-            "heart_disease": {"note": "Adjusted due to cardiovascular risk (heart disease).", "weight": 0.09},
-            "hypertension": {"note": "Considered reduced success rate due to hypertension risk.", "weight": 0.05},
-            "pregnancy": {"note": "Special caution due to pregnancy safety profile.", "weight": 0.12},
+            "liver_disease": {"note": "Effectiveness and success adjusted due to liver disease.", "weight": 0.08},
+            "kidney_disease": {"note": "Adjusted for kidney disease.", "weight": 0.10},
+            "asthma": {"note": "Higher risk predicted due to asthma.", "weight": 0.07},
+            "heart_disease": {"note": "Adjusted due to cardiovascular risk.", "weight": 0.09},
+            "hypertension": {"note": "Reduced success rate due to hypertension risk.", "weight": 0.05},
+            "pregnancy": {"note": "Special caution due to pregnancy safety.", "weight": 0.12},
             "glaucoma": {"note": "Warning: contraindicated risk for glaucoma.", "weight": 0.06},
-            "elderly": {"note": "Adjusted for elderly patient (sedation/fall risk).", "weight": 0.05},
-            "diabetes": {"note": "Effectiveness slightly reduced due to diabetes affecting absorption.", "weight": 0.04}
+            "elderly": {"note": "Adjusted for elderly patient.", "weight": 0.05},
+            "diabetes": {"note": "Effectiveness slightly reduced due to diabetes.", "weight": 0.04}
         }
 
-
-        # Calculate total penalty
         penalty_pct = 0
+        explanations_new = []
+        new_drug_warning = ""
         for cond in user_conditions:
             info = health_penalty_map.get(cond)
             if info:
                 penalty_pct += info["weight"]
                 explanations_new.append(info["note"])
 
-        # Apply penalty dynamically
         if penalty_pct > 0:
             effectiveness = max(0, effectiveness * (1 - penalty_pct))
             success_rate = max(0, success_rate * (1 - penalty_pct))
-            new_drug_warning = f"⚠ Predicted effectiveness/success reduced by {round(penalty_pct*100)}% due to health condition risk."
+            new_drug_warning = f"⚠ Predicted effectiveness/success reduced by {round(penalty_pct*100)}% due to health conditions."
             explanations["effectiveness"] = "Effectiveness adjusted due to health conditions."
             explanations["success_rate"] = "Success rate adjusted due to health conditions."
             explanations["side_effects"] = "Side effect risk may be higher due to selected conditions."
         else:
             explanations.setdefault("effectiveness", "Effectiveness remains stable.")
 
-
-
-        # --- Similarity Matching with risk adjustment ---
+        # --- Similarity matching ---
         matches = []
         for _, row in known_meds.iterrows():
-            # Fixed: Ensure score_similarity returns proper numeric percent
-            percent, details = score_similarity(
-                symptom, input_line, input_active, input_inactive, dosage_mg, row
-            )
-            if percent is None:
-                percent = 0  # fallback
+            percent, details = score_similarity(symptom, input_line, input_active, input_inactive, dosage_mg, row)
             a, i = get_ingredients_for(row['medicine_name'])
 
             row_penalty = 0
@@ -560,10 +514,9 @@ def predict():
                 "explanations": row_explanations
             })
 
-        # --- Line of treatment filtering + escalation ---
+        # --- Line escalation ---
         line_order = ["first-line", "second-line", "third-line", "general"]
         escalation_applied = False
-
         def filter_by_line(line):
             return [m for m in matches if m["line_of_treatment"] == line]
 
@@ -585,7 +538,7 @@ def predict():
         best = next((m for m in top_matches if not m['risky']), top_matches[0] if top_matches else None)
         strong_match = bool(best and best['percent'] >= MATCH_THRESHOLD and not best['risky'])
 
-        # --- Cancer auto-suggest ---
+        # --- Cancer suggestions ---
         cancer_suggestions = []
         if cancer_type:
             for _, row in known_meds.iterrows():
@@ -600,11 +553,11 @@ def predict():
                             "risk_factors": row.get("risk_factors", "")
                         })
 
+        # --- Response JSON ---
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
             "predicted_side_effect_risk": side_effect_label,
             "predicted_success_rate": round(success_rate, 2),
-            #"predicted_specific_side_effects": "Not available",
             "new_drug_note": new_drug_warning,
             "new_drug_explanations": explanations_new,
             "explanations": explanations,
@@ -645,9 +598,20 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    for fn in ["ingredient_map.json", "known_medicines.csv"]:
+# -----------------------------
+# Run Flask
+# -----------------------------
+if __name__ == "__main__":
+    for fn in ["ingredient_map.json", "known_medicines.csv", "users.json", "sessions.json"]:
         if not os.path.exists(fn):
-            print("WARNING: missing file:", fn)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+            print(f"WARNING: missing file: {fn}")
+
+    for folder in ["templates", "static"]:
+        path = os.path.join(BASE_DIR, folder)
+        if not os.path.exists(path):
+            print(f"WARNING: {folder} folder not found at {path}")
+
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Starting Flask app on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=True)
+
