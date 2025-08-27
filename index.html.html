@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PharmaSim AI Recommender</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md space-y-4">
+    <h2 class="text-xl font-bold text-blue-700 text-center">AI Medicine Recommender</h2>
+    <form id="predictForm" class="space-y-4">
+      <div>
+        <label class="block font-medium">Race</label>
+        <select name="race" required class="w-full p-2 border rounded">
+          <option value="">-- Select --</option>
+          <option value="Malay">Malay</option>
+          <option value="Chinese">Chinese</option>
+          <option value="Indian">Indian</option>
+          <option value="Indigenous">Indigenous</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-medium">Gender</label>
+        <select name="gender" required class="w-full p-2 border rounded">
+          <option value="">-- Select --</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-medium">Age</label>
+        <input type="number" name="age" min="0" required class="w-full p-2 border rounded">
+      </div>
+      <div>
+        <label class="block font-medium">Symptom</label>
+        <select name="symptom" required class="w-full p-2 border rounded">
+          <option value="">-- Select --</option>
+          <option value="Headache">Headache</option>
+          <option value="Fever">Fever</option>
+          <option value="Cough">Cough</option>
+          <option value="Sore Throat">Sore Throat</option>
+          <option value="Flu">Flu</option>
+          <option value="Body Pain">Body Pain</option>
+        </select>
+      </div>
+      <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+        Simulate Drug Match
+      </button>
+    </form>
+
+    <div id="result" class="mt-4 p-4 bg-green-100 text-green-800 rounded hidden"></div>
+    <img id="medicineImage" src="" alt="Medicine Image" class="mt-4 mx-auto w-48 rounded shadow hidden">
+  </div>
+
+<script>
+  const form = document.getElementById('predictForm');
+  const resultBox = document.getElementById('result');
+  const medicineImage = document.getElementById('medicineImage');
+
+  // Map medicine names to image filenames
+const medicineImages = {
+  "Paracetamol 500mg": "images/Paracetamol.png",
+  "Ibuprofen 400mg": "images/Ibuprofen.png",         
+  "Panadol": "images/Panadol.png",
+  "Panadol Extend": "images/Panadol Extend.png",
+  "Clarinase": "images/Clarinase.png",
+  "Diphenhydramine": "images/Diphenhydramine.png",
+  "Cetirizine": "images/Cetirizine.png"
+};
+
+
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    resultBox.textContent = "Loading...";
+    resultBox.classList.remove('hidden');
+    medicineImage.classList.add('hidden');
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/predict', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+
+      if (result.recommended_medicine) {
+        const med = result.recommended_medicine;
+        resultBox.textContent = `Simulated Drug Match for This Patient Profile: ${med}`;
+        resultBox.classList.remove('bg-red-100', 'text-red-800');
+        resultBox.classList.add('bg-green-100', 'text-green-800');
+
+        if (medicineImages[med]) {
+          medicineImage.src = medicineImages[med];
+          medicineImage.classList.remove('hidden');
+        } else {
+          medicineImage.classList.add('hidden');
+        }
+
+      } else {
+        resultBox.textContent = `Error: ${result.error}`;
+        resultBox.classList.remove('bg-green-100', 'text-green-800');
+        resultBox.classList.add('bg-red-100', 'text-red-800');
+        medicineImage.classList.add('hidden');
+      }
+
+    } catch (error) {
+      resultBox.textContent = `Server error. Please try again later.`;
+      resultBox.classList.remove('bg-green-100', 'text-green-800');
+      resultBox.classList.add('bg-red-100', 'text-red-800');
+      medicineImage.classList.add('hidden');
+    }
+  });
+</script>
+</body>
+</html>

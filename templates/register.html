@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register - PharmaSim</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .center-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      min-height: 100vh;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    /* Avatar circle container */
+    .logo {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(255,255,255,0.4);
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      transition: opacity 1s ease-in-out;
+    }
+
+    .fade-out {
+      opacity: 0;
+    }
+
+    /* Typewriter effect */
+    .typewriter {
+      font-size: 1.1rem;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: 2px solid rgba(255,255,255,0.75);
+      animation: blink 0.75s step-end infinite;
+      max-width: 280px;
+      text-align: center;
+      min-height: 1.5em;
+      transition: opacity 0.4s ease-in-out;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes blink {
+      from, to { border-color: transparent }
+      50% { border-color: rgba(255,255,255,0.75) }
+    }
+
+    /* Glass card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      width: 350px;
+      max-width: 90vw;
+      text-align: center;
+      color: white;
+    }
+
+    .glass-input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      border: none;
+      border-radius: 10px;
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-size: 1rem;
+    }
+
+    .glass-input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .glass-btn {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1.5rem;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #16a34a, #10b981);
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .glass-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(16,185,129,0.6);
+    }
+
+    #msg {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="center-wrapper">
+    <!-- Avatar -->
+    <div class="logo">
+      <img id="avatar" src="/static/images/avatar1.png" alt="Avatar">
+    </div>
+
+    <!-- Typewriter text -->
+    <div id="typewriter" class="typewriter"></div>
+
+    <!-- Register card -->
+    <div class="glass-card">
+      <h1 class="text-2xl font-bold mb-4">Signup to PharmaSim</h1>
+      <form id="registerForm">
+        <input type="text" name="name" class="glass-input" placeholder="Full Name" required />
+        <input type="email" name="email" class="glass-input" placeholder="Email" required />
+        <input type="password" name="password" class="glass-input" placeholder="Password" required />
+        <button type="submit" class="glass-btn">Register</button>
+      </form>
+      <p id="msg"></p>
+      <p class="mt-4 text-sm">
+        Already have an account? 
+        <a href="/login" class="text-blue-400 hover:underline">Login here</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Avatar slideshow and typewriter
+    const avatars = [
+      "/static/images/avatar1.png",
+      "/static/images/avatar2.png",
+      "/static/images/avatar3.png"
+    ];
+    const texts = [
+      "Welcome to PharmaSim",
+      "Be a part of us",
+      "Explore the Smart Healthcare Solutions!"
+    ];
+
+    let currentIndex = 0;
+    const avatarEl = document.getElementById("avatar");
+    const typewriterEl = document.getElementById("typewriter");
+
+    function typeText(text, callback) {
+      typewriterEl.textContent = "";
+      let i = 0;
+      const interval = setInterval(() => {
+        typewriterEl.textContent += text.charAt(i);
+        i++;
+        if (i >= text.length) {
+          clearInterval(interval);
+          if (callback) callback();
+        }
+      }, 80);
+    }
+
+    function changeAvatar() {
+      avatarEl.classList.add("fade-out");
+      const nextIndex = (currentIndex + 1) % avatars.length;
+      const img = new Image();
+      img.src = avatars[nextIndex];
+      img.onload = () => {
+        setTimeout(() => {
+          currentIndex = nextIndex;
+          avatarEl.src = avatars[currentIndex];
+          avatarEl.classList.remove("fade-out");
+          typeText(texts[currentIndex]);
+        }, 1000);
+      };
+    }
+
+    typeText(texts[currentIndex]);
+    setInterval(changeAvatar, 4000);
+
+    // Form submission
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      try {
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (res.ok) {
+          document.getElementById("msg").textContent = "Registered! Redirecting...";
+          setTimeout(() => window.location.href = "/login", 1000);
+        } else {
+          document.getElementById("msg").textContent = json.error || "Registration failed";
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById("msg").textContent = "Server error";
+      }
+    });
+  </script>
+</body>
+</html>

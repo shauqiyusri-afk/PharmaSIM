@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PharmaSim AI — Enhanced Simulation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ------------------------- BODY & BACKGROUND ------------------------- */
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  padding-top: 2rem;
+  background-color: black;
+  overflow-x: hidden;
+}
+.bg-image {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -3;
+}
+.overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.35);
+  z-index: -2;
+}
+
+/* ------------------------- CARD LAYOUT ------------------------- */
+.card {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 1200px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  padding: 2rem;
+  animation: fadeIn 0.8s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+@keyframes fadeIn { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
+
+/* ------------------------- FORM ------------------------- */
+form label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  display: block;
+  color: white;
+}
+form input, form select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+}
+form input:focus, form select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79,70,229,0.2);
+}
+
+/* ------------------------- BUTTONS ------------------------- */
+.btn-main {
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin: 0.25rem 0;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.25s ease;
+}
+.btn-login { background-color:#4f46e5; color:white; }
+.btn-login:hover { background-color:white; color:#4f46e5; border-color:#4f46e5; transform:translateY(-2px) scale(1.05); }
+.btn-register { background-color:#10b981; color:white; }
+.btn-register:hover { background-color:white; color:#10b981; border-color:#10b981; transform:translateY(-2px) scale(1.05); }
+.btn-action { background-color:#f59e0b; color:white; }
+.btn-action:hover { background-color:#b45309; }
+
+/* ------------------------- OUTPUT PANEL ------------------------- */
+#outputPanel { display:none; margin-top:1rem; color:#1f2937; }
+
+/* ------------------------- TOP MATCHES ------------------------- */
+#matchesList > div {
+  background: rgba(255,255,255,0.75);
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.1);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+#matchesList > div:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* ------------------------- TABLE ------------------------- */
+table { width:100%; border-collapse:collapse; margin-top:1.5rem; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
+th, td { padding:0.75rem 1rem; text-align:left; border-bottom:1px solid #e5e7eb; }
+th { background:#e0e7ff; font-weight:600; }
+tbody tr:nth-child(even){ background:#f9fafb; }
+
+/* ------------------------- RADAR CHART ------------------------- */
+.radar-wrap { position: relative; height:320px; margin-top:2rem; }
+
+/* ------------------------- MATCH IMAGE ------------------------- */
+#matchedImageArea img { border-radius: 50%; width: 120px; height: 120px; object-fit: cover; margin-bottom: 0.5rem; transition: transform 0.3s; }
+#matchedImageArea img:hover { transform: scale(1.1); }
+#matchedImageArea {
+  display: flex;            /* make it a flex container */
+  justify-content: center;  /* center horizontally */
+  align-items: center;      /* center vertically if needed */
+  margin-bottom: 0.5rem;    /* spacing below */
+}
+
+/* ------------------------- RESPONSIVE ------------------------- */
+@media(max-width:1024px){ .card{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<img src="/static/images/bg_main.png" class="bg-image" alt="Background">
+<div class="overlay"></div>
+
+<!-- MAIN CARD -->
+<div class="card">
+
+  <!-- LEFT: FORM -->
+  <div>
+    <h1 class="text-2xl font-bold text-indigo-600 mb-4">Simulate New Drug</h1>
+    <form id="predictForm" class="space-y-2">
+      <div>
+        <label>Drug Name</label>
+        <input name="drug_name" required placeholder="e.g. MyPainRelief">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label>Race</label>
+          <select name="race" required>
+            <option value="">--Select--</option>
+            <option>Malay</option>
+            <option>Chinese</option>
+            <option>Indian</option>
+            <option>Indigenous</option>
+          </select>
+        </div>
+        <div>
+          <label>Gender</label>
+          <select name="gender" required>
+            <option value="">--Select--</option>
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label>Age</label>
+          <input name="age" type="number" min="0" required>
+        </div>
+        <div>
+  <label class="block mb-2">Concentration (mg/mL)</label>
+  <input name="concentration" id="concentration" type="number" step="any" min="0" placeholder="e.g. 5"
+    class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
+</div>
+<div class="grid grid-cols-2 gap-4">
+  <div>
+    <label class="block mb-2">Dosage (mg)</label>
+    <input name="dosage_mg" id="dosageMg" type="number" step="any" min="0" placeholder="e.g. 500" 
+      class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
+  </div>
+  <div>
+    <label class="block mb-2">Dosage (mL)</label>
+    <input name="dosage_ml" id="dosageMl" type="number" step="any" min="0" placeholder="auto-calculated" 
+      class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
+  </div>
+</div>
+      </div>
+<div>
+  <label>Target Symptom / Disease</label>
+  <select name="target_symptom" id="targetSymptom" required>
+    <option value="">--Select--</option>
+    <!-- General conditions -->
+    <option>Fever</option>
+    <option>Cough</option>
+    <option>Headache</option>
+    <option>Flu</option>
+    <option>Sore Throat</option>
+    
+    <!-- Oncology conditions -->
+    <option>Colon Cancer</option>
+    <option>Breast Cancer</option>
+    <option>Breast Cancer (HER2+)</option>
+    <option>Lung Cancer</option>
+    <option>Leukemia</option>
+    <option>Lymphoma</option>
+    <option>Pancreatic Cancer</option>
+    <option>Melanoma</option>
+  </select>
+</div>
+
+<div>
+  <label>Line of Treatment</label>
+  <select name="line_of_treatment" id="lineOfTreatment" required>
+    <option value="General">General</option>
+    <option value="First-Line">First-Line</option>
+    <option value="Second-Line">Second-Line</option>
+    <option value="Targeted">Targeted</option>
+  </select>
+</div>
+
+<!-- HEALTH CONDITION DROPDOWN -->
+<div class="mt-4">
+  <label class="block mb-2 text-white">Health Condition</label>
+  <select name="health_condition" class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300 text-black">
+    <option value="">-- Select --</option>
+    <option value="none">None</option>
+    <option value="liver_disease">Liver Disease</option>
+    <option value="kidney_disease">Kidney Disease</option>
+    <option value="asthma">Asthma</option>
+    <option value="heart_disease">Heart Disease</option>
+    <option value="hypertension">Hypertension</option>
+    <option value="pregnancy">Pregnancy</option>
+    <option value="glaucoma">Glaucoma</option>
+    <option value="elderly">Elderly (Sedation Risk)</option>
+  </select>
+</div>
+      <div>
+        <label>Ingredients <span class="text-xs text-gray-500">(separate with ;)</span></label>
+        <input name="ingredients" placeholder="e.g. Paracetamol;Caffeine" required>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-2">
+        <button type="submit" class="btn-main btn-login flex-1">Simulate</button>
+        <button type="button" id="clearBtn" class="btn-main btn-register">Clear</button>
+      </div>
+      <p id="runMessage" class="text-sm text-gray-200 mt-1"></p>
+    </form>
+  </div>
+
+  <!-- RIGHT: OUTPUT PANEL -->
+  <div id="outputPanel" class="space-y-4">
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-green-700">Simulation Result</h2>
+      <div id="badge" class="text-sm text-white font-medium"></div>
+    </div>
+
+    <div class="flex gap-4 flex-wrap">
+      <div>
+        <p class="text-sm text-white">Effectiveness</p>
+        <div id="effectiveness" class="text-lg font-bold text-green-800">—</div>
+      </div>
+      <div>
+        <p class="text-sm text-white">Side Effect Risk</p>
+        <div id="sideEffect" class="text-lg font-semibold text-yellow-700">—</div>
+      </div>
+      <div>
+        <p class="text-sm text-white">Success Rate</p>
+        <div id="successRate" class="text-lg font-semibold text-blue-700">—</div>
+      </div>
+    </div>
+
+    <div id="bestMatchBox" class="mt-4 p-3 border rounded bg-gray-50 text-sm"></div>
+
+    <div class="mt-2">
+        <p class="text-sm text-white font-semibold">Why These Predictions?</p>
+        <div id="newDrugReasons" class="text-sm text-gray-200 space-y-1"></div>
+    </div>
+
+    <div>
+      <p class="text-sm text-white">Likely Side Effects</p>
+      <div id="specificSideEffects" class="text-sm text-white">—</div>
+    </div>
+
+    <div id="matchInfo" class="p-3 rounded border border-gray-200 bg-gray-50">
+      <div id="matchMessage" class="text-black font-bold mt-4"></div>
+    </div>
+
+    <div>
+      <h3 class="text-md font-medium text-white mb-2">Top Matches</h3>
+      <div id="matchesList" class="space-y-2"></div>
+    </div>
+
+    <div class="text-center">
+      <div id="matchedImageArea" class="mb-2"></div>
+      <div id="matchedName" class="text-sm font-semibold text-white"></div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="table-auto w-full text-sm text-left text-gray-600">
+        <thead class="bg-blue-50">
+          <tr>
+            <th class="px-3 py-2">Attribute</th>
+            <th class="px-3 py-2">New Drug</th>
+            <th class="px-3 py-2">Known Medicine</th>
+          </tr>
+        </thead>
+        <tbody id="comparisonTableBody" class="align-top"></tbody>
+      </table>
+    </div>
+
+    <div class="radar-wrap">
+      <canvas id="radarChart"></canvas>
+    </div>
+
+    <!-- 🔧 Explanation Section -->
+    <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
+      <h3 class="text-lg font-semibold mb-2">Explanation</h3>
+    <div id="explanationText" class="text-sm leading-relaxed"></div>
+    </div>
+
+
+    <div class="mt-4 text-center">
+      <button id="downloadPDF" class="btn-action">Download as PDF</button>
+    </div>
+  </div>
+</div>
+<script>
+
+const concInput = document.getElementById("concentration");
+const mgInput = document.getElementById("dosageMg");
+const mlInput = document.getElementById("dosageMl");
+
+function updateFromMg() {
+  const conc = parseFloat(concInput.value);
+  const mg = parseFloat(mgInput.value);
+  if (!isNaN(conc) && conc > 0 && !isNaN(mg)) {
+    mlInput.value = (mg / conc).toFixed(2);
+  }
+}
+
+function updateFromMl() {
+  const conc = parseFloat(concInput.value);
+  const ml = parseFloat(mlInput.value);
+  if (!isNaN(conc) && conc > 0 && !isNaN(ml)) {
+    mgInput.value = (ml * conc).toFixed(2);
+  }
+}
+
+mgInput.addEventListener("input", updateFromMg);
+mlInput.addEventListener("input", updateFromMl);
+concInput.addEventListener("input", () => {
+  if (mgInput.value) updateFromMg();
+  else if (mlInput.value) updateFromMl();
+});
+
+// ------------------------- IMAGE MAP (added) -------------------------
+// Exact filename mapping for /static/images/*.png
+const imageMap = {
+  // OTC
+  "Paracetamol": "Paracetamol.png",
+  "Panadol": "Panadol.png",
+  "Panadol Extend": "Panadol_Extend.png",
+  "Ibuprofen": "Ibuprofen.png",
+  "Clarinase": "Clarinase.png",
+  "Cetirizine": "Cetirizine.png",
+  "Diphenhydramine": "Diphenhydramine.png",
+  "Aspirin": "Aspirin.png",
+  "Naproxen": "Naproxen.png",
+  "Dextromethorphan_Guaifenesin": "Dextromethorphan_Guaifenesin.png",
+  "Pseudoephedrine": "Pseudoephedrine.png",
+  "Loratadine": "Loratadine.png",
+  "Mefenamic_Acid": "Mefenamic_Acid.png",
+
+  // Oncology (expanded)
+  "5-FU + Leucovorin": "5FU_Leucovorin.png",
+  "FOLFOX (Oxaliplatin + 5-FU + Leucovorin)": "FOLFOX.png",
+  "FOLFIRI (Irinotecan + 5-FU + Leucovorin)": "FOLFIRI.png",
+  "Gemcitabine": "Gemcitabine.png",
+  "Paclitaxel": "Paclitaxel.png",
+  "Doxorubicin": "Doxorubicin.png",
+  "Cyclophosphamide": "Cyclophosphamide.png",
+  "Methotrexate": "Methotrexate.png",
+  "Cisplatin": "Cisplatin.png",
+  "Carboplatin": "Carboplatin.png",
+  "Imatinib": "Imatinib.png",
+  "Trastuzumab": "Trastuzumab.png",
+  "Bevacizumab": "Bevacizumab.png",
+  "Nivolumab": "Nivolumab.png",
+  "Pembrolizumab": "Pembrolizumab.png",
+
+  // fallback
+  "Generic": "Generic.png"
+};
+
+
+// Utility: build image path from medicine name
+function imagePathFor(medName) {
+  if (!medName) return "/static/images/Generic.png";
+
+  // 1) exact map (best)
+  if (imageMap[medName]) return `/static/images/${imageMap[medName]}`;
+
+  // 2) try with spaces -> underscores (e.g., "Panadol Extend" -> "Panadol_Extend.png")
+  const underscoreName = medName.replace(/\s+/g, "_");
+  return `/static/images/${underscoreName}.png`;
+}
+
+// ------------------------- TYPEWRITER HEADER (kept) -------------------------
+const header = document.querySelector('.typewriter');
+if (header) { header.classList.add('typing'); }
+
+// ------------------------- FORM LOGIC (kept) -------------------------
+const form = document.getElementById('predictForm');
+const outputPanel = document.getElementById('outputPanel');
+const runMessage = document.getElementById('runMessage');
+const effectivenessEl = document.getElementById('effectiveness');
+const sideEffectEl = document.getElementById('sideEffect');
+const successRateEl = document.getElementById('successRate');
+const specificSideEffectsEl = document.getElementById('specificSideEffects');
+const matchesList = document.getElementById('matchesList');
+const matchMessage = document.getElementById('matchMessage');
+const matchedImageArea = document.getElementById('matchedImageArea');
+const matchedName = document.getElementById('matchedName');
+const comparisonTableBody = document.getElementById('comparisonTableBody');
+const badge = document.getElementById('badge');
+const clearBtn = document.getElementById('clearBtn');
+let radarChartInstance = null;
+
+clearBtn.addEventListener('click', () => {
+  form.reset();
+  outputPanel.style.display = 'none';
+  runMessage.textContent = '';
+  matchesList.innerHTML = '';
+  matchMessage.textContent = '';
+  matchedImageArea.innerHTML = '';
+  matchedName.textContent = '';
+  comparisonTableBody.innerHTML = '';
+  if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
+});
+
+// Auto-set Line of Treatment based on disease
+const targetSymptomEl = document.getElementById('targetSymptom');
+const lineOfTreatmentEl = document.getElementById('lineOfTreatment');
+
+const autoTreatmentMap = {
+  // ---- Oncology ----
+  "Breast Cancer (HER2+)": "Targeted",   // HER2+ → Trastuzumab / targeted therapy
+  "Breast Cancer": "First-Line",         // first-line chemo (Anthracycline/Taxane)
+  "Colon Cancer": "First-Line",          // FOLFOX/FOLFIRI
+  "Lung Cancer": "First-Line",           // platinum doublet
+  "Leukemia": "Targeted",                // Imatinib, TKIs
+  "Lymphoma": "First-Line",              // R-CHOP (curative intent)
+  "Pancreatic Cancer": "Second-Line",    // gemcitabine → second-line FOLFIRINOX
+  "Melanoma": "Targeted",                // BRAF/MEK or PD-1 inhibitors
+
+  // ---- General Primary Care ----
+  "Fever": "General",
+  "Cough": "General",
+  "Headache": "General",
+  "Flu": "General",
+  "Sore Throat": "General"
+};
+
+
+targetSymptomEl.addEventListener('change', () => {
+  const selected = targetSymptomEl.value;
+  if (autoTreatmentMap[selected]) {
+    lineOfTreatmentEl.value = autoTreatmentMap[selected];
+  } else {
+    lineOfTreatmentEl.value = "General";
+  }
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  runMessage.textContent = 'Sending to server...';
+  outputPanel.style.display = 'none';
+  matchesList.innerHTML = '';
+  matchMessage.textContent = '';
+  matchedImageArea.innerHTML = '';
+  matchedName.textContent = '';
+  comparisonTableBody.innerHTML = '';
+  if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
+
+  // Collect form data
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+
+// new
+const selectedCondition = formData.get("health_condition");
+data.health_conditions = selectedCondition && selectedCondition !== "none" 
+    ? [selectedCondition] 
+    : [];
+
+try {
+  const res = await fetch('/predict', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  
+  const result = await res.json();
+  if (res.status !== 200) { 
+    runMessage.textContent = result.error || 'Server returned an error'; 
+    return; 
+  }
+  runMessage.textContent = '';
+  outputPanel.style.display = 'block';
+
+  // Always show numbers in the top section
+  effectivenessEl.textContent = (result.predicted_effectiveness ?? '-') + '%';
+  sideEffectEl.textContent = result.predicted_side_effect_risk ?? '-';
+  successRateEl.textContent = (result.predicted_success_rate ?? '-') + '%';
+
+  // --- Show explanations in the reasons box ---
+  const reasonsBox = document.getElementById("newDrugReasons");
+  reasonsBox.innerHTML = "";
+
+  if (result.new_drug_note) {
+    const warn = document.createElement("div");
+    warn.className = "bg-red-100 text-red-800 rounded px-2 py-1 text-sm";
+    warn.textContent = result.new_drug_note;
+    reasonsBox.appendChild(warn);
+  }
+
+  if (result.new_drug_explanations) {
+  result.new_drug_explanations.forEach(msg => {
+    if (msg && msg.trim() !== "") {
+      const div = document.createElement("div");
+      div.textContent = "• " + msg;
+      reasonsBox.appendChild(div);
+    }
+  });
+}
+
+    // If backend gives detailed explanations (effectiveness, side effects, success rate)
+  if (result.explanations) {
+    const exp = result.explanations;
+    const html = `
+      <p><b>Effectiveness:</b> ${exp.effectiveness || '-'}</p>
+      <p><b>Side Effects:</b> ${exp.side_effects || '-'}</p>
+      <p><b>Success Rate:</b> ${exp.success_rate || '-'}</p>
+    `;
+    reasonsBox.innerHTML += html;
+  }
+
+  // ---- 🔥 Show best match & escalation note ----
+const matchBox = document.getElementById("bestMatchBox");
+if (matchBox) {
+  matchBox.innerHTML = `
+    <h3 class="text-lg font-semibold mb-1">Best Match</h3>
+    <p><b>Medicine:</b> ${result.best_match?.medicine_name || "No match found"}</p>
+    <p><b>Similarity Score:</b> ${result.best_match?.percent ?? 0}%</p>
+    ${result.escalation_applied ? `<p class="text-yellow-600"><b>Note:</b> Escalated to ${result.input_summary.line_of_treatment}</p>` : ""}
+  `;
+}
+
+// Also update the badge and matchMessage:
+if (result.strong_match && result.best_match) {
+  badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent ?? 0}%)`;
+  matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent ?? 0}% similarity.`;
+} else {
+  badge.textContent = 'No strong match';
+  matchMessage.textContent = result.message || 'No strong match found.';
+}
+
+
+//if (Array.isArray(result.new_drug_explanations) && result.new_drug_explanations.length) {//
+//  result.new_drug_explanations.forEach(exp => {
+//    const li = document.createElement("div");
+//    li.textContent = "• " + exp;
+//    reasonsBox.appendChild(li);
+//  });
+//}
+    specificSideEffectsEl.textContent = result.predicted_specific_side_effects ?? '-';
+
+    if (result.strong_match && result.best_match) {
+      badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent}%)`;
+      matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent}% similarity.`;
+    } else {
+      badge.textContent = 'No strong match';
+      matchMessage.textContent = result.message || 'No strong match found.';
+    }
+
+    // ---- Top matches list ----
+    (result.top_matches || []).forEach(m => {
+      const card = document.createElement('div');
+      card.innerHTML = `
+        <div class="text-sm font-semibold">
+          ${m.medicine_name} <span class="text-xs text-gray-500">(${m.target_symptom})</span>
+        </div>
+        <div class="text-xs text-gray-600">Match: <strong>${m.percent}%</strong></div>
+        <div class="text-xs text-gray-600"><strong>Active:</strong> ${(m.ingredients_active || []).join(', ') || '-'}</div>
+        <div class="text-xs text-gray-600"><strong>Inactive:</strong> ${(m.ingredients_inactive || []).join(', ') || '-'}</div>
+        <div class="text-xs text-gray-600"><strong>Known side effects:</strong> ${m.known_side_effects || '-'}</div>
+      `;
+      matchesList.appendChild(card);
+    });
+
+    // ---- Matched Image + Name ----
+    const best = result.best_match || (result.top_matches && result.top_matches[0]);
+    if (best) {
+      const img = document.createElement('img');
+      img.alt = best.medicine_name;
+      img.src = imagePathFor(best.medicine_name);
+      img.onerror = () => img.src = '/static/images/Generic.png';
+      matchedImageArea.appendChild(img);
+      matchedName.textContent = best.medicine_name;
+
+      // ---- Comparison Table ----
+      const newDrug = {
+    drug_name: data.drug_name,
+    ingredients: data.ingredients,
+    dosage_mg: data.dosage_mg || data.dosageMg || '-',  // fallback to mg input
+    line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-', // include line of treatment
+    target_symptom: data.target_symptom,
+    health_condition: data.health_conditions || [],
+    effectiveness: result.predicted_effectiveness,
+    success_rate: result.predicted_success_rate,
+    side_effect_risk: result.predicted_side_effect_risk,
+    specific_side_effects: result.predicted_specific_side_effects
+};
+
+      const rows = [
+        ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
+        ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
+        ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
+        ['Health Condition', (newDrug.health_condition || []).toString() || '-', best.health_condition || '-'],
+        ['Ingredients',
+          newDrug.ingredients || '-',
+          (((best.ingredients_active || []).join(', ')) +
+           (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
+          ) || '-'
+        ],
+        ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
+        ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
+        ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
+        ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
+        ['Likely Side Effects', newDrug.specific_side_effects || '-', best.known_side_effects || '-']
+      ];
+      rows.forEach(([label, a, b]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-3 py-2 font-semibold">${label}</td>
+          <td class="px-3 py-2">${a}</td>
+          <td class="px-3 py-2">${b}</td>
+        `;
+        comparisonTableBody.appendChild(tr);
+      });
+
+      // ---- Radar Chart ----
+      const safetyMap = { 'Low': 100, 'Medium': 50, 'High': 10 };
+      const ndEffect = Number(newDrug.effectiveness) || 0;
+      const ndSuccess = Number(newDrug.success_rate) || 0;
+      const ndSafety = safetyMap[newDrug.side_effect_risk] ?? 0;
+      const ndDosageScaled = Math.min(100, Number(newDrug.dosage_mg) || 0) / 10;
+      const ndIngCount = (newDrug.ingredients || '').split(';').filter(x => x.trim()).length * 10;
+
+      const knEffect = Number(best.effectiveness) || 0;
+      const knSuccess = Number(best.success_rate) || 0;
+      const knSafety = safetyMap[best.side_effect_risk] ?? 0;
+      const knDosageScaled = Math.min(100, Number(best.dosage_mg) || 0) / 10;
+      const knIngCount = (best.ingredients_active || []).length * 10;
+
+      const ctx = document.getElementById('radarChart').getContext('2d');
+      if (radarChartInstance) radarChartInstance.destroy();
+      radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['Effectiveness', 'Success', 'Safety', 'Dosage', '#Ingredients'],
+          datasets: [
+            {
+              label: 'New Drug',
+              data: [ndEffect, ndSuccess, ndSafety, ndDosageScaled, ndIngCount],
+              backgroundColor: 'rgba(79,70,229,0.2)',
+              borderColor: '#4f46e5',
+              pointBackgroundColor: '#4f46e5',
+              fill: true,
+              borderWidth: 2
+            },
+            {
+              label: 'Known Medicine',
+              data: [knEffect, knSuccess, knSafety, knDosageScaled, knIngCount],
+              backgroundColor: 'rgba(16,185,129,0.2)',
+              borderColor: '#10b981',
+              pointBackgroundColor: '#10b981',
+              fill: true,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { color: 'white' } } },
+          scales: {
+            r: {
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: { stepSize: 20, color: '#6b7280', backdropColor: 'transparent' },
+              angleLines: { color: '#d1d5db' },
+              grid: { color: '#e5e7eb' },
+              pointLabels: { color: 'white', font: { size: 12 } }
+            }
+          }
+        }
+      });
+    }
+
+  } catch (err) {
+    console.error(err);
+    runMessage.textContent = 'Server Error';
+  }
+});
+
+// ------------------------- PDF DOWNLOAD (kept) -------------------------
+document.getElementById('downloadPDF').addEventListener('click', async () => {
+  const { jsPDF } = window.jspdf;
+  const section = document.getElementById('outputPanel');
+  const btn = document.getElementById('downloadPDF');
+  btn.style.display = 'none';
+  const canvas = await html2canvas(section, { scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth - 20;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  let heightLeft = imgHeight;
+  let position = 10;
+  pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight - 20;
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight + 10;
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight - 20;
+  }
+  pdf.save(`simulation_result_${Date.now()}.pdf`);
+  btn.style.display = 'block';
+});
+</script>
+</body>
+</html>

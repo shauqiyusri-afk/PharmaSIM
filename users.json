@@ -1,0 +1,10 @@
+{
+  "shauqiyusri@gmail.com": {
+    "name": "MUHAMMAD HAFIZ SHAUQI BIN MOHD YUSRI",
+    "password_hash": "pbkdf2:sha256:260000$quvdhSk9DENgRTwC$690a4e83c39c365059c38a03b5b78266d1337fccdb6ada381f3031dfe3845a90"
+  },
+  "fatimahazzahrahrazali@gmail.com": {
+    "name": "Fatimah Azzahrah",
+    "password_hash": "pbkdf2:sha256:260000$9T7QSDtUafKMItxz$e6136d510e24f0df3e4562703de7ff6e782227666c4c5b2e390b71954145349c"
+  }
+}

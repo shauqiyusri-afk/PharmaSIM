@@ -1,0 +1,91 @@
+{
+  "Paracetamol": {
+    "active": ["Paracetamol"],
+    "inactive": []
+  },
+  "Panadol": {
+    "active": ["Paracetamol"],
+    "inactive": ["Caffeine"]
+  },
+  "Panadol Extend": {
+    "active": ["Paracetamol"],
+    "inactive": []
+  },
+  "Ibuprofen": {
+    "active": ["Ibuprofen"],
+    "inactive": []
+  },
+  "Clarinase": {
+    "active": ["Loratadine", "Pseudoephedrine"],
+    "inactive": []
+  },
+  "Cetirizine": {
+    "active": ["Cetirizine"],
+    "inactive": []
+  },
+  "Diphenhydramine": {
+    "active": ["Diphenhydramine"],
+    "inactive": []
+  },
+
+  "5-FU + Leucovorin": {
+    "active": ["Fluorouracil", "Leucovorin"],
+    "inactive": []
+  },
+  "FOLFOX (Oxaliplatin + 5-FU + Leucovorin)": {
+    "active": ["Oxaliplatin", "Fluorouracil", "Leucovorin"],
+    "inactive": []
+  },
+  "FOLFIRI (Irinotecan + 5-FU + Leucovorin)": {
+    "active": ["Irinotecan", "Fluorouracil", "Leucovorin"],
+    "inactive": []
+  },
+  "Gemcitabine": {
+    "active": ["Gemcitabine"],
+    "inactive": []
+  },
+  "Paclitaxel": {
+    "active": ["Paclitaxel"],
+    "inactive": ["Cremophor EL"]
+  },
+  "Doxorubicin": {
+    "active": ["Doxorubicin"],
+    "inactive": ["Lactose", "Citric Acid"]
+  },
+  "Cyclophosphamide": {
+    "active": ["Cyclophosphamide"],
+    "inactive": []
+  },
+  "Methotrexate": {
+    "active": ["Methotrexate"],
+    "inactive": []
+  },
+  "Cisplatin": {
+    "active": ["Cisplatin"],
+    "inactive": ["Sodium Chloride", "Mannitol"]
+  },
+  "Carboplatin": {
+    "active": ["Carboplatin"],
+    "inactive": []
+  },
+  "Imatinib": {
+    "active": ["Imatinib"],
+    "inactive": []
+  },
+  "Trastuzumab": {
+    "active": ["Trastuzumab"],
+    "inactive": []
+  },
+  "Bevacizumab": {
+    "active": ["Bevacizumab"],
+    "inactive": []
+  },
+  "Nivolumab": {
+    "active": ["Nivolumab"],
+    "inactive": []
+  },
+  "Pembrolizumab": {
+    "active": ["Pembrolizumab"],
+    "inactive": []
+  }
+}

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome - PharmaSim</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+      background-color: black;
+    }
+    .bg-image {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -3;
+    }
+    .overlay {
+      background-color: transparent;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+    }
+
+    /* Bouncing Logo */
+    #dvdLogo {
+      position: fixed;
+      width: 80px;
+      height: auto;
+      z-index: 6;
+      cursor: pointer;
+    }
+
+    /* Smooth rainbow trail */
+    .trail {
+      position: fixed;
+      width: 100px;       /* wider trail */
+      height: 18px;       /* thicker trail */
+      background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+      filter: blur(8px);
+      opacity: 0.85;
+      border-radius: 9px;
+      pointer-events: none;
+      z-index: 5;
+      transform-origin: center;
+    }
+
+    .hero-card {
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.15);
+      padding: 2.5rem;
+      border-radius: 1rem;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      animation: fadeInUp 0.9s ease-out;
+      max-width: 460px;
+      width: 100%;
+      z-index: 10;
+    }
+    @keyframes fadeInUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .slide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      text-align: center;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0;
+      animation: fadeLogo 16s infinite;
+    }
+    .slide img {
+      max-width: 220px;
+      width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .slide:nth-child(1) { animation-delay: 0s; }
+    .slide:nth-child(2) { animation-delay: 4s; }
+    .slide:nth-child(3) { animation-delay: 8s; }
+    .slide:nth-child(4) { animation-delay: 12s; }
+
+    @keyframes fadeLogo {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+      5% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      25% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      30% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    }
+    .typewriter {
+      color: white;
+      font-size: 1.2rem;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: 2px solid white;
+      width: 0;
+      margin-top: 0.5rem;
+    }
+    .typing {
+      animation: typing 2s steps(30, end) forwards, blink 0.8s infinite step-end alternate;
+    }
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+    .btn-main {
+      padding: 0.75rem 1.5rem;
+      border-radius: 9999px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin: 0.5rem;
+      transition: all 0.25s ease;
+      border: 2px solid transparent;
+    }
+    .btn-login {
+      background-color: #2563eb;
+      color: white;
+    }
+    .btn-login:hover {
+      background-color: white;
+      color: #2563eb;
+      border-color: #2563eb;
+      transform: translateY(-3px) scale(1.05);
+    }
+    .btn-register {
+      background-color: #16a34a;
+      color: white;
+    }
+    .btn-register:hover {
+      background-color: white;
+      color: #16a34a;
+      border-color: #16a34a;
+      transform: translateY(-3px) scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <img src="/static/images/bg_main.png" alt="Background" class="bg-image">
+  <div class="overlay"></div>
+
+  <!-- Bouncing Logo -->
+  <img src="/static/images/a_logo.png" alt="DVD Logo" id="dvdLogo">
+
+  <div class="hero-card relative">
+    <div class="logo-container mx-auto mb-4" style="position: relative; height: 200px;">
+      <div class="slide">
+        <img src="/static/images/logo1.png" alt="PharmaSim AI Logo">
+        <div class="typewriter">Hello Welcome to PharmaSim</div>
+      </div>
+      <div class="slide">
+        <img src="/static/images/logo2.png" alt="Logo 2">
+        <div class="typewriter">Your AI Pharma Assistant here!</div>
+      </div>
+      <div class="slide">
+        <img src="/static/images/logo3.png" alt="Logo 3">
+        <div class="typewriter">Future Smart Solutions for Healthcare</div>
+      </div>
+      <div class="slide">
+        <img src="/static/images/logo4.png" alt="Logo 4">
+        <div class="typewriter">Powered by AI Technology</div>
+      </div>
+    </div>
+
+    <h1 class="text-white text-3xl font-bold mb-3">Welcome to PharmaSim</h1>
+    <p class="text-gray-200 mb-6">
+      Your AI-powered drug simulation & comparison tool.<br/>
+      Predict effectiveness, side effects, & match with real medicines instantly.
+    </p>
+    <div>
+      <a href="/login" class="btn-main btn-login inline-block">Login</a>
+      <a href="/register" class="btn-main btn-register inline-block">Register</a>
+    </div>
+  </div>
+
+  <script>
+    // Typewriter per slide
+    const slides = document.querySelectorAll('.slide');
+    let currentIndex = 0;
+    function showSlide(index) {
+      slides.forEach((slide, i) => {
+        const textEl = slide.querySelector('.typewriter');
+        textEl.classList.remove('typing');
+        if (i === index) {
+          setTimeout(() => {
+            void textEl.offsetWidth; 
+            textEl.classList.add('typing');
+          }, 500);
+        }
+      });
+    }
+    showSlide(currentIndex);
+    setInterval(() => {
+      currentIndex = (currentIndex + 1) % slides.length;
+      showSlide(currentIndex);
+    }, 4000);
+
+    // Continuous smooth rainbow trail
+    const dvd = document.getElementById('dvdLogo');
+    let x = 100, y = 100;
+    let dx = 2, dy = 2;
+    let speedBoost = false;
+
+    const trails = [];
+    const trailCount = 25; // more segments for smoothness
+    for (let i = 0; i < trailCount; i++) {
+      const t = document.createElement('div');
+      t.className = 'trail';
+      document.body.appendChild(t);
+      trails.push({ el: t, x: 0, y: 0, life: i }); // staggered start
+    }
+
+    function animateDVD() {
+      const vw = window.innerWidth - dvd.clientWidth;
+      const vh = window.innerHeight - dvd.clientHeight;
+
+      x += dx;
+      y += dy;
+
+      if (x <= 0 || x >= vw) dx *= -1;
+      if (y <= 0 || y >= vh) dy *= -1;
+
+      dvd.style.left = x + 'px';
+      dvd.style.top = y + 'px';
+
+      // Update trails
+      trails.forEach((t, i) => {
+        if (i === 0) {
+          t.x = x;
+          t.y = y;
+        } else {
+          const prev = trails[i - 1];
+          t.x += (prev.x - t.x) * 0.4; // smooth follow
+          t.y += (prev.y - t.y) * 0.4;
+        }
+
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        t.el.style.left = (t.x + dvd.width / 2 - 50) + 'px';
+        t.el.style.top = (t.y + dvd.height / 2 - 9) + 'px';
+        t.el.style.transform = `rotate(${angle}deg) scale(${1 - i / trailCount})`;
+        t.el.style.opacity = 0.85 * (1 - i / trailCount);
+      });
+
+      requestAnimationFrame(animateDVD);
+    }
+
+    // Click for speed boost
+    dvd.addEventListener('click', () => {
+      if (!speedBoost) {
+        dx *= 4;
+        dy *= 4;
+        speedBoost = true;
+        setTimeout(() => {
+          dx /= 4;
+          dy /= 4;
+          speedBoost = false;
+        }, 1000);
+      }
+    });
+
+    animateDVD();
+  </script>
+</body>
+</html>

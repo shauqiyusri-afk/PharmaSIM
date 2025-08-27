@@ -1,0 +1,7 @@
+race,gender,age,symptom,recommended_medicine,effectiveness_score,side_effect_risk,common_side_effects
+Malay,Male,25,Fever,Paracetamol,85,Low,none
+Chinese,Female,45,Cough,Clarinase,78,Medium,drowsiness
+Indian,Female,35,Headache,Ibuprofen 400mg,80,High,"stomach upset; dizziness"
+Malay,Male,60,Body Pain,Panadol Extend,75,Medium,nausea
+Indigenous,Male,30,Flu,Cetirizine,70,Low,dry mouth
+Chinese,Female,52,Sore Throat,Diphenhydramine,65,High,"sleepiness; dry throat"

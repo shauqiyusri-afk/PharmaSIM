@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - PharmaSim AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #0d0d0d);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .center-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Avatar circle container */
+    .logo {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(255,255,255,0.4);
+    }
+
+    /* Avatar image (fades smoothly) */
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      transition: opacity 1s ease-in-out;
+    }
+
+    .fade-out {
+      opacity: 0;
+    }
+
+    /* Typewriter effect */
+    .typewriter {
+      font-size: 1.1rem;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      max-width: 250px;
+      text-align: center;
+      min-height: 1.5em;
+      transition: opacity 0.4s ease-in-out;
+    }
+
+    /* Glass card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      width: 350px;
+      text-align: center;
+      color: white;
+    }
+
+    .glass-input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      border: none;
+      border-radius: 10px;
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      font-size: 1rem;
+    }
+
+    .glass-input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .glass-btn {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1.5rem;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #ff0080, #7928ca);
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .glass-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(255, 0, 128, 0.6);
+    }
+
+    #msg {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="center-wrapper">
+    <!-- Logo container -->
+    <div class="logo">
+      <img id="avatar" src="/static/images/avatar1.png" alt="Avatar">
+    </div>
+
+    <!-- Typewriter text -->
+    <div id="typewriter" class="typewriter"></div>
+
+    <!-- Login card -->
+    <div class="glass-card">
+      <h1 class="text-2xl font-bold mb-4">Login</h1>
+      <form id="loginForm">
+        <input type="email" name="email" class="glass-input" placeholder="Email" required />
+        <input type="password" name="password" class="glass-input" placeholder="Password" required />
+        <button type="submit" class="glass-btn">Login</button>
+      </form>
+      <p id="msg"></p>
+    </div>
+  </div>
+
+  <script>
+    // Avatar slideshow
+    const avatars = [
+      "/static/images/avatar1.png",
+      "/static/images/avatar2.png",
+      "/static/images/avatar3.png"
+    ];
+    const texts = [
+      "Welcome back to PharmaSim",
+      "Your AI Pharma Assistant here!",
+      "Future Smart Solutions for Healthcare"
+    ];
+
+    let currentIndex = 0;
+    const avatarEl = document.getElementById("avatar");
+    const typewriterEl = document.getElementById("typewriter");
+
+    function typeText(text, callback) {
+      typewriterEl.textContent = "";
+      let i = 0;
+      const interval = setInterval(() => {
+        typewriterEl.textContent += text.charAt(i);
+        i++;
+        if (i >= text.length) {
+          clearInterval(interval);
+          if (callback) callback();
+        }
+      }, 80);
+    }
+
+    function changeAvatar() {
+      avatarEl.classList.add("fade-out");
+
+      const nextIndex = (currentIndex + 1) % avatars.length;
+      const img = new Image();
+      img.src = avatars[nextIndex];
+      img.onload = () => {
+        setTimeout(() => {
+          currentIndex = nextIndex;
+          avatarEl.src = avatars[currentIndex];
+          avatarEl.classList.remove("fade-out");
+          typeText(texts[currentIndex]);
+        }, 1000);
+      };
+    }
+
+    // Start slideshow
+    typeText(texts[currentIndex]);
+    setInterval(changeAvatar, 4000);
+
+    // Login functionality
+    const loginForm = document.getElementById("loginForm");
+    const msgEl = document.getElementById("msg");
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(loginForm);
+      const data = Object.fromEntries(formData.entries());
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        const json = await res.json();
+
+        if (res.ok) {
+          localStorage.setItem("authToken", json.token);
+          if (json.user && json.user.name) {
+            localStorage.setItem("userName", json.user.name);
+          }
+          msgEl.style.color = "lightgreen";
+          msgEl.textContent = "Wait for a moment...";
+          setTimeout(() => {
+            window.location.href = "/app";
+          }, 500);
+        } else {
+          msgEl.style.color = "salmon";
+          msgEl.textContent = json.error || "Login failed.";
+        }
+      } catch (err) {
+        msgEl.style.color = "salmon";
+        msgEl.textContent = "Server error. Please try again.";
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+race,gender,age,target_symptom,ingredients,dosage_mg,known_effectiveness,side_effect_risk,success_rate,specific_side_effects
+Malay,Male,25,Headache,Acetaminophen;Caffeine,500,85,Low,90,Dry mouth;Dizziness
+Chinese,Female,30,Cough,Dextromethorphan;Guaifenesin,300,75,Medium,80,Nausea;Dry cough
+Indian,Male,45,Fever,Paracetamol;Ibuprofen,600,88,Low,85,Stomach upset;Rash
+Indigenous,Female,35,Flu,Chlorpheniramine;Pseudoephedrine,400,82,High,70,Drowsiness;Blurred vision
+Malay,Female,50,Sore Throat,Clarithromycin,500,89,Medium,88,Diarrhea;Headache

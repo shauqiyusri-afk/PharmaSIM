@@ -1,0 +1,5 @@
+drug_name,race,gender,age,target_symptom,ingredients,dosage_mg,known_effectiveness,side_effect_risk,success_rate
+Bios877,Malay,Male,32,Headache,acetaminophen+caffeine,500,92,Medium,88
+NeuroX21,Chinese,Female,45,Migraine,ibuprofen+codeine,400,85,High,78
+Relivon,Indian,Male,60,Body Pain,diclofenac+paracetamol,650,76,Low,81
+ZentraMax,Indigenous,Female,25,Flu,chlorpheniramine+paracetamol,300,67,Medium,72
