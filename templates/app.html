@@ -300,36 +300,39 @@ tbody tr:nth-child(even){ background:#f9fafb; }
     </div>
 
     <div class="text-center">
-      <div id="matchedImageArea" class="mb-2"></div>
-      <div id="matchedName" class="text-sm font-semibold text-white"></div>
+  <div id="matchedImageArea" class="mb-2"></div>
+  <div id="matchedName" class="text-sm font-semibold text-white"></div>
+</div>
+
+<!-- 📊 Charts + Table Layout -->
+<div class="mt-6 grid grid-cols-2 gap-4 items-stretch">
+  <!-- Charts Column -->
+  <div class="flex flex-col space-y-4 h-full w-full">
+    <!-- Radar Chart -->
+    <div class="bg-white rounded-2xl p-4 shadow flex-1">
+      <canvas id="radarChart" class="w-full h-full"></canvas>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="table-auto w-full text-sm text-left text-gray-600">
-        <thead class="bg-blue-50">
-          <tr>
-            <th class="px-3 py-2">Attribute</th>
-            <th class="px-3 py-2">New Drug</th>
-            <th class="px-3 py-2">Known Medicine</th>
-          </tr>
-        </thead>
-        <tbody id="comparisonTableBody" class="align-top"></tbody>
-      </table>
+    <!-- Roller Coaster / Time-Series Chart -->
+    <div class="bg-white rounded-2xl p-4 shadow flex-1">
+      <canvas id="timeSeriesChart" class="w-full h-full"></canvas>
     </div>
+  </div>
 
-    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-  <!-- Existing results table -->
-
-    <div class="radar-wrap">
-      <canvas id="radarChart"></canvas>
-    </div>
-
-       <!-- 📈 New vs Known Medicine Performance Over Time -->
-    <div class="mt-6 bg-white bg-opacity-20 p-4 rounded-xl shadow">
-      <h3 class="text-md font-semibold text-white mb-2">Performance Trend</h3>
-      <canvas id="timeSeriesChart" height="200"></canvas>
-    </div>
-
+  <!-- Table Column -->
+  <div class="overflow-x-auto bg-gray-900 rounded-2xl p-4 shadow h-full w-full">
+    <table class="table-auto w-full text-sm text-left text-white border border-gray-700 rounded-lg h-full">
+      <thead class="bg-gray-800">
+        <tr>
+          <th class="px-3 py-2">Attribute</th>
+          <th class="px-3 py-2">New Drug</th>
+          <th class="px-3 py-2">Known Medicine</th>
+        </tr>
+      </thead>
+      <tbody id="comparisonTableBody" class="align-top"></tbody>
+    </table>
+  </div>
+</div>
 
     <!-- 🔧 Explanation Section -->
     <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
@@ -742,6 +745,57 @@ if (result.strong_match && result.best_match) {
           }
         }
       });
+
+      // ==== Time Series Chart ====
+      const ctxTime = document.getElementById("timeSeriesChart").getContext("2d");
+      if (timeSeriesChartInstance) timeSeriesChartInstance.destroy();
+      timeSeriesChartInstance = new Chart(ctxTime, {
+        type: "line",
+        data: {
+          labels: result.time_series.months,
+          datasets: [
+            {
+              label: "New Drug",
+              data: result.time_series.new_drug,
+              borderColor: "#4f46e5",
+              backgroundColor: "rgba(79,70,229,0.2)",
+              fill: false,
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 4
+            },
+            {
+              label: "Known Medicine",
+              data: result.time_series.best_match,
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16,185,129,0.2)",
+              fill: false,
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "top", labels: { color: "white" } } },
+          scales: {
+            y: {
+              title: { display: true, text: "Effectiveness (%)", color: "white" },
+              min: 0,
+              max: 100,
+              ticks: { color: "#d1d5db" },
+              grid: { color: "#374151" }
+            },
+            x: {
+              ticks: { color: "#d1d5db" },
+              grid: { color: "#374151" }
+            }
+          }
+        }
+      });
+
 
        // ⬇️ ⬇️ INSERT THE NEW TIME-SERIES CHART CODE RIGHT AFTER RADAR CHART
         // ---- Radar Chart ----
