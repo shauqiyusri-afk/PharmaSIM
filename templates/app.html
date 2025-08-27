@@ -321,10 +321,11 @@ tbody tr:nth-child(even){ background:#f9fafb; }
       <canvas id="radarChart"></canvas>
     </div>
 
-    <!-- Roller Coaster Area Chart (new) -->
-    <div class="chart-container mt-6">
-      <canvas id="rollerChart"></canvas>
+    <div class="mt-6">
+      <h2 class="text-xl font-bold text-center">Patient Recovery Simulation (6 Months)</h2>
+      <canvas id="rollerChart" width="400" height="200"></canvas>
     </div>
+
 
     <!-- 🔧 Explanation Section -->
     <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
@@ -338,6 +339,8 @@ tbody tr:nth-child(even){ background:#f9fafb; }
   </div>
 </div>
 <script>
+
+
 
 function formatSideEffects(text) {
   if (!text) return '-';
@@ -738,74 +741,100 @@ if (result.strong_match && result.best_match) {
       });
     }
 
-    // --- Roller Coaster Area Chart ---
-    // Example: new drug vs best match over 6 months
-    const ctxRoller = document.getElementById('rollerChart').getContext('2d');
+    function generateSimulationCurve(drug) {
+  const months = [0, 1, 2, 3, 4, 5, 6];
+  const values = [];
 
-    const rollerChart = new Chart(ctxRoller, {
-      type: 'line',
-      data: {
-        labels: ["Month 1", "Month 2", "Month 3", "Month 4", "Month 5", "Month 6"],
-        datasets: [
-          {
-            label: "New Drug Predicted Performance",
-            data: [30, 45, 60, 70, 85, 95], // dummy values
-            borderColor: "rgba(75,192,192,1)",
-            backgroundColor: "rgba(75,192,192,0.3)",
-            tension: 0.4,
-            fill: true
+  const successRate = Number(drug.success_rate) || 0;     // ceiling
+  const effectiveness = Number(drug.effectiveness) || 0;  // curve steepness
+  const risk = (drug.side_effect_risk || "").toLowerCase();
+
+  months.forEach(m => {
+    let heal = successRate * (1 - Math.exp(-(effectiveness / 100) * m));
+
+    // risk adjustments
+    if (risk === "medium" && m === 3) heal -= 5;
+    if (risk === "high" && (m === 2 || m === 5)) heal -= 10;
+
+    values.push(Math.max(0, Math.min(100, Math.round(heal))));
+  });
+
+  return { months, values };
+}
+
+
+    // --- Roller Coaster Area Chart ---
+        // Example: new drug vs best match over 6 months
+
+        const ndCurve = generateSimulationCurve(newDrug);
+        const bmCurve = generateSimulationCurve(best);
+        const ctxRoller = document.getElementById('rollerChart').getContext('2d');
+
+        const rollerChart = new Chart(ctxRoller, {
+          type: 'line',
+          data: {
+            labels: ndCurve.months.map(m => `Month ${m}`),  // ["Month 0", "Month 1", ...]
+            datasets: [
+              {
+                label: newDrug.drug_name || "New Drug",
+                data: ndCurve.values,
+                borderColor: "rgba(75,192,192,1)",
+                backgroundColor: "rgba(75,192,192,0.3)",
+                tension: 0.4,
+                fill: true
+              },
+              {
+                label: best.medicine_name || "Best Match",
+                data: bmCurve.values,
+                borderColor: "rgba(255,99,132,1)",
+                backgroundColor: "rgba(255,99,132,0.3)",
+                tension: 0.4,
+                fill: true
+              }
+            ]
           },
-          {
-            label: "Top Match Performance",
-            data: [25, 40, 55, 65, 78, 88], // dummy values
-            borderColor: "rgba(255,99,132,1)",
-            backgroundColor: "rgba(255,99,132,0.3)",
-            tension: 0.4,
-            fill: true
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: {
-            display: true,
-            text: "Predicted Patient Healing Over 6 Months"
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-          }
-        },
-        interaction: {
-          mode: 'nearest',
-          axis: 'x',
-          intersect: false
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Patient Cure/Healing (%)'
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: "Predicted Patient Healing Over 6 Months"
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+              }
+            },
+            interaction: {
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,   // healing capped at 100%
+                title: {
+                  display: true,
+                  text: 'Patient Cure/Healing (%)'
+                }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Months'
+                }
+              }
             }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Months'
-            }
           }
-        }
+        });
+
+
+      } catch (err) {
+        console.error(err);
+        runMessage.textContent = 'Server Error';
       }
     });
-
-
-  } catch (err) {
-    console.error(err);
-    runMessage.textContent = 'Server Error';
-  }
-});
 
 // ------------------------- PDF DOWNLOAD (kept) -------------------------
 document.getElementById('downloadPDF').addEventListener('click', async () => {
