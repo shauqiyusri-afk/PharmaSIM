@@ -552,11 +552,47 @@ def predict():
                             "success_rate": row.get("success_rate"),
                             "risk_factors": row.get("risk_factors", "")
                         })
+        
+        # --- Predict specific side effects for NEW drugs ---
+        predicted_side_effects = []
+
+        # From best match (if available)
+        if best and best.get("known_side_effects"):
+            predicted_side_effects.extend(best["known_side_effects"].split(";"))
+
+        # Race modifiers
+        if race.lower() == "malay":
+            predicted_side_effects.append("Skin rash (higher risk in Malays with sulfa drugs)")
+        elif race.lower() == "chinese":
+            predicted_side_effects.append("Flushing or liver enzyme interaction")
+        elif race.lower() == "indian":
+            predicted_side_effects.append("Liver toxicity risk with paracetamol")
+        elif race.lower() == "indigenous":
+            predicted_side_effects.append("Hypersensitivity / dizziness")
+
+        # Dosage effects
+        if dosage_mg > 500:
+            predicted_side_effects.append("Nausea (dose-related)")
+            predicted_side_effects.append("Dizziness (dose-related)")
+
+        # Health condition effects (case-insensitive, keyword-based)
+        if any("liver" in c.lower() for c in user_conditions):
+            predicted_side_effects.append("Liver toxicity")
+
+        if any("pregnancy" in c.lower() for c in user_conditions):
+            predicted_side_effects.append("Unsafe in pregnancy / fetal risk")
+
+        if any("kidney" in c.lower() for c in user_conditions):
+            predicted_side_effects.append("Renal impairment risk")
+
+        # Clean up duplicates
+        predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
 
         # --- Response JSON ---
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
             "predicted_side_effect_risk": side_effect_label,
+            "predicted_specific_side_effects": ";".join(predicted_side_effects),
             "predicted_success_rate": round(success_rate, 2),
             "new_drug_note": new_drug_warning,
             "new_drug_explanations": explanations_new,
