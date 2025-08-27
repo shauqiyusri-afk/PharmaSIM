@@ -585,24 +585,8 @@ def predict():
         if any("kidney" in c.lower() for c in user_conditions):
             predicted_side_effects.append("Renal impairment risk")
 
-
         # Clean up duplicates
         predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
-
-        # --- Time-series projection (6 months) ---
-        base_eff = effectiveness
-        base_best = best["effectiveness"] if best else effectiveness * 0.85
-
-        # Example: logistic adoption curve for smoother "roller coaster"
-        factors = [0.3, 0.55, 0.72, 0.85, 0.93, 1.0]
-        new_drug_curve = [round(base_eff * f, 2) for f in factors]
-        best_match_curve = [round(base_best * f, 2) for f in factors]
-
-        time_series = {
-            "months": ["M1", "M2", "M3", "M4", "M5", "M6"],
-            "new_drug": new_drug_curve,
-            "best_match": best_match_curve
-        }
 
         # --- Response JSON ---
         response = {
@@ -635,14 +619,12 @@ def predict():
                 "cancer_risk_factors": cancer_risks
             },
             "escalation_applied": escalation_applied,
-            "time_series": time_series,
             "debug": {
                 "input_vector": input_vector.tolist(),
                 "raw_predictions": [effectiveness, side_effect_val, success_rate],
                 "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches]
             }
         }
-
 
         if not strong_match:
             response["message"] = "No strong safe match found — showing closest alternatives."

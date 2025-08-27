@@ -300,39 +300,31 @@ tbody tr:nth-child(even){ background:#f9fafb; }
     </div>
 
     <div class="text-center">
-  <div id="matchedImageArea" class="mb-2"></div>
-  <div id="matchedName" class="text-sm font-semibold text-white"></div>
-</div>
-
-<!-- 📊 Charts + Table Layout -->
-<div class="mt-6 grid grid-cols-2 gap-4 items-stretch">
-  <!-- Charts Column -->
-  <div class="flex flex-col space-y-4 h-full w-full">
-    <!-- Radar Chart -->
-    <div class="bg-white rounded-2xl p-4 shadow flex-1">
-      <canvas id="radarChart" class="w-full h-full"></canvas>
+      <div id="matchedImageArea" class="mb-2"></div>
+      <div id="matchedName" class="text-sm font-semibold text-white"></div>
     </div>
 
-    <!-- Roller Coaster / Time-Series Chart -->
-    <div class="bg-white rounded-2xl p-4 shadow flex-1">
-      <canvas id="timeSeriesChart" class="w-full h-full"></canvas>
+    <div class="overflow-x-auto">
+      <table class="table-auto w-full text-sm text-left text-gray-600">
+        <thead class="bg-blue-50">
+          <tr>
+            <th class="px-3 py-2">Attribute</th>
+            <th class="px-3 py-2">New Drug</th>
+            <th class="px-3 py-2">Known Medicine</th>
+          </tr>
+        </thead>
+        <tbody id="comparisonTableBody" class="align-top"></tbody>
+      </table>
     </div>
-  </div>
 
-  <!-- Table Column -->
-  <div class="overflow-x-auto bg-gray-900 rounded-2xl p-4 shadow h-full w-full">
-    <table class="table-auto w-full text-sm text-left text-white border border-gray-700 rounded-lg h-full">
-      <thead class="bg-gray-800">
-        <tr>
-          <th class="px-3 py-2">Attribute</th>
-          <th class="px-3 py-2">New Drug</th>
-          <th class="px-3 py-2">Known Medicine</th>
-        </tr>
-      </thead>
-      <tbody id="comparisonTableBody" class="align-top"></tbody>
-    </table>
-  </div>
-</div>
+    <div class="radar-wrap">
+      <canvas id="radarChart"></canvas>
+    </div>
+
+    <!-- Roller Coaster Area Chart (new) -->
+    <div class="chart-container mt-6">
+      <canvas id="rollerChart"></canvas>
+    </div>
 
     <!-- 🔧 Explanation Section -->
     <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
@@ -353,7 +345,6 @@ function formatSideEffects(text) {
     text.split(';').map(s => `<li>${s.trim()}</li>`).join('') +
     '</ul>';
 }
-
 
 const concInput = document.getElementById("concentration");
 const mgInput = document.getElementById("dosageMg");
@@ -745,126 +736,70 @@ if (result.strong_match && result.best_match) {
           }
         }
       });
+    }
 
-      // ==== Time Series Chart ====
-      const ctxTime = document.getElementById("timeSeriesChart").getContext("2d");
-      if (timeSeriesChartInstance) timeSeriesChartInstance.destroy();
-      timeSeriesChartInstance = new Chart(ctxTime, {
-        type: "line",
-        data: {
-          labels: result.time_series.months,
-          datasets: [
-            {
-              label: "New Drug",
-              data: result.time_series.new_drug,
-              borderColor: "#4f46e5",
-              backgroundColor: "rgba(79,70,229,0.2)",
-              fill: false,
-              tension: 0.35,
-              borderWidth: 2,
-              pointRadius: 4
-            },
-            {
-              label: "Known Medicine",
-              data: result.time_series.best_match,
-              borderColor: "#10b981",
-              backgroundColor: "rgba(16,185,129,0.2)",
-              fill: false,
-              tension: 0.35,
-              borderWidth: 2,
-              pointRadius: 4
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: "top", labels: { color: "white" } } },
-          scales: {
-            y: {
-              title: { display: true, text: "Effectiveness (%)", color: "white" },
-              min: 0,
-              max: 100,
-              ticks: { color: "#d1d5db" },
-              grid: { color: "#374151" }
-            },
-            x: {
-              ticks: { color: "#d1d5db" },
-              grid: { color: "#374151" }
-            }
+    // --- Roller Coaster Area Chart ---
+    // Example: new drug vs best match over 6 months
+    const ctxRoller = document.getElementById('rollerChart').getContext('2d');
+
+    const rollerChart = new Chart(ctxRoller, {
+      type: 'line',
+      data: {
+        labels: ["Month 1", "Month 2", "Month 3", "Month 4", "Month 5", "Month 6"],
+        datasets: [
+          {
+            label: "New Drug Predicted Performance",
+            data: [30, 45, 60, 70, 85, 95], // dummy values
+            borderColor: "rgba(75,192,192,1)",
+            backgroundColor: "rgba(75,192,192,0.3)",
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: "Top Match Performance",
+            data: [25, 40, 55, 65, 78, 88], // dummy values
+            borderColor: "rgba(255,99,132,1)",
+            backgroundColor: "rgba(255,99,132,0.3)",
+            tension: 0.4,
+            fill: true
           }
-        }
-      });
-
-
-       // ⬇️ ⬇️ INSERT THE NEW TIME-SERIES CHART CODE RIGHT AFTER RADAR CHART
-        // ---- Radar Chart ----
-// (your existing radar chart code here)
-
-// ---- Time-Series Line Chart ----
-      const tsCtx = document.getElementById('timeSeriesChart').getContext('2d');
-      if (window.timeSeriesChartInstance) window.timeSeriesChartInstance.destroy();
-
-      const labels = ["Month 1", "Month 2", "Month 3"];
-
-      const newDrugCurve = [
-        Number(newDrug.effectiveness) * 0.5,
-        Number(newDrug.effectiveness) * 0.7,
-        Number(newDrug.effectiveness)
-      ];
-      const knownDrugCurve = [
-        Number(best.effectiveness) * 0.5,
-        Number(best.effectiveness) * 0.7,
-        Number(best.effectiveness)
-      ];
-
-      window.timeSeriesChartInstance = new Chart(tsCtx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "New Drug (Predicted)",
-              data: newDrugCurve,
-              fill: true,
-              borderColor: "rgba(59,130,246,1)",
-              backgroundColor: "rgba(59,130,246,0.2)",
-              tension: 0.4,
-              pointRadius: 3,
-            },
-            {
-              label: "Top Existing Drug",
-              data: knownDrugCurve,
-              fill: true,
-              borderColor: "rgba(34,197,94,1)",
-              backgroundColor: "rgba(34,197,94,0.2)",
-              tension: 0.4,
-              pointRadius: 3,
-            }
-          ]
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: "Predicted Patient Healing Over 6 Months"
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+          }
         },
-        options: {
-          responsive: true,
-          plugins: {
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
             title: {
               display: true,
-              text: "Effectiveness Over Time",
-              font: { size: 16, weight: "bold" }
-            },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: ${ctx.formattedValue}%`
-              }
+              text: 'Patient Cure/Healing (%)'
             }
           },
-          scales: {
-            x: { title: { display: true, text: "Time" } },
-            y: { title: { display: true, text: "Effectiveness (%)" }, min: 0, max: 100 }
+          x: {
+            title: {
+              display: true,
+              text: 'Months'
+            }
           }
         }
-      });
+      }
+    });
 
-    }
 
   } catch (err) {
     console.error(err);
