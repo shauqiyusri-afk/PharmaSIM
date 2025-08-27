@@ -1,3 +1,7 @@
+setuptools>=68.0.0
+wheel>=0.40.0
+pip>=25.1.1
+
 Flask>=2.3.2
 flask-cors>=6.0.1
 gunicorn>=23.0.0
