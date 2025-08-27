@@ -321,6 +321,13 @@ tbody tr:nth-child(even){ background:#f9fafb; }
       <canvas id="radarChart"></canvas>
     </div>
 
+    <div class="mt-6">
+      <h3 class="text-xl font-semibold text-white mb-2">Simulation Over Time</h3>
+      <div class="w-full h-96 bg-white rounded-xl p-2">
+        <canvas id="simulationChart"></canvas>
+      </div>
+    </div>
+
     <!-- 🔧 Explanation Section -->
     <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
       <h3 class="text-lg font-semibold mb-2">Explanation</h3>
@@ -736,6 +743,49 @@ if (result.strong_match && result.best_match) {
           }
         }
       });
+
+        // ---- Simulation Curves ----
+        if (result.simulation_curves) {
+          const simCtx = document.getElementById('simulationChart').getContext('2d');
+
+          // Destroy previous chart if exists
+          if (window.simulationChartInstance) window.simulationChartInstance.destroy();
+
+          window.simulationChartInstance = new Chart(simCtx, {
+            type: 'line',
+            data: {
+              labels: result.simulation_curves.labels || [], // x-axis
+              datasets: [
+                {
+                  label: 'Predicted Effectiveness',
+                  data: result.simulation_curves.effectiveness || [],
+                  borderColor: '#4f46e5',
+                  backgroundColor: 'rgba(79,70,229,0.2)',
+                  tension: 0.3,
+                  fill: true
+                },
+                {
+                  label: 'Predicted Success Rate',
+                  data: result.simulation_curves.success_rate || [],
+                  borderColor: '#10b981',
+                  backgroundColor: 'rgba(16,185,129,0.2)',
+                  tension: 0.3,
+                  fill: true
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'top', labels: { color: 'white' } } },
+              scales: {
+                y: { beginAtZero: true, max: 100, ticks: { color: 'white' } },
+                x: { ticks: { color: 'white' }, title: { display: true, text: 'Time', color: 'white' } }
+              }
+            }
+          });
+        }
+
     }
 
   } catch (err) {

@@ -116,6 +116,48 @@ INGREDIENT_TO_HINT_GROUPS = {
     "pembrolizumab": set(),
 }
 
+def simulate_curves(effectiveness, success_rate, side_effect_label, best):
+    timeline = list(range(12))  # 12 months
+
+    # Convert side effect label to numeric
+    risk_map = {"Low": 0.1, "Medium": 0.3, "High": 0.6}
+    base_risk = risk_map.get(side_effect_label, 0.2)
+
+    # --- New drug ---
+    new_effectiveness_curve = [
+        min(effectiveness, (effectiveness/6)*t) if t < 6 else effectiveness - (t-6)*2
+        for t in timeline
+    ]
+    new_effectiveness_curve = [max(0, round(v, 2)) for v in new_effectiveness_curve]
+
+    new_side_effect_curve = [round(100 * min(1.0, base_risk + 0.05*t), 2) for t in timeline]
+
+    # --- Best matched drug ---
+    if best:
+        best_eff = best.get("effectiveness", 60)
+        best_risk_label = best.get("side_effect_risk", "Medium")
+        best_risk_val = risk_map.get(best_risk_label, 0.3)
+
+        best_effectiveness_curve = [
+            min(best_eff, (best_eff/8)*t) if t < 8 else best_eff - (t-8)*1.5
+            for t in timeline
+        ]
+        best_effectiveness_curve = [max(0, round(v, 2)) for v in best_effectiveness_curve]
+
+        best_side_effect_curve = [round(100 * min(1.0, best_risk_val + 0.03*t), 2) for t in timeline]
+    else:
+        best_effectiveness_curve = []
+        best_side_effect_curve = []
+
+    return {
+        "timeline": timeline,
+        "new_drug_effectiveness": new_effectiveness_curve,
+        "new_drug_side_effects": new_side_effect_curve,
+        "best_drug_effectiveness": best_effectiveness_curve,
+        "best_drug_side_effects": best_side_effect_curve
+    }
+
+
 def score_similarity(input_symptom,
                      input_line,
                      input_ingredients_active,
@@ -625,6 +667,17 @@ def predict():
                 "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches]
             }
         }
+
+        # --- Generate simulation curves ---
+        curves = simulate_curves(
+            effectiveness=effectiveness,
+            success_rate=success_rate,
+            side_effect_label=side_effect_label,
+            best=best
+        )
+
+        # Attach curves to response JSON
+        response["simulation_curves"] = curves
 
 
         if not strong_match:
