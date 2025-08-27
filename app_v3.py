@@ -592,7 +592,8 @@ def predict():
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
             "predicted_side_effect_risk": side_effect_label,
-            "predicted_specific_side_effects": ";".join(predicted_side_effects),
+            "predicted_specific_side_effects": ";".join(predicted_side_effects),  # ✅ new style
+            "specific_side_effects": ";".join(predicted_side_effects),            # ✅ alias for frontend compatibility
             "predicted_success_rate": round(success_rate, 2),
             "new_drug_note": new_drug_warning,
             "new_drug_explanations": explanations_new,
@@ -624,6 +625,7 @@ def predict():
                 "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches]
             }
         }
+
 
         if not strong_match:
             response["message"] = "No strong safe match found — showing closest alternatives."

@@ -625,46 +625,59 @@ if (result.strong_match && result.best_match) {
       matchedImageArea.appendChild(img);
       matchedName.textContent = best.medicine_name;
 
-      // ---- Comparison Table ----
-      const newDrug = {
+  // ---- Comparison Table ----
+  const newDrug = {
     drug_name: data.drug_name,
     ingredients: data.ingredients,
-    dosage_mg: data.dosage_mg || data.dosageMg || '-',  // fallback to mg input
-    line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-', // include line of treatment
+    dosage_mg: data.dosage_mg || data.dosageMg || '-',  
+    line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-', 
     target_symptom: data.target_symptom,
     health_condition: data.health_conditions || [],
     effectiveness: result.predicted_effectiveness,
     success_rate: result.predicted_success_rate,
     side_effect_risk: result.predicted_side_effect_risk,
-    specific_side_effects: result.predicted_specific_side_effects
-};
+    predicted_specific_side_effects: result.predicted_specific_side_effects || []
+  };
 
-      const rows = [
-        ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
-        ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
-        ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
-        ['Health Condition', (newDrug.health_condition || []).toString() || '-', best.health_condition || '-'],
-        ['Ingredients',
-          newDrug.ingredients || '-',
-          (((best.ingredients_active || []).join(', ')) +
-           (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
-          ) || '-'
-        ],
-        ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
-        ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
-        ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
-        ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
-        ['Likely Side Effects', newDrug.specific_side_effects || '-', best.known_side_effects || '-']
-      ];
-      rows.forEach(([label, a, b]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-3 py-2 font-semibold">${label}</td>
-          <td class="px-3 py-2">${a}</td>
-          <td class="px-3 py-2">${b}</td>
-        `;
-        comparisonTableBody.appendChild(tr);
-      });
+  const formatSideEffects = (effects) => {
+    if (!effects || effects === '-') return '-';
+    if (Array.isArray(effects)) return effects.join(', ');
+    return effects.split(/[,;]+/).map(e => e.trim()).filter(Boolean).join(', ');
+  };
+
+  comparisonTableBody.innerHTML = ''; // clear previous rows
+
+  const rows = [
+    ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
+    ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
+    ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
+    ['Health Condition', (newDrug.health_condition || []).join(', ') || '-', best.health_condition || '-'],
+    ['Ingredients',
+      newDrug.ingredients || '-',
+      (((best.ingredients_active || []).join(', ')) +
+      (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
+      ) || '-'
+    ],
+    ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
+    ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
+    ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
+    ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
+    ['Likely Side Effects',
+      formatSideEffects(newDrug.predicted_specific_side_effects),
+      formatSideEffects(best?.known_side_effects || '-')
+    ]
+  ];
+
+  rows.forEach(([label, a, b]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="px-3 py-2 font-semibold">${label}</td>
+      <td class="px-3 py-2">${a}</td>
+      <td class="px-3 py-2">${b}</td>
+    `;
+    comparisonTableBody.appendChild(tr);
+  });
+
 
       // ---- Radar Chart ----
       const safetyMap = { 'Low': 100, 'Medium': 50, 'High': 10 };
