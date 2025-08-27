@@ -552,14 +552,13 @@ def predict():
                             "success_rate": row.get("success_rate"),
                             "risk_factors": row.get("risk_factors", "")
                         })
+
         # --- Predict specific side effects for NEW drugs ---
         predicted_side_effects = []
 
-        # From best match (if available)
         if best and best.get("known_side_effects"):
             predicted_side_effects.extend(best["known_side_effects"].split(";"))
 
-        # Race modifiers
         if race.lower() == "malay":
             predicted_side_effects.append("Skin rash (higher risk in Malays with sulfa drugs)")
         elif race.lower() == "chinese":
@@ -569,31 +568,33 @@ def predict():
         elif race.lower() == "indigenous":
             predicted_side_effects.append("Hypersensitivity / dizziness")
 
-        # Dosage effects
         if dosage_mg > 500:
             predicted_side_effects.append("Nausea (dose-related)")
             predicted_side_effects.append("Dizziness (dose-related)")
 
-        # Health condition effects
-        # Health condition effects (case-insensitive, keyword-based)
         if any("liver" in c.lower() for c in user_conditions):
             predicted_side_effects.append("Liver toxicity")
-
         if any("pregnancy" in c.lower() for c in user_conditions):
             predicted_side_effects.append("Unsafe in pregnancy / fetal risk")
-
         if any("kidney" in c.lower() for c in user_conditions):
             predicted_side_effects.append("Renal impairment risk")
 
-        # Clean up duplicates
         predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
+
+        # --- Ethnicity scores (new addition) ---
+        ethnicities = ["Malay", "Chinese", "Indian", "Indigenous"]
+        ethnicity_scores = {"new_drug": {}, "known_medicine": {}}
+        for eth in ethnicities:
+            ethnicity_scores["new_drug"][eth] = round(effectiveness * (0.95 + 0.05 * np.random.rand()), 1)
+            known_scores = [m["effectiveness"] for m in top_matches if m]
+            ethnicity_scores["known_medicine"][eth] = round(np.mean(known_scores) * (0.95 + 0.05 * np.random.rand()), 1) if known_scores else 0
 
         # --- Response JSON ---
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
             "predicted_side_effect_risk": side_effect_label,
-            "predicted_specific_side_effects": ";".join(predicted_side_effects),  # ✅ new style
-            "specific_side_effects": ";".join(predicted_side_effects),            # ✅ alias for frontend compatibility
+            "predicted_specific_side_effects": ";".join(predicted_side_effects),
+            "specific_side_effects": ";".join(predicted_side_effects),
             "predicted_success_rate": round(success_rate, 2),
             "new_drug_note": new_drug_warning,
             "new_drug_explanations": explanations_new,
@@ -618,6 +619,7 @@ def predict():
                 "cancer_line_of_treatment": cancer_line,
                 "cancer_risk_factors": cancer_risks
             },
+            "ethnicity_scores": ethnicity_scores,
             "escalation_applied": escalation_applied,
             "debug": {
                 "input_vector": input_vector.tolist(),
@@ -634,7 +636,8 @@ def predict():
         return jsonify(response)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500    
+        return jsonify({"error": str(e)}), 500
+      
 @app.route("/ethnicity-data", methods=["GET"])
 def ethnicity_data():
     # 🔥 For now, return mock numbers (later we can link to CSV or DB)

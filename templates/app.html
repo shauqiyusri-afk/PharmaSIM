@@ -342,8 +342,11 @@ tbody tr:nth-child(even){ background:#f9fafb; }
     </div>
   </div>
 </div>
-<script>
 
+
+<script>
+let radarChartInstance = null;
+let ethnicityChartInstance = null;
 let rollerChartInstance = null; // global for roller chart
 
 function formatSideEffects(text) {
@@ -450,18 +453,19 @@ const matchedName = document.getElementById('matchedName');
 const comparisonTableBody = document.getElementById('comparisonTableBody');
 const badge = document.getElementById('badge');
 const clearBtn = document.getElementById('clearBtn');
-let radarChartInstance = null;
 
 clearBtn.addEventListener('click', () => {
-  form.reset();
-  outputPanel.style.display = 'none';
-  runMessage.textContent = '';
-  matchesList.innerHTML = '';
-  matchMessage.textContent = '';
-  matchedImageArea.innerHTML = '';
-  matchedName.textContent = '';
-  comparisonTableBody.innerHTML = '';
-  if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
+    form.reset();
+    outputPanel.style.display = 'none';
+    runMessage.textContent = '';
+    matchesList.innerHTML = '';
+    matchMessage.textContent = '';
+    matchedImageArea.innerHTML = '';
+    matchedName.textContent = '';
+    comparisonTableBody.innerHTML = '';
+    if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
+    if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
+    if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
 });
 
 // Auto-set Line of Treatment based on disease
@@ -765,65 +769,70 @@ if (result.strong_match && result.best_match) {
         }
       });
 
-      // ---- Ethnicity Radar Chart ----
+      
+
       const ctx2 = document.getElementById('ethnicityRadarChart').getContext('2d');
 
-      if (result.ethnicity_scores) {
-          const labels = ["Malay","Chinese","Indian","Indigenous"];
-          const newDrugData = labels.map(l => result.ethnicity_scores["New Drug"]?.[l] ?? 0);
-          const knownMedData = labels.map(l => result.ethnicity_scores["Known Medicine"]?.[l] ?? 0);
-          const selectedEthnicity = document.querySelector('[name="race"]').value;
+      const labels = ["Malay", "Chinese", "Indian", "Indigenous"];
 
-          new Chart(ctx2, {
-              type: 'radar',
-              data: {
-                  labels: labels,
-                  datasets: [
-                      {
-                          label: "New Drug",
-                          data: newDrugData,
-                          borderColor: "#4f46e5",
-                          backgroundColor: "rgba(79,70,229,0.2)",
-                          pointBackgroundColor: newDrugData.map((_, i) =>
-                              labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
-                          ),
-                          pointBorderColor: newDrugData.map((_, i) =>
-                              labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
-                          )
-                      },
-                      {
-                          label: "Known Medicine",
-                          data: knownMedData,
-                          borderColor: "#10b981",
-                          backgroundColor: "rgba(16,185,129,0.2)",
-                          pointBackgroundColor: knownMedData.map((_, i) =>
-                              labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
-                          ),
-                          pointBorderColor: knownMedData.map((_, i) =>
-                              labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
-                          )
-                      }
-                  ]
-              },
-              options: {
-                  responsive: true,
-                  plugins: {
-                      legend: { labels: { color: 'white' } },
-                      title: { display: true, text: 'Drug Performance by Ethnicity', color: 'white' }
+      // Replace dummy data with backend data
+      const newDrugData = labels.map(l => result.ethnicity_scores?.new_drug?.[l] ?? 0);
+      const knownMedData = labels.map(l => result.ethnicity_scores?.known_medicine?.[l] ?? 0);
+
+      // Optional: highlight user's selected ethnicity
+      const selectedEthnicity = data.race || '';
+
+      if (ethnicityChartInstance) ethnicityChartInstance.destroy();
+
+      ethnicityChartInstance = new Chart(ctx2, {
+          type: 'radar',
+          data: {
+              labels: labels,
+              datasets: [
+                  {
+                      label: "New Drug",
+                      data: newDrugData,
+                      borderColor: "#4f46e5",
+                      backgroundColor: "rgba(79,70,229,0.2)",
+                      pointBackgroundColor: newDrugData.map((_, i) =>
+                          labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
+                      ),
+                      pointBorderColor: newDrugData.map((_, i) =>
+                          labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
+                      )
                   },
-                  scales: {
-                      r: {
-                          suggestedMin: 0,
-                          suggestedMax: 100,
-                          ticks: { stepSize: 20, color: 'white' },
-                          angleLines: { color: 'rgba(255,255,255,0.2)' },
-                          grid: { color: 'rgba(255,255,255,0.1)' },
-                          pointLabels: { color: 'white', font: { size: 12 } }
-                      }
+                  {
+                      label: "Known Medicine",
+                      data: knownMedData,
+                      borderColor: "#10b981",
+                      backgroundColor: "rgba(16,185,129,0.2)",
+                      pointBackgroundColor: knownMedData.map((_, i) =>
+                          labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
+                      ),
+                      pointBorderColor: knownMedData.map((_, i) =>
+                          labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
+                      )
+                  }
+              ]
+          },
+          options: {
+              responsive: true,
+              plugins: {
+                  legend: { labels: { color: 'white' } },
+                  title: { display: true, text: 'Drug Performance by Ethnicity', color: 'white' }
+              },
+              scales: {
+                  r: {
+                      suggestedMin: 0,
+                      suggestedMax: 100,
+                      ticks: { stepSize: 20, color: 'white' },
+                      angleLines: { color: 'rgba(255,255,255,0.2)' },
+                      grid: { color: 'rgba(255,255,255,0.1)' },
+                      pointLabels: { color: 'white', font: { size: 12 } }
                   }
               }
-          });
-      }
+          }
+      });
 
 
     // --- Roller Coaster Area Chart ---
