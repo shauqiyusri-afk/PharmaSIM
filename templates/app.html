@@ -317,9 +317,19 @@ tbody tr:nth-child(even){ background:#f9fafb; }
       </table>
     </div>
 
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+  <!-- Existing results table -->
+
     <div class="radar-wrap">
       <canvas id="radarChart"></canvas>
     </div>
+
+       <!-- 📈 New vs Known Medicine Performance Over Time -->
+    <div class="mt-6 bg-white bg-opacity-20 p-4 rounded-xl shadow">
+      <h3 class="text-md font-semibold text-white mb-2">Performance Trend</h3>
+      <canvas id="timeSeriesChart" height="200"></canvas>
+    </div>
+
 
     <!-- 🔧 Explanation Section -->
     <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
@@ -732,6 +742,74 @@ if (result.strong_match && result.best_match) {
           }
         }
       });
+
+       // ⬇️ ⬇️ INSERT THE NEW TIME-SERIES CHART CODE RIGHT AFTER RADAR CHART
+        // ---- Radar Chart ----
+// (your existing radar chart code here)
+
+// ---- Time-Series Line Chart ----
+      const tsCtx = document.getElementById('timeSeriesChart').getContext('2d');
+      if (window.timeSeriesChartInstance) window.timeSeriesChartInstance.destroy();
+
+      const labels = ["Month 1", "Month 2", "Month 3"];
+
+      const newDrugCurve = [
+        Number(newDrug.effectiveness) * 0.5,
+        Number(newDrug.effectiveness) * 0.7,
+        Number(newDrug.effectiveness)
+      ];
+      const knownDrugCurve = [
+        Number(best.effectiveness) * 0.5,
+        Number(best.effectiveness) * 0.7,
+        Number(best.effectiveness)
+      ];
+
+      window.timeSeriesChartInstance = new Chart(tsCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "New Drug (Predicted)",
+              data: newDrugCurve,
+              fill: true,
+              borderColor: "rgba(59,130,246,1)",
+              backgroundColor: "rgba(59,130,246,0.2)",
+              tension: 0.4,
+              pointRadius: 3,
+            },
+            {
+              label: "Top Existing Drug",
+              data: knownDrugCurve,
+              fill: true,
+              borderColor: "rgba(34,197,94,1)",
+              backgroundColor: "rgba(34,197,94,0.2)",
+              tension: 0.4,
+              pointRadius: 3,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: "Effectiveness Over Time",
+              font: { size: 16, weight: "bold" }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.formattedValue}%`
+              }
+            }
+          },
+          scales: {
+            x: { title: { display: true, text: "Time" } },
+            y: { title: { display: true, text: "Effectiveness (%)" }, min: 0, max: 100 }
+          }
+        }
+      });
+
     }
 
   } catch (err) {
