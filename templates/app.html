@@ -765,66 +765,65 @@ if (result.strong_match && result.best_match) {
         }
       });
 
+      // ---- Ethnicity Radar Chart ----
       const ctx2 = document.getElementById('ethnicityRadarChart').getContext('2d');
-      fetch('/ethnicity-data')
-        .then(response => response.json())
-        .then(data => {
+
+      if (result.ethnicity_scores) {
+          const labels = ["Malay","Chinese","Indian","Indigenous"];
+          const newDrugData = labels.map(l => result.ethnicity_scores["New Drug"]?.[l] ?? 0);
+          const knownMedData = labels.map(l => result.ethnicity_scores["Known Medicine"]?.[l] ?? 0);
+          const selectedEthnicity = document.querySelector('[name="race"]').value;
+
           new Chart(ctx2, {
-            type: 'radar',
-            data: {
-              labels: data.labels, // e.g., ['Malay', 'Chinese', 'Indian', 'Indigenous']
-              datasets: data.datasets.map((group, index) => ({
-                label: group.label,
-                data: group.data,
-                borderColor: [
-                  'rgba(255, 99, 132, 1)',
-                  'rgba(54, 162, 235, 1)',
-                  'rgba(255, 206, 86, 1)',
-                  'rgba(75, 192, 192, 1)'
-                ][index % 4],
-                backgroundColor: [
-                  'rgba(255, 99, 132, 0.2)',
-                  'rgba(54, 162, 235, 0.2)',
-                  'rgba(255, 206, 86, 0.2)',
-                  'rgba(75, 192, 192, 0.2)'
-                ][index % 4],
-                fill: true,
-                borderWidth: 2,
-                pointBackgroundColor: [
-                  'rgba(255, 99, 132, 1)',
-                  'rgba(54, 162, 235, 1)',
-                  'rgba(255, 206, 86, 1)',
-                  'rgba(75, 192, 192, 1)'
-                ][index % 4]
-              }))
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { labels: { color: 'white' }, position: 'top' },
-                title: {
-                  display: true,
-                  text: 'Drug Performance by Ethnicity',
-                  color: 'white',
-                  font: { size: 16, weight: 'bold' }
-                },
-                tooltip: { mode: 'nearest', intersect: false }
+              type: 'radar',
+              data: {
+                  labels: labels,
+                  datasets: [
+                      {
+                          label: "New Drug",
+                          data: newDrugData,
+                          borderColor: "#4f46e5",
+                          backgroundColor: "rgba(79,70,229,0.2)",
+                          pointBackgroundColor: newDrugData.map((_, i) =>
+                              labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
+                          ),
+                          pointBorderColor: newDrugData.map((_, i) =>
+                              labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
+                          )
+                      },
+                      {
+                          label: "Known Medicine",
+                          data: knownMedData,
+                          borderColor: "#10b981",
+                          backgroundColor: "rgba(16,185,129,0.2)",
+                          pointBackgroundColor: knownMedData.map((_, i) =>
+                              labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
+                          ),
+                          pointBorderColor: knownMedData.map((_, i) =>
+                              labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
+                          )
+                      }
+                  ]
               },
-              scales: {
-                r: {
-                  suggestedMin: 0,
-                  suggestedMax: 100,
-                  ticks: { stepSize: 20, color: 'white', backdropColor: 'transparent' },
-                  angleLines: { color: 'rgba(255,255,255,0.2)' },
-                  grid: { color: 'rgba(255,255,255,0.1)' },
-                  pointLabels: { color: 'white', font: { size: 12 } }
-                }
+              options: {
+                  responsive: true,
+                  plugins: {
+                      legend: { labels: { color: 'white' } },
+                      title: { display: true, text: 'Drug Performance by Ethnicity', color: 'white' }
+                  },
+                  scales: {
+                      r: {
+                          suggestedMin: 0,
+                          suggestedMax: 100,
+                          ticks: { stepSize: 20, color: 'white' },
+                          angleLines: { color: 'rgba(255,255,255,0.2)' },
+                          grid: { color: 'rgba(255,255,255,0.1)' },
+                          pointLabels: { color: 'white', font: { size: 12 } }
+                      }
+                  }
               }
-            }
           });
-        })
-        .catch(err => console.error('Ethnicity Radar fetch error:', err));
+      }
 
 
     // --- Roller Coaster Area Chart ---
