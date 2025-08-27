@@ -1,8 +1,10 @@
 Flask>=2.3.2
 flask-cors>=6.0.1
 gunicorn>=23.0.0
-numpy>=1.26.2
+numpy==1.25.0
 pandas>=2.1.1
-joblib>=1.5.1
-scikit-learn=1.6.1
+joblib==1.5.1
+scikit-learn==1.6.1
+scipy==1.12.1
+threadpoolctl==3.5.0
 Werkzeug>=2.3.7
