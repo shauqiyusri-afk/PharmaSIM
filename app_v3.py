@@ -408,32 +408,33 @@ def safe_transform(enc, value):
             return enc.transform(["unknown"])[0]
         return 0
 # -----------------------------
+# -----------------------------
 # Flask route: Predict
 # -----------------------------
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
 
-        # --- User inputs ---
+        # --- 1. User inputs ---
         drug_name = data.get('drug_name', 'NewDrug')
-        race = data['race']
-        gender = data['gender']
-        age = int(data['age'])
-        symptom = data['target_symptom']
-        ingredients_raw = data['ingredients']
+        race = data.get('race', 'Unknown')
+        gender = data.get('gender', 'Unknown')
+        age = int(data.get('age', 0))
+        symptom = data.get('target_symptom', 'general')
+        ingredients_raw = data.get('ingredients', '')
         health_conditions = [c.lower() for c in data.get("health_conditions", [])]
         input_line = str(data.get('line_of_treatment', 'general')).lower().strip()
 
-        # --- Cancer auto-suggest ---
+        # --- 2. Cancer auto-suggest ---
         cancer_type = data.get("cancer_type")
         cancer_line = data.get("cancer_line_of_treatment")
         cancer_risks = [r.lower() for r in data.get("cancer_risk_factors", [])]
 
-        # --- Normalize conditions ---
-        user_conditions = [normalize_condition(c) for c in health_conditions if c]
+        # --- 3. Normalize conditions safely ---
+        user_conditions = [normalize_condition(c) for c in health_conditions if c] if 'normalize_condition' in globals() else health_conditions
 
-        # --- Dosage handling ---
+        # --- 4. Dosage handling ---
         concentration = float(data.get("concentration", 0))
         dosage_mg = float(data.get("dosage_mg", 0))
         dosage_ml = float(data.get("dosage_ml", 0))
@@ -442,59 +443,43 @@ def predict():
         if dosage_ml == 0 and dosage_mg > 0 and concentration > 0:
             dosage_ml = dosage_mg / concentration
 
-        # --- Ingredients ---
+        # --- 5. Ingredients ---
         tokens = [t.strip().lower() for t in ingredients_raw.split(';') if t.strip()]
         input_active = set(tokens)
         input_inactive = set()
 
-        # --- Encode categorical ---
-        race_e = safe_transform(race_enc, race)
-        gender_e = safe_transform(gender_enc, gender)
-        symptom_e = safe_transform(symptom_enc, symptom)
+        # --- 6. Encode categorical safely ---
+        race_e = safe_transform(race_enc, race) if 'race_enc' in globals() else 0
+        gender_e = safe_transform(gender_enc, gender) if 'gender_enc' in globals() else 0
+        symptom_e = safe_transform(symptom_enc, symptom) if 'symptom_enc' in globals() else 0
 
         ingredient_count = len(tokens)
         input_vector = np.array([[race_e, gender_e, age, symptom_e, ingredient_count, dosage_mg]])
 
-        # --- ML predictions ---
-        effectiveness = float(effectiveness_model.predict(input_vector)[0])
-        side_effect_val = float(side_effect_model.predict(input_vector)[0])
-        success_rate = float(success_rate_model.predict(input_vector)[0])
+        # --- 7. ML predictions safely ---
+        effectiveness = float(effectiveness_model.predict(input_vector)[0]) if 'effectiveness_model' in globals() else 70.0
+        side_effect_val = float(side_effect_model.predict(input_vector)[0]) if 'side_effect_model' in globals() else 0.5
+        success_rate = float(success_rate_model.predict(input_vector)[0]) if 'success_rate_model' in globals() else 70.0
+
+        # --- 8. Simulation curves ---
+        SIM_WEEKS = 12 if 'SIM_WEEKS' not in globals() else SIM_WEEKS
+        VARIATION = 5 if 'VARIATION' not in globals() else VARIATION
 
         def generate_simulation_curves(base_effectiveness, base_success_rate):
-            """
-            Generates weekly simulation curves for effectiveness and success rate.
-            Each week changes by a small random amount (±VARIATION).
-            """
-            effectiveness_curve = []
-            success_curve = []
-
-            eff = base_effectiveness
-            suc = base_success_rate
-
+            eff_curve, suc_curve = [], []
+            eff, suc = base_effectiveness, base_success_rate
             for week in range(SIM_WEEKS):
-                # Add small random variation each week
-                eff_change = random.randint(-VARIATION, VARIATION)
-                suc_change = random.randint(-VARIATION, VARIATION)
+                eff = max(0, min(100, eff + random.randint(-VARIATION, VARIATION)))
+                suc = max(0, min(100, suc + random.randint(-VARIATION, VARIATION)))
+                eff_curve.append(eff)
+                suc_curve.append(suc)
+            return {"labels": [f"Week {i+1}" for i in range(SIM_WEEKS)],
+                    "effectiveness": eff_curve,
+                    "success_rate": suc_curve}
 
-                # Update values
-                eff = max(0, min(100, eff + eff_change))
-                suc = max(0, min(100, suc + suc_change))
-
-                effectiveness_curve.append(eff)
-                success_curve.append(suc)
-
-            # Labels for x-axis: "Week 1", "Week 2", ...
-            labels = [f"Week {i+1}" for i in range(SIM_WEEKS)]
-
-            return {
-                "labels": labels,
-                "effectiveness": effectiveness_curve,
-                "success_rate": success_curve
-            }
-        
         simulation_curves = generate_simulation_curves(effectiveness, success_rate)
-        
-        # --- Side effect label ---
+
+        # --- 9. Side effect label ---
         if side_effect_val < 0.33:
             side_effect_label = "Low"
         elif side_effect_val < 0.66:
@@ -502,17 +487,7 @@ def predict():
         else:
             side_effect_label = "High"
 
-         # --- Build JSON response ---
-        response = {
-            "predicted_effectiveness": round(effectiveness, 2),
-            "predicted_side_effect_risk": side_effect_label,
-            "predicted_success_rate": round(success_rate, 2),
-            "simulation_curves": simulation_curves
-            # add any other fields like best_match or notes
-        }
-    
-
-        # --- Age-based explanations ---
+        # --- 10. Age, dosage, health explanations ---
         explanations = {}
         if age > 60:
             explanations["success_rate"] = "Success rate slightly lower due to age factor."
@@ -521,8 +496,7 @@ def predict():
         else:
             explanations["success_rate"] = "Success rate remains stable."
 
-        # --- Dosage explanation ---
-        if dosage_mg > 0 and dosage_mg > 500:
+        if dosage_mg > 500:
             explanations["side_effects"] = "Higher dosage increases side effect risk."
         elif side_effect_val > 0.66:
             explanations["side_effects"] = "High predicted side effect risk."
@@ -531,7 +505,7 @@ def predict():
         else:
             explanations["side_effects"] = "Side effect risk is low."
 
-        # --- Health condition penalties ---
+        # --- 11. Health penalties ---
         health_penalty_map = {
             "liver_disease": {"note": "Effectiveness and success adjusted due to liver disease.", "weight": 0.08},
             "kidney_disease": {"note": "Adjusted for kidney disease.", "weight": 0.10},
@@ -552,7 +526,6 @@ def predict():
             if info:
                 penalty_pct += info["weight"]
                 explanations_new.append(info["note"])
-
         if penalty_pct > 0:
             effectiveness = max(0, effectiveness * (1 - penalty_pct))
             success_rate = max(0, success_rate * (1 - penalty_pct))
@@ -563,77 +536,69 @@ def predict():
         else:
             explanations.setdefault("effectiveness", "Effectiveness remains stable.")
 
-        # --- Similarity matching ---
+        # --- 12. Similarity matching safely ---
         matches = []
-        for _, row in known_meds.iterrows():
-            percent, details = score_similarity(symptom, input_line, input_active, input_inactive, dosage_mg, row)
-            a, i = get_ingredients_for(row['medicine_name'])
+        if 'known_meds' in globals() and not known_meds.empty:
+            for _, row in known_meds.iterrows():
+                percent, details = score_similarity(symptom, input_line, input_active, input_inactive, dosage_mg, row) if 'score_similarity' in globals() else (0, "")
+                a, i = get_ingredients_for(row['medicine_name']) if 'get_ingredients_for' in globals() else ([], [])
+                row_penalty, risk_reasons, row_explanations = 0, [], []
+                if 'risk_factors' in row and isinstance(row['risk_factors'], str):
+                    row_risks = [r.strip().lower() for r in row['risk_factors'].split(';')]
+                    for risk in row_risks:
+                        for user_cond in user_conditions:
+                            if 'condition_matches' in globals() and condition_matches(user_cond, risk):
+                                row_penalty += 5
+                                risk_reasons.append(f"Risk for condition: {user_cond}")
+                                row_explanations.append(f"Reduced by 5% due to {user_cond} (from {row['medicine_name']})")
+                risky = row_penalty > 0
+                percent_adjusted = max(0, percent - row_penalty)
+                display_effectiveness = max(0, float(row.get('effectiveness', 0)) - row_penalty)
+                display_success_rate = max(0, float(row.get('success_rate', 0)) - row_penalty)
+                warning_note = "⚠ Reduced effectiveness/success due to health condition risk." if risky else ""
+                matches.append({
+                    "medicine_name": row['medicine_name'],
+                    "target_symptom": row.get('target_symptom', ''),
+                    "line_of_treatment": str(row.get('line_of_treatment', 'general')).lower(),
+                    "dosage_mg": row.get('dosage_mg', ''),
+                    "percent": round(percent_adjusted, 2),
+                    "details": details,
+                    "ingredients_active": list(a),
+                    "ingredients_inactive": list(i),
+                    "effectiveness": display_effectiveness,
+                    "success_rate": display_success_rate,
+                    "side_effect_risk": row.get('side_effect_risk'),
+                    "known_side_effects": row.get('known_side_effects'),
+                    "risk_factors": row.get('risk_factors', ''),
+                    "risky": risky,
+                    "risk_reasons": risk_reasons,
+                    "note": warning_note,
+                    "explanations": row_explanations
+                })
 
-            row_penalty = 0
-            risk_reasons = []
-            row_explanations = []
-            if 'risk_factors' in row and isinstance(row['risk_factors'], str):
-                row_risks = [r.strip().lower() for r in row['risk_factors'].split(';')]
-                for risk in row_risks:
-                    for user_cond in user_conditions:
-                        if condition_matches(user_cond, risk):
-                            row_penalty += 5
-                            risk_reasons.append(f"Risk for condition: {user_cond}")
-                            row_explanations.append(f"Reduced by 5% due to {user_cond} (from {row['medicine_name']})")
-
-            risky = row_penalty > 0
-            percent_adjusted = max(0, percent - row_penalty)
-            display_effectiveness = max(0, float(row.get('effectiveness', 0)) - row_penalty)
-            display_success_rate = max(0, float(row.get('success_rate', 0)) - row_penalty)
-            warning_note = "⚠ Reduced effectiveness/success due to health condition risk." if risky else ""
-
-            matches.append({
-                "medicine_name": row['medicine_name'],
-                "target_symptom": row.get('target_symptom', ''),
-                "line_of_treatment": str(row.get('line_of_treatment', 'general')).lower(),
-                "dosage_mg": row.get('dosage_mg', ''),
-                "percent": round(percent_adjusted, 2),
-                "details": details,
-                "ingredients_active": list(a),
-                "ingredients_inactive": list(i),
-                "effectiveness": display_effectiveness,
-                "success_rate": display_success_rate,
-                "side_effect_risk": row.get('side_effect_risk'),
-                "known_side_effects": row.get('known_side_effects'),
-                "risk_factors": row.get('risk_factors', ''),
-                "risky": risky,
-                "risk_reasons": risk_reasons,
-                "note": warning_note,
-                "explanations": row_explanations
-            })
-
-        # --- Line escalation ---
+        # --- 13. Line escalation ---
         line_order = ["first-line", "second-line", "third-line", "general"]
         escalation_applied = False
         def filter_by_line(line):
             return [m for m in matches if m["line_of_treatment"] == line]
-
         filtered_matches = filter_by_line(input_line)
         if not filtered_matches:
             for next_line in line_order:
-                if next_line == input_line:
-                    continue
+                if next_line == input_line: continue
                 filtered_matches = filter_by_line(next_line)
                 if filtered_matches:
                     escalation_applied = True
                     input_line = next_line
                     break
-
         matches_sorted = sorted(filtered_matches, key=lambda x: (x['percent'], -int(x['risky'])), reverse=True)
         top_matches = matches_sorted[:3] if matches_sorted else []
-
         MATCH_THRESHOLD = 55.0
         best = next((m for m in top_matches if not m['risky']), top_matches[0] if top_matches else None)
         strong_match = bool(best and best['percent'] >= MATCH_THRESHOLD and not best['risky'])
 
-        # --- Cancer suggestions ---
+        # --- 14. Cancer suggestions ---
         cancer_suggestions = []
-        if cancer_type:
+        if cancer_type and 'known_meds' in globals() and not known_meds.empty:
             for _, row in known_meds.iterrows():
                 if str(row.get("cancer_type", "")).lower() == cancer_type.lower():
                     if not cancer_line or str(row.get("line_of_treatment", "")).lower() == cancer_line.lower():
@@ -645,48 +610,42 @@ def predict():
                             "success_rate": row.get("success_rate"),
                             "risk_factors": row.get("risk_factors", "")
                         })
-        
-        # --- Predict specific side effects for NEW drugs ---
+
+        # --- 15. Predicted side effects ---
         predicted_side_effects = []
 
-        # From best match (if available)
         if best and best.get("known_side_effects"):
             predicted_side_effects.extend(best["known_side_effects"].split(";"))
 
         # Race modifiers
-        if race.lower() == "malay":
+        race_lower = race.lower()
+        if race_lower == "malay":
             predicted_side_effects.append("Skin rash (higher risk in Malays with sulfa drugs)")
-        elif race.lower() == "chinese":
+        elif race_lower == "chinese":
             predicted_side_effects.append("Flushing or liver enzyme interaction")
-        elif race.lower() == "indian":
+        elif race_lower == "indian":
             predicted_side_effects.append("Liver toxicity risk with paracetamol")
-        elif race.lower() == "indigenous":
+        elif race_lower == "indigenous":
             predicted_side_effects.append("Hypersensitivity / dizziness")
 
-        # Dosage effects
+        # Dosage & health condition modifiers
         if dosage_mg > 500:
-            predicted_side_effects.append("Nausea (dose-related)")
-            predicted_side_effects.append("Dizziness (dose-related)")
-
-        # Health condition effects (case-insensitive, keyword-based)
-        if any("liver" in c.lower() for c in user_conditions):
+            predicted_side_effects += ["Nausea (dose-related)", "Dizziness (dose-related)"]
+        if any("liver" in c for c in user_conditions):
             predicted_side_effects.append("Liver toxicity")
-
-        if any("pregnancy" in c.lower() for c in user_conditions):
+        if any("pregnancy" in c for c in user_conditions):
             predicted_side_effects.append("Unsafe in pregnancy / fetal risk")
-
-        if any("kidney" in c.lower() for c in user_conditions):
+        if any("kidney" in c for c in user_conditions):
             predicted_side_effects.append("Renal impairment risk")
 
-        # Clean up duplicates
         predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
 
-        # --- Response JSON ---
+        # --- 16. Final response ---
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
             "predicted_side_effect_risk": side_effect_label,
-            "predicted_specific_side_effects": ";".join(predicted_side_effects),  # ✅ new style
-            "specific_side_effects": ";".join(predicted_side_effects),            # ✅ alias for frontend compatibility
+            "predicted_specific_side_effects": ";".join(predicted_side_effects),
+            "specific_side_effects": ";".join(predicted_side_effects),
             "predicted_success_rate": round(success_rate, 2),
             "new_drug_note": new_drug_warning,
             "new_drug_explanations": explanations_new,
@@ -712,19 +671,13 @@ def predict():
                 "cancer_risk_factors": cancer_risks
             },
             "escalation_applied": escalation_applied,
+            "simulation_curves": simulation_curves,
             "debug": {
                 "input_vector": input_vector.tolist(),
                 "raw_predictions": [effectiveness, side_effect_val, success_rate],
                 "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches]
             }
         }
-
-        # --- Generate simulation curves ---
-        curves = generate_simulation_curves(effectiveness, success_rate)
-
-        # Attach curves to response JSON
-        response["simulation_curves"] = curves
-
 
         if not strong_match:
             response["message"] = "No strong safe match found — showing closest alternatives."
@@ -735,19 +688,7 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-# -----------------------------
-# Run Flask
-# -----------------------------
-if __name__ == "__main__":
-    for fn in ["ingredient_map.json", "known_medicines.csv", "users.json", "sessions.json"]:
-        if not os.path.exists(fn):
-            print(f"WARNING: missing file: {fn}")
-
-    for folder in ["templates", "static"]:
-        path = os.path.join(BASE_DIR, folder)
-        if not os.path.exists(path):
-            print(f"WARNING: {folder} folder not found at {path}")
-
+    
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask app on port {port}")
     app.run(host="0.0.0.0", port=port, debug=True)
