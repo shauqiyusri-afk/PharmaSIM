@@ -321,6 +321,10 @@ tbody tr:nth-child(even){ background:#f9fafb; }
       <canvas id="radarChart"></canvas>
     </div>
 
+    <h2 class="text-lg font-semibold mt-6">Ethnicity Comparison Radar</h2>
+      <canvas id="ethnicityRadarChart" width="400" height="400"></canvas>
+
+
     <div class="mt-6">
       <h2 class="text-xl font-bold text-center">Patient Recovery Simulation (6 Months)</h2>
       <canvas id="rollerChart" width="400" height="200"></canvas>
@@ -760,6 +764,68 @@ if (result.strong_match && result.best_match) {
           }
         }
       });
+
+      const ctx2 = document.getElementById('ethnicityRadarChart').getContext('2d');
+      fetch('/ethnicity-data')
+        .then(response => response.json())
+        .then(data => {
+          new Chart(ctx2, {
+            type: 'radar',
+            data: {
+              labels: data.labels, // e.g., ['Malay', 'Chinese', 'Indian', 'Indigenous']
+              datasets: data.datasets.map((group, index) => ({
+                label: group.label,
+                data: group.data,
+                borderColor: [
+                  'rgba(255, 99, 132, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)'
+                ][index % 4],
+                backgroundColor: [
+                  'rgba(255, 99, 132, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(75, 192, 192, 0.2)'
+                ][index % 4],
+                fill: true,
+                borderWidth: 2,
+                pointBackgroundColor: [
+                  'rgba(255, 99, 132, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)'
+                ][index % 4]
+              }))
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { labels: { color: 'white' }, position: 'top' },
+                title: {
+                  display: true,
+                  text: 'Drug Performance by Ethnicity',
+                  color: 'white',
+                  font: { size: 16, weight: 'bold' }
+                },
+                tooltip: { mode: 'nearest', intersect: false }
+              },
+              scales: {
+                r: {
+                  suggestedMin: 0,
+                  suggestedMax: 100,
+                  ticks: { stepSize: 20, color: 'white', backdropColor: 'transparent' },
+                  angleLines: { color: 'rgba(255,255,255,0.2)' },
+                  grid: { color: 'rgba(255,255,255,0.1)' },
+                  pointLabels: { color: 'white', font: { size: 12 } }
+                }
+              }
+            }
+          });
+        })
+        .catch(err => console.error('Ethnicity Radar fetch error:', err));
+
 
     // --- Roller Coaster Area Chart ---
         // Example: new drug vs best match over 6 months

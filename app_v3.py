@@ -634,7 +634,32 @@ def predict():
         return jsonify(response)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 500    
+@app.route("/ethnicity-data", methods=["GET"])
+def ethnicity_data():
+    # 🔥 For now, return mock numbers (later we can link to CSV or DB)
+    data = {
+        "labels": ["Effectiveness", "Success Rate", "Side Effect Risk"],
+        "datasets": [
+            {
+                "label": "Malay",
+                "data": [70, 68, 75]
+            },
+            {
+                "label": "Chinese",
+                "data": [72, 69, 78]
+            },
+            {
+                "label": "Indian",
+                "data": [68, 65, 80]
+            },
+            {
+                "label": "Indigenous",
+                "data": [73, 71, 77]
+            }
+        ]
+    }
+    return jsonify(data)
 # -----------------------------
 # Run Flask
 # -----------------------------
