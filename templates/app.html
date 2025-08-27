@@ -340,7 +340,7 @@ tbody tr:nth-child(even){ background:#f9fafb; }
 </div>
 <script>
 
-
+let rollerChartInstance = null; // global for roller chart
 
 function formatSideEffects(text) {
   if (!text) return '-';
@@ -491,6 +491,27 @@ targetSymptomEl.addEventListener('change', () => {
     lineOfTreatmentEl.value = "General";
   }
 });
+
+function generateSimulationCurve(drug) {
+  const months = [0, 1, 2, 3, 4, 5, 6];
+  const values = [];
+
+  const successRate = Number(drug.success_rate) || 0;     // ceiling
+  const effectiveness = Number(drug.effectiveness) || 0;  // curve steepness
+  const risk = (drug.side_effect_risk || "").toLowerCase();
+
+  months.forEach(m => {
+    let heal = successRate * (1 - Math.exp(-(effectiveness / 100) * m));
+
+    // risk adjustments
+    if (risk === "medium" && m === 3) heal -= 5;
+    if (risk === "high" && (m === 2 || m === 5)) heal -= 10;
+
+    values.push(Math.max(0, Math.min(100, Math.round(heal))));
+  });
+
+  return { months, values };
+}
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -739,29 +760,6 @@ if (result.strong_match && result.best_match) {
           }
         }
       });
-    }
-
-    function generateSimulationCurve(drug) {
-  const months = [0, 1, 2, 3, 4, 5, 6];
-  const values = [];
-
-  const successRate = Number(drug.success_rate) || 0;     // ceiling
-  const effectiveness = Number(drug.effectiveness) || 0;  // curve steepness
-  const risk = (drug.side_effect_risk || "").toLowerCase();
-
-  months.forEach(m => {
-    let heal = successRate * (1 - Math.exp(-(effectiveness / 100) * m));
-
-    // risk adjustments
-    if (risk === "medium" && m === 3) heal -= 5;
-    if (risk === "high" && (m === 2 || m === 5)) heal -= 10;
-
-    values.push(Math.max(0, Math.min(100, Math.round(heal))));
-  });
-
-  return { months, values };
-}
-
 
     // --- Roller Coaster Area Chart ---
         // Example: new drug vs best match over 6 months
@@ -770,10 +768,15 @@ if (result.strong_match && result.best_match) {
         const bmCurve = generateSimulationCurve(best);
         const ctxRoller = document.getElementById('rollerChart').getContext('2d');
 
-        const rollerChart = new Chart(ctxRoller, {
+        // ✅ Destroy old chart if it exists
+        if (rollerChartInstance) {
+          rollerChartInstance.destroy();
+        }
+
+        rollerChartInstance = new Chart(ctxRoller, {
           type: 'line',
           data: {
-            labels: ndCurve.months.map(m => `Month ${m}`),  // ["Month 0", "Month 1", ...]
+            labels: ndCurve.months.map(m => `Month ${m}`),
             datasets: [
               {
                 label: newDrug.drug_name || "New Drug",
@@ -813,7 +816,7 @@ if (result.strong_match && result.best_match) {
             scales: {
               y: {
                 beginAtZero: true,
-                max: 100,   // healing capped at 100%
+                max: 100,
                 title: {
                   display: true,
                   text: 'Patient Cure/Healing (%)'
@@ -824,11 +827,12 @@ if (result.strong_match && result.best_match) {
                   display: true,
                   text: 'Months'
                 }
+              
               }
             }
           }
-        });
-
+        });  
+    }
 
       } catch (err) {
         console.error(err);
