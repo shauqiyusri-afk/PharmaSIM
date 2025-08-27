@@ -6,8 +6,15 @@ import pandas as pd
 import json
 import os
 import secrets
+import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+
+# ---- Simulation settings ----
+SIM_WEEKS = 26   # 6 months, 1 data point per week
+VARIATION = 5    # max change per week
+
+app = Flask(__name__)
 
 # -----------------------------
 # Models / encoders
@@ -453,6 +460,40 @@ def predict():
         side_effect_val = float(side_effect_model.predict(input_vector)[0])
         success_rate = float(success_rate_model.predict(input_vector)[0])
 
+        def generate_simulation_curves(base_effectiveness, base_success_rate):
+            """
+            Generates weekly simulation curves for effectiveness and success rate.
+            Each week changes by a small random amount (±VARIATION).
+            """
+            effectiveness_curve = []
+            success_curve = []
+
+            eff = base_effectiveness
+            suc = base_success_rate
+
+            for week in range(SIM_WEEKS):
+                # Add small random variation each week
+                eff_change = random.randint(-VARIATION, VARIATION)
+                suc_change = random.randint(-VARIATION, VARIATION)
+
+                # Update values
+                eff = max(0, min(100, eff + eff_change))
+                suc = max(0, min(100, suc + suc_change))
+
+                effectiveness_curve.append(eff)
+                success_curve.append(suc)
+
+            # Labels for x-axis: "Week 1", "Week 2", ...
+            labels = [f"Week {i+1}" for i in range(SIM_WEEKS)]
+
+            return {
+                "labels": labels,
+                "effectiveness": effectiveness_curve,
+                "success_rate": success_curve
+            }
+        
+        simulation_curves = generate_simulation_curves(effectiveness, success_rate)
+        
         # --- Side effect label ---
         if side_effect_val < 0.33:
             side_effect_label = "Low"
@@ -460,6 +501,16 @@ def predict():
             side_effect_label = "Medium"
         else:
             side_effect_label = "High"
+
+         # --- Build JSON response ---
+        response = {
+            "predicted_effectiveness": round(effectiveness, 2),
+            "predicted_side_effect_risk": side_effect_label,
+            "predicted_success_rate": round(success_rate, 2),
+            "simulation_curves": simulation_curves
+            # add any other fields like best_match or notes
+        }
+    
 
         # --- Age-based explanations ---
         explanations = {}
@@ -669,12 +720,7 @@ def predict():
         }
 
         # --- Generate simulation curves ---
-        curves = simulate_curves(
-            effectiveness=effectiveness,
-            success_rate=success_rate,
-            side_effect_label=side_effect_label,
-            best=best
-        )
+        curves = generate_simulation_curves(effectiveness, success_rate)
 
         # Attach curves to response JSON
         response["simulation_curves"] = curves
