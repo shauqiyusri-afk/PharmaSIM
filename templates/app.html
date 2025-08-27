@@ -118,28 +118,6 @@ th, td { padding:0.75rem 1rem; text-align:left; border-bottom:1px solid #e5e7eb;
 th { background:#e0e7ff; font-weight:600; }
 tbody tr:nth-child(even){ background:#f9fafb; }
 
-/* ------------------------- SMOOTH HORIZONTAL SCROLL ------------------------- */
-.overflow-x-auto {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(79,70,229,0.5) transparent;
-}
-
-.overflow-x-auto::-webkit-scrollbar {
-  height: 6px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb {
-  background: rgba(79,70,229,0.5);
-  border-radius: 3px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-
 /* ------------------------- RADAR CHART ------------------------- */
 .radar-wrap { position: relative; height:320px; margin-top:2rem; }
 
@@ -155,40 +133,6 @@ tbody tr:nth-child(even){ background:#f9fafb; }
 
 /* ------------------------- RESPONSIVE ------------------------- */
 @media(max-width:1024px){ .card{grid-template-columns:1fr;} }
-
-/* ------------------------- CHARTS FLEX & HEIGHT ------------------------- */
-/* Chart beside table, scaled to table height */
-/* Chart beside table, scale height to table */
-.chart-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding: 1rem;
-  border-radius: 16px;
-  background: white; /* only for simulation chart */
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-
-/* Scale simulation chart to match table height */
-#simulationChart {
-  width: 100% !important;
-  height: auto;
-  max-height: 320px; /* adjust roughly to table height */
-}
-
-/* Radar chart transparent background */
-#radarChart {
-  background: transparent !important;
-  height: 320px; /* your usual radar size */
-}
-
-/* Optional: spacing for chart titles */
-.chart-box h3 {
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
 </style>
 </head>
 <body>
@@ -351,56 +295,44 @@ tbody tr:nth-child(even){ background:#f9fafb; }
     </div>
 
     <div>
-      <!-- Top Matches -->
-     <div class="mt-6 flex flex-col md:flex-row gap-6">
-      <!-- Table -->
-      <div class="flex-1 overflow-x-auto">
-        <table class="table-auto w-full text-sm text-left text-gray-600">
-          <thead class="bg-blue-50">
-            <tr>
-              <th class="px-3 py-2">Attribute</th>
-              <th class="px-3 py-2">New Drug</th>
-              <th class="px-3 py-2">Known Medicine</th>
-            </tr>
-          </thead>
-          <tbody id="comparisonTableBody" class="align-top"></tbody>
-        </table>
-      </div>
-
-      <!-- Simulation Chart beside table -->
-      <div class="chart-box">
-        <h3 class="text-lg font-semibold mb-2 text-gray-800">Simulation Over Time</h3>
-        <canvas id="simulationChart"></canvas>
-      </div>
+      <h3 class="text-md font-medium text-white mb-2">Top Matches</h3>
+      <div id="matchesList" class="space-y-2"></div>
     </div>
 
-    <!-- Radar Chart (transparent, separate) -->
-    <div class="mt-6 chart-box">
-      <h3 class="text-lg font-semibold mb-2 text-gray-800">New vs Known Medicine</h3>
+    <div class="text-center">
+      <div id="matchedImageArea" class="mb-2"></div>
+      <div id="matchedName" class="text-sm font-semibold text-white"></div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="table-auto w-full text-sm text-left text-gray-600">
+        <thead class="bg-blue-50">
+          <tr>
+            <th class="px-3 py-2">Attribute</th>
+            <th class="px-3 py-2">New Drug</th>
+            <th class="px-3 py-2">Known Medicine</th>
+          </tr>
+        </thead>
+        <tbody id="comparisonTableBody" class="align-top"></tbody>
+      </table>
+    </div>
+
+    <div class="radar-wrap">
       <canvas id="radarChart"></canvas>
     </div>
 
-
-      <!-- Explanation Section -->
-      <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
-        <h3 class="text-lg font-semibold mb-2">Explanation</h3>
-        <div id="explanationText" class="text-sm leading-relaxed"></div>
-      </div>
-
-      <!-- Download Button -->
-      <div class="mt-4 text-center">
-        <button id="downloadPDF" class="btn-action">Download as PDF</button>
-      </div>
+    <!-- 🔧 Explanation Section -->
+    <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
+      <h3 class="text-lg font-semibold mb-2">Explanation</h3>
+    <div id="explanationText" class="text-sm leading-relaxed"></div>
     </div>
+
+    <div class="mt-4 text-center">
+      <button id="downloadPDF" class="btn-action">Download as PDF</button>
+    </div>
+  </div>
+</div>
 <script>
-
-  function formatSideEffects(text) {
-  if (!text) return '-';
-  return '<ul class="list-disc list-inside">' +
-    text.split(';').map(s => `<li>${s.trim()}</li>`).join('') +
-    '</ul>';
-}
-
 
 const concInput = document.getElementById("concentration");
 const mgInput = document.getElementById("dosageMg");
@@ -467,7 +399,6 @@ const imageMap = {
   // fallback
   "Generic": "Generic.png"
 };
-
 
 // Utility: build image path from medicine name
 function imagePathFor(medName) {
@@ -536,7 +467,6 @@ const autoTreatmentMap = {
   "Flu": "General",
   "Sore Throat": "General"
 };
-
 
 targetSymptomEl.addEventListener('change', () => {
   const selected = targetSymptomEl.value;
@@ -640,7 +570,6 @@ if (result.strong_match && result.best_match) {
   matchMessage.textContent = result.message || 'No strong match found.';
 }
 
-
 //if (Array.isArray(result.new_drug_explanations) && result.new_drug_explanations.length) {//
 //  result.new_drug_explanations.forEach(exp => {
 //    const li = document.createElement("div");
@@ -668,8 +597,7 @@ if (result.strong_match && result.best_match) {
         <div class="text-xs text-gray-600">Match: <strong>${m.percent}%</strong></div>
         <div class="text-xs text-gray-600"><strong>Active:</strong> ${(m.ingredients_active || []).join(', ') || '-'}</div>
         <div class="text-xs text-gray-600"><strong>Inactive:</strong> ${(m.ingredients_inactive || []).join(', ') || '-'}</div>
-        <div class="text-xs text-gray-600"><strong>Known side effects:</strong> ${formatSideEffects(m.known_side_effects)}</div>
-
+        <div class="text-xs text-gray-600"><strong>Known side effects:</strong> ${m.known_side_effects || '-'}</div>
       `;
       matchesList.appendChild(card);
     });
@@ -684,59 +612,46 @@ if (result.strong_match && result.best_match) {
       matchedImageArea.appendChild(img);
       matchedName.textContent = best.medicine_name;
 
-  // ---- Comparison Table ----
-  const newDrug = {
+      // ---- Comparison Table ----
+      const newDrug = {
     drug_name: data.drug_name,
     ingredients: data.ingredients,
-    dosage_mg: data.dosage_mg || data.dosageMg || '-',  
-    line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-', 
+    dosage_mg: data.dosage_mg || data.dosageMg || '-',  // fallback to mg input
+    line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-', // include line of treatment
     target_symptom: data.target_symptom,
     health_condition: data.health_conditions || [],
     effectiveness: result.predicted_effectiveness,
     success_rate: result.predicted_success_rate,
     side_effect_risk: result.predicted_side_effect_risk,
-    predicted_specific_side_effects: result.predicted_specific_side_effects || []
-  };
+    specific_side_effects: result.predicted_specific_side_effects
+};
 
-  const formatSideEffects = (effects) => {
-    if (!effects || effects === '-') return '-';
-    if (Array.isArray(effects)) return effects.join(', ');
-    return effects.split(/[,;]+/).map(e => e.trim()).filter(Boolean).join(', ');
-  };
-
-  comparisonTableBody.innerHTML = ''; // clear previous rows
-
-  const rows = [
-    ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
-    ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
-    ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
-    ['Health Condition', (newDrug.health_condition || []).join(', ') || '-', best.health_condition || '-'],
-    ['Ingredients',
-      newDrug.ingredients || '-',
-      (((best.ingredients_active || []).join(', ')) +
-      (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
-      ) || '-'
-    ],
-    ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
-    ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
-    ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
-    ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
-    ['Likely Side Effects',
-      formatSideEffects(newDrug.predicted_specific_side_effects),
-      formatSideEffects(best?.known_side_effects || '-')
-    ]
-  ];
-
-  rows.forEach(([label, a, b]) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="px-3 py-2 font-semibold">${label}</td>
-      <td class="px-3 py-2">${a}</td>
-      <td class="px-3 py-2">${b}</td>
-    `;
-    comparisonTableBody.appendChild(tr);
-  });
-
+      const rows = [
+        ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
+        ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
+        ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
+        ['Health Condition', (newDrug.health_condition || []).toString() || '-', best.health_condition || '-'],
+        ['Ingredients',
+          newDrug.ingredients || '-',
+          (((best.ingredients_active || []).join(', ')) +
+           (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
+          ) || '-'
+        ],
+        ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
+        ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
+        ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
+        ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
+        ['Likely Side Effects', newDrug.specific_side_effects || '-', best.known_side_effects || '-']
+      ];
+      rows.forEach(([label, a, b]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-3 py-2 font-semibold">${label}</td>
+          <td class="px-3 py-2">${a}</td>
+          <td class="px-3 py-2">${b}</td>
+        `;
+        comparisonTableBody.appendChild(tr);
+      });
 
       // ---- Radar Chart ----
       const safetyMap = { 'Low': 100, 'Medium': 50, 'High': 10 };
@@ -795,49 +710,6 @@ if (result.strong_match && result.best_match) {
           }
         }
       });
-
-        // ---- Simulation Curves ----
-        if (result.simulation_curves) {
-          const simCtx = document.getElementById('simulationChart').getContext('2d');
-
-          // Destroy previous chart if exists
-          if (window.simulationChartInstance) window.simulationChartInstance.destroy();
-
-          window.simulationChartInstance = new Chart(simCtx, {
-            type: 'line',
-            data: {
-              labels: result.simulation_curves.labels || [], // x-axis
-              datasets: [
-                {
-                  label: 'Predicted Effectiveness',
-                  data: result.simulation_curves.effectiveness || [],
-                  borderColor: '#4f46e5',
-                  backgroundColor: 'rgba(79,70,229,0.2)',
-                  tension: 0.3,
-                  fill: true
-                },
-                {
-                  label: 'Predicted Success Rate',
-                  data: result.simulation_curves.success_rate || [],
-                  borderColor: '#10b981',
-                  backgroundColor: 'rgba(16,185,129,0.2)',
-                  tension: 0.3,
-                  fill: true
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: 'top', labels: { color: 'white' } } },
-              scales: {
-                y: { beginAtZero: true, max: 100, ticks: { color: 'white' } },
-                x: { ticks: { color: 'white' }, title: { display: true, text: 'Time', color: 'white' } }
-              }
-            }
-          });
-        }
-
     }
 
   } catch (err) {
