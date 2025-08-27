@@ -4,5 +4,5 @@ gunicorn>=23.0.0
 numpy>=1.26.2
 pandas>=2.1.1
 joblib>=1.5.1
-scikit-learn>=1.6.1
+scikit-learn=1.6.1
 Werkzeug>=2.3.7
