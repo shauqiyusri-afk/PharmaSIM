@@ -1080,45 +1080,43 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
 });
 </script>
 <script>
-    // Utility: Render a molecule into a given viewer
-    function renderMolecule(smiles, viewerId) {
-      const element = document.getElementById(viewerId);
-      if (!element) return;
-
-      element.innerHTML = ""; // clear previous content
-
-      if (!smiles || smiles.includes("Biologic")) {
-        element.innerHTML = `<span class="text-gray-500 text-sm">⚠ No structure available</span>`;
-        return;
-      }
-
-      const viewer = $3Dmol.createViewer(element, { backgroundColor: 'white' });
-      viewer.addModel(smiles, "smi");  // load from SMILES
-      viewer.setStyle({}, { stick: {} });
-      viewer.zoomTo();
-      viewer.render();
-    }
-
-
-
     // Load molecules.json once
     let moleculesDict = {};
     fetch("/static/js/molecules.json")
       .then(res => res.json())
       .then(data => { moleculesDict = data; });
 
-    // Main hook
-    function renderStructures(newDrugName, bestMatchName) {
-      const newSmiles = moleculesDict[newDrugName];
-      const matchSmiles = moleculesDict[bestMatchName];
+    // Utility: Render a molecule into a given viewer
+    function renderMolecule(smiles, viewerId) {
+        const element = document.getElementById(viewerId);
+        if (!element) return;
 
-      renderMolecule(newSmiles, "viewerNew");
-      renderMolecule(matchSmiles, "viewerMatch");
+        element.innerHTML = ""; // clear previous content
+
+        if (!smiles || smiles.includes("Biologic")) {
+            element.innerHTML = `<span class="text-gray-500 text-sm">⚠ No structure available</span>`;
+            return;
+        }
+
+        const viewer = $3Dmol.createViewer(element, { backgroundColor: 'white' });
+        viewer.addModel(smiles, "smi");  // load from SMILES
+        viewer.setStyle({}, { stick: {} });
+        viewer.zoomTo();
+        viewer.render();
     }
 
-    // Example test (remove later):
+    // Main hook: Render both new drug and best match
+    function renderStructures(newDrugName, bestMatchName) {
+        const newSmiles = moleculesDict[newDrugName] || "CC"; // fallback
+        const matchSmiles = moleculesDict[bestMatchName] || "CC";
+
+        renderMolecule(newSmiles, "viewerNew");
+        renderMolecule(matchSmiles, "viewerMatch");
+    }
+
+    // Example test (remove in production)
     // renderStructures("Paracetamol", "Ibuprofen");
-    </script>
+</script>
 </body>
 </html>
 
