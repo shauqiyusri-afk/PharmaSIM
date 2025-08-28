@@ -8,28 +8,6 @@ import os
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-# -----------------------------
-# RDKit helper for structure images
-# -----------------------------
-from rdkit import Chem
-from rdkit.Chem import Draw
-from io import BytesIO
-import base64
-
-def mol_to_base64_image(smiles):
-    """
-    Converts a SMILES string to a base64 PNG image.
-    Returns empty string if SMILES invalid.
-    """
-    if not smiles:
-        return ""
-    mol = Chem.MolFromSmiles(smiles)
-    if not mol:
-        return ""
-    img = Draw.MolToImage(mol, size=(300,300))
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode()
 
 # -----------------------------
 # Models / encoders
@@ -559,11 +537,6 @@ def predict():
         MATCH_THRESHOLD = 55.0
         best = next((m for m in top_matches if not m['risky']), top_matches[0] if top_matches else None)
         strong_match = bool(best and best['percent'] >= MATCH_THRESHOLD and not best['risky'])
-        # -----------------------------
-        # Generate structure images
-        # -----------------------------
-        structure_new = mol_to_base64_image(drug_name)  # assuming SMILES string in drug_name
-        structure_best_match = mol_to_base64_image(best['medicine_name']) if best else ""
 
         # --- Cancer suggestions ---
         cancer_suggestions = []
@@ -648,13 +621,10 @@ def predict():
             },
             "ethnicity_scores": ethnicity_scores,
             "escalation_applied": escalation_applied,
-            "structure_new": structure_new,
-            "structure_best_match": structure_best_match,
             "debug": {
                 "input_vector": input_vector.tolist(),
                 "raw_predictions": [effectiveness, side_effect_val, success_rate],
                 "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches]
-                
             }
         }
 

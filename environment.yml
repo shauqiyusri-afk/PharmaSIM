@@ -1,0 +1,12 @@
+name: pharmasim
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - flask
+  - flask-cors
+  - pandas
+  - numpy
+  - scikit-learn
+  - rdkit
+  - gunicorn

@@ -1,0 +1,38 @@
+# -------------------------------
+# Base image with Python 3.13
+# -------------------------------
+FROM continuumio/miniconda3
+
+# -------------------------------
+# Set working directory
+# -------------------------------
+WORKDIR /app
+
+# -------------------------------
+# Copy app code + requirements
+# -------------------------------
+COPY . /app
+
+# -------------------------------
+# Create conda environment and install RDKit + dependencies
+# -------------------------------
+RUN conda create -n parmasim python=3.13 -y && \
+    conda activate parmasim && \
+    conda install -c conda-forge rdkit flask flask-cors pandas scikit-learn numpy joblib gunicorn -y && \
+    conda clean -afy
+
+# -------------------------------
+# Set environment variables
+# -------------------------------
+ENV PATH /opt/conda/envs/parmasim/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+
+# -------------------------------
+# Expose port
+# -------------------------------
+EXPOSE 5000
+
+# -------------------------------
+# Run the Flask app via gunicorn
+# -------------------------------
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app_v3:app"]

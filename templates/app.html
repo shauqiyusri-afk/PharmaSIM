@@ -400,29 +400,6 @@ tbody tr:nth-child(even) { background: #f9fafb; }
     <div id="explanationText" class="text-sm leading-relaxed"></div>
     </div>
 
-    <!-- 🔬 Molecule Structures -->
-    <script src="https://3Dmol.org/build/3Dmol.js"></script>
-
-    <div class="grid grid-cols-2 gap-4 mt-6">
-      <!-- New Drug Molecule -->
-      <div>
-        <h2 class="text-lg font-semibold">New Drug Structure</h2>
-        <div id="viewerNew" 
-            class="flex items-center justify-center border rounded-md" 
-            style="width: 100%; height: 300px; background-color: #f8f9fa;">
-        </div>
-      </div>
-
-      <!-- Best Match Molecule -->
-      <div>
-        <h2 class="text-lg font-semibold">Best Match Structure</h2>
-        <div id="viewerMatch" 
-            class="flex items-center justify-center border rounded-md" 
-            style="width: 100%; height: 300px; background-color: #f8f9fa;">
-        </div>
-      </div>
-    </div>
-
     <div class="mt-4 text-center">
       <button id="downloadPDF" class="btn-action">Download as PDF</button>
     </div>
@@ -774,7 +751,6 @@ if (result.strong_match && result.best_match) {
       img.onerror = () => img.src = '/static/images/Generic.png';
       matchedImageArea.appendChild(img);
       matchedName.textContent = best.medicine_name;
-       renderStructures(data.drug_name, best.medicine_name);
 
     // ---- Comparison Table ----
     const newDrug = {
@@ -1078,44 +1054,6 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
   pdf.save(`simulation_result_${Date.now()}.pdf`);
   btn.style.display = 'block';
 });
-</script>
-<script>
-    // Load molecules.json once
-    let moleculesDict = {};
-    fetch("/static/js/molecules.json")
-      .then(res => res.json())
-      .then(data => { moleculesDict = data; });
-
-    // Utility: Render a molecule into a given viewer
-    function renderMolecule(smiles, viewerId) {
-        const element = document.getElementById(viewerId);
-        if (!element) return;
-
-        element.innerHTML = ""; // clear previous content
-
-        if (!smiles || smiles.includes("Biologic")) {
-            element.innerHTML = `<span class="text-gray-500 text-sm">⚠ No structure available</span>`;
-            return;
-        }
-
-        const viewer = $3Dmol.createViewer(element, { backgroundColor: 'white' });
-        viewer.addModel(smiles, "smi");  // load from SMILES
-        viewer.setStyle({}, { stick: {} });
-        viewer.zoomTo();
-        viewer.render();
-    }
-
-    // Main hook: Render both new drug and best match
-    function renderStructures(newDrugName, bestMatchName) {
-        const newSmiles = moleculesDict[newDrugName] || "CC"; // fallback
-        const matchSmiles = moleculesDict[bestMatchName] || "CC";
-
-        renderMolecule(newSmiles, "viewerNew");
-        renderMolecule(matchSmiles, "viewerMatch");
-    }
-
-    // Example test (remove in production)
-    // renderStructures("Paracetamol", "Ibuprofen");
 </script>
 </body>
 </html>
