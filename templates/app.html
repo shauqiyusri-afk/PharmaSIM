@@ -112,27 +112,75 @@ form input:focus, form select:focus {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+/* ------------------------- TABLE AND CHARTS LAYOUT ------------------------- */
+.table-charts-container {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  align-items: flex-start;
+}
+
+.table-section {
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
+}
+
+.charts-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 /* ------------------------- TABLE ------------------------- */
-table { width:100%; border-collapse:collapse; margin-top:1.5rem; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
-th, td { padding:0.75rem 1rem; text-align:left; border-bottom:1px solid #e5e7eb; }
-th { background:#e0e7ff; font-weight:600; }
-tbody tr:nth-child(even){ background:#f9fafb; }
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  background: white; 
+  border-radius: 12px; 
+  overflow: hidden; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+}
+th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+th { background: #e0e7ff; font-weight: 600; }
+tbody tr:nth-child(even) { background: #f9fafb; }
 
 /* ------------------------- RADAR CHART ------------------------- */
-.radar-wrap { position: relative; height:320px; margin-top:2rem; }
+.radar-wrap { 
+  position: relative; 
+  height: 280px; 
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.radar-title {
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
 
 /* ------------------------- MATCH IMAGE ------------------------- */
 #matchedImageArea img { border-radius: 50%; width: 120px; height: 120px; object-fit: cover; margin-bottom: 0.5rem; transition: transform 0.3s; }
 #matchedImageArea img:hover { transform: scale(1.1); }
 #matchedImageArea {
-  display: flex;            /* make it a flex container */
-  justify-content: center;  /* center horizontally */
-  align-items: center;      /* center vertically if needed */
-  margin-bottom: 0.5rem;    /* spacing below */
+  display: flex;            
+  justify-content: center;  
+  align-items: center;      
+  margin-bottom: 0.5rem;    
 }
 
 /* ------------------------- RESPONSIVE ------------------------- */
-@media(max-width:1024px){ .card{grid-template-columns:1fr;} }
+@media(max-width:1024px){ 
+  .card { grid-template-columns: 1fr; }
+  .table-charts-container { flex-direction: column; }
+  .charts-section { flex-direction: row; }
+}
+@media(max-width:768px){ 
+  .charts-section { flex-direction: column; }
+}
 </style>
 </head>
 <body>
@@ -304,32 +352,42 @@ tbody tr:nth-child(even){ background:#f9fafb; }
       <div id="matchedName" class="text-sm font-semibold text-white"></div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="table-auto w-full text-sm text-left text-gray-600">
-        <thead class="bg-blue-50">
-          <tr>
-            <th class="px-3 py-2">Attribute</th>
-            <th class="px-3 py-2">New Drug</th>
-            <th class="px-3 py-2">Known Medicine</th>
-          </tr>
-        </thead>
-        <tbody id="comparisonTableBody" class="align-top"></tbody>
-      </table>
+    <!-- NEW: TABLE AND CHARTS SIDE BY SIDE -->
+    <div class="table-charts-container">
+      <!-- TABLE SECTION -->
+      <div class="table-section">
+        <div class="overflow-x-auto">
+          <table class="table-auto w-full text-sm text-left text-gray-600">
+            <thead class="bg-blue-50">
+              <tr>
+                <th class="px-3 py-2">Attribute</th>
+                <th class="px-3 py-2">New Drug</th>
+                <th class="px-3 py-2">Known Medicine</th>
+              </tr>
+            </thead>
+            <tbody id="comparisonTableBody" class="align-top"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CHARTS SECTION -->
+      <div class="charts-section">
+        <div class="radar-wrap">
+          <div class="radar-title">Drug Comparison</div>
+          <canvas id="radarChart"></canvas>
+        </div>
+
+        <div class="radar-wrap">
+          <div class="radar-title">Ethnicity Comparison</div>
+          <canvas id="ethnicityRadarChart"></canvas>
+        </div>
+      </div>
     </div>
-
-    <div class="radar-wrap">
-      <canvas id="radarChart"></canvas>
-    </div>
-
-    <h2 class="text-lg font-semibold mt-6">Ethnicity Comparison Radar</h2>
-      <canvas id="ethnicityRadarChart" width="400" height="400"></canvas>
-
 
     <div class="mt-6">
       <h2 class="text-xl font-bold text-center">Patient Recovery Simulation (6 Months)</h2>
       <canvas id="rollerChart" width="400" height="200"></canvas>
     </div>
-
 
     <!-- 🔧 Explanation Section -->
     <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
@@ -342,7 +400,6 @@ tbody tr:nth-child(even){ background:#f9fafb; }
     </div>
   </div>
 </div>
-
 
 <script>
 let radarChartInstance = null;
@@ -554,7 +611,6 @@ function addWiggle(values, magnitude=3) {
         return Math.max(0, Math.min(100, Math.round(v + delta)));
     });
 }
-
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -869,7 +925,6 @@ if (result.strong_match && result.best_match) {
           }
       });
 
-
     // --- Roller Coaster Area Chart ---
         // Example: new drug vs best match over 6 months
 
@@ -883,7 +938,6 @@ if (result.strong_match && result.best_match) {
         // Add roller-coaster wiggle
         ndCurve.values = addWiggle(ndCurve.values, 3);
         bmCurve.values = addWiggle(bmCurve.values, 3);
-
 
         const ctxRoller = document.getElementById('rollerChart').getContext('2d');
 
