@@ -979,7 +979,12 @@ if (result.strong_match && result.best_match) {
             plugins: {
               title: {
                 display: true,
-                text: "Predicted Patient Healing Over 6 Months"
+                text: "Predicted Patient Healing Over 6 Months",
+                color: 'white',
+                font: { size: 16 }
+              },
+              legend: {
+                labels: { color: 'white' }
               },
               tooltip: {
                 mode: 'index',
@@ -997,15 +1002,20 @@ if (result.strong_match && result.best_match) {
                 max: 100,
                 title: {
                   display: true,
-                  text: 'Patient Cure/Healing (%)'
-                }
+                  text: 'Patient Cure/Healing (%)',
+                  color: 'white'
+                },
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255,255,255,0.1)' }
               },
               x: {
                 title: {
                   display: true,
-                  text: 'Months'
-                }
-              
+                  text: 'Months',
+                  color: 'white'
+                },
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255,255,255,0.1)' }
               }
             }
           }
