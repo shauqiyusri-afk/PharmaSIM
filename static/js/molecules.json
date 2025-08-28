@@ -1,0 +1,22 @@
+{
+  "Paracetamol": "CC(=O)NC1=CC=C(O)C=C1",
+  "Ibuprofen": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+  "Clarinase": "CC1=CC=C(C=C1)C(CO)NC(C)C",
+  "Cetirizine": "C1=CC(=CC=C1CCN2CCN(CC2)CCOCCO)Cl",
+  "Diphenhydramine": "CN(C)CCOC(C1=CC=CC=C1)C2=CC=CC=C2",
+  "5-FU": "C1=CN=C(C(=O)N1)F",
+  "Leucovorin": "CC1=C(C(=O)N(C(=O)C1C(=O)O)C)N",
+  "Oxaliplatin": "N1CCN(CC1)C2CC[NH2+]C2.[Pt-2+](Cl-)2",
+  "Irinotecan": "CC1=CC2=C(C=C1)N(C(=O)C2O)C",
+  "Gemcitabine": "C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)F",
+  "Paclitaxel": "CC1=CC2=C(C=C1)OC3=C(C(=C(C(=C3O2)C(=O)OC)C)C)C",
+  "Doxorubicin": "CC1=CC(=CC(=C1)O)C(=O)C2=CC=CC=C2",
+  "Cyclophosphamide": "C1CN2CCOCC2O1",
+  "Methotrexate": "CC1=CC(=CC=C1)NC2=NC(=NC(=N2)N)N",
+  "Cisplatin": "Cl[Pt](Cl)(NH3)NH3",
+  "Carboplatin": "O=C1OC(=O)N(C1=O)[Pt](NH3)2",
+  "Imatinib": "CC1=CC(=C(C=C1)NC(=O)C2=CC=CC=N2)NC3=CC=CC=C3",
+  "Trastuzumab": "Biologic - 3D structure not available",
+  "Bevacizumab": "Biologic - 3D structure not available",
+  "Nivolumab": "Biologic - 3D structure not available"
+}
