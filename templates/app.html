@@ -145,7 +145,30 @@ th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7
 th { background: #e0e7ff; font-weight: 600; }
 tbody tr:nth-child(even) { background: #f9fafb; }
 
-/* ------------------------- RADAR CHART ------------------------- */
+/* ------------------------- CIRCULAR PROGRESS ------------------------- */
+.circular-progress {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+}
+
+.circular-progress svg {
+  transform: rotate(-90deg);
+}
+
+.circular-progress .text-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+}
 .radar-wrap { 
   position: relative; 
   height: 380px; 
@@ -316,18 +339,42 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       <div id="badge" class="text-sm text-white font-medium"></div>
     </div>
 
-    <div class="flex gap-4 flex-wrap">
-      <div>
-        <p class="text-sm text-white">Effectiveness</p>
-        <div id="effectiveness" class="text-lg font-bold text-green-800">—</div>
+    <div class="flex gap-6 flex-wrap justify-center">
+      <div class="text-center">
+        <p class="text-sm text-white mb-2">Effectiveness</p>
+        <div class="circular-progress" data-metric="effectiveness">
+          <svg width="80" height="80">
+            <circle cx="40" cy="40" r="35" stroke="rgba(255,255,255,0.2)" stroke-width="6" fill="none"></circle>
+            <circle id="effectivenessCircle" cx="40" cy="40" r="35" stroke="#60a5fa" stroke-width="6" fill="none" 
+                    stroke-dasharray="220" stroke-dashoffset="220" stroke-linecap="round" 
+                    style="transform: rotate(-90deg); transform-origin: 40px 40px; transition: stroke-dashoffset 1s ease-in-out;"></circle>
+          </svg>
+          <div id="effectiveness" class="absolute inset-0 flex items-center justify-center text-lg font-bold text-white">—</div>
+        </div>
       </div>
-      <div>
-        <p class="text-sm text-white">Side Effect Risk</p>
-        <div id="sideEffect" class="text-lg font-semibold text-yellow-700">—</div>
+      <div class="text-center">
+        <p class="text-sm text-white mb-2">Side Effect Risk</p>
+        <div class="circular-progress" data-metric="sideEffect">
+          <svg width="80" height="80">
+            <circle cx="40" cy="40" r="35" stroke="rgba(255,255,255,0.2)" stroke-width="6" fill="none"></circle>
+            <circle id="sideEffectCircle" cx="40" cy="40" r="35" stroke="#ef4444" stroke-width="6" fill="none" 
+                    stroke-dasharray="220" stroke-dashoffset="220" stroke-linecap="round" 
+                    style="transform: rotate(-90deg); transform-origin: 40px 40px; transition: stroke-dashoffset 1s ease-in-out;"></circle>
+          </svg>
+          <div id="sideEffect" class="absolute inset-0 flex items-center justify-center text-lg font-bold text-white">—</div>
+        </div>
       </div>
-      <div>
-        <p class="text-sm text-white">Success Rate</p>
-        <div id="successRate" class="text-lg font-semibold text-blue-700">—</div>
+      <div class="text-center">
+        <p class="text-sm text-white mb-2">Success Rate</p>
+        <div class="circular-progress" data-metric="successRate">
+          <svg width="80" height="80">
+            <circle cx="40" cy="40" r="35" stroke="rgba(255,255,255,0.2)" stroke-width="6" fill="none"></circle>
+            <circle id="successRateCircle" cx="40" cy="40" r="35" stroke="#10b981" stroke-width="6" fill="none" 
+                    stroke-dasharray="220" stroke-dashoffset="220" stroke-linecap="round" 
+                    style="transform: rotate(-90deg); transform-origin: 40px 40px; transition: stroke-dashoffset 1s ease-in-out;"></circle>
+          </svg>
+          <div id="successRate" class="absolute inset-0 flex items-center justify-center text-lg font-bold text-white">—</div>
+        </div>
       </div>
     </div>
 
@@ -411,12 +458,33 @@ let radarChartInstance = null;
 let ethnicityChartInstance = null;
 let rollerChartInstance = null; // global for roller chart
 
-function formatSideEffects(text) {
+function updateCircularProgress(elementId, percentage, isRisk = false) {
+  const circle = document.getElementById(elementId);
+  if (!circle) return;
+  
+  // Calculate stroke-dashoffset based on percentage
+  const circumference = 220; // 2 * π * radius (35)
+  let progress = Math.max(0, Math.min(100, percentage || 0));
+  
+  // For risk metrics, invert the visual (higher risk = more red fill)
+  if (isRisk) {
+    const riskMap = { 'Low': 20, 'Medium': 60, 'High': 90 };
+    if (typeof percentage === 'string' && riskMap[percentage]) {
+      progress = riskMap[percentage];
+    }
+  }
+  
+  const offset = circumference - (progress / 100) * circumference;
+  
+  // Animate the progress
+  setTimeout(() => {
+    circle.style.strokeDashoffset = offset;
+  }, 200);
+}
   if (!text) return '-';
   return '<ul class="list-disc list-inside">' +
     text.split(';').map(s => `<li>${s.trim()}</li>`).join('') +
     '</ul>';
-}
 
 const concInput = document.getElementById("concentration");
 const mgInput = document.getElementById("dosageMg");
@@ -653,10 +721,19 @@ try {
   runMessage.textContent = '';
   outputPanel.style.display = 'block';
 
-  // Always show numbers in the top section
-  effectivenessEl.textContent = (result.predicted_effectiveness ?? '-') + '%';
-  sideEffectEl.textContent = result.predicted_side_effect_risk ?? '-';
-  successRateEl.textContent = (result.predicted_success_rate ?? '-') + '%';
+  // Always show numbers in the top section with circular progress
+  const effectiveness = result.predicted_effectiveness ?? 0;
+  const sideEffectRisk = result.predicted_side_effect_risk ?? 'Low';
+  const successRate = result.predicted_success_rate ?? 0;
+  
+  effectivenessEl.textContent = effectiveness + '%';
+  sideEffectEl.textContent = sideEffectRisk;
+  successRateEl.textContent = successRate + '%';
+  
+  // Update circular progress indicators
+  updateCircularProgress('effectivenessCircle', effectiveness);
+  updateCircularProgress('sideEffectCircle', sideEffectRisk, true); // true = risk metric
+  updateCircularProgress('successRateCircle', successRate);
 
   // --- Show explanations in the reasons box ---
   const reasonsBox = document.getElementById("newDrugReasons");
