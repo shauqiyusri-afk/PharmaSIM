@@ -1100,7 +1100,7 @@ function renderMolecule(smiles, viewerId) {
 
 // Load molecules.json once and cache it
 let moleculesDict = {};
-fetch("/static/molecules.json")
+fetch("/static/js/molecules.json")
   .then(res => res.json())
   .then(data => { moleculesDict = data; });
 
