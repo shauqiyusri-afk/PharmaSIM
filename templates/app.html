@@ -521,6 +521,41 @@ function generateSimulationCurve(drug) {
   return { months, values };
 }
 
+function generateHybridCurve(drug, aiAdjustments) {
+    const months = [0,1,2,3,4,5,6];
+    const values = [];
+    
+    const successRate = Number(drug.success_rate) || 0;
+    const effectiveness = Number(drug.effectiveness) || 0;
+    const risk = (drug.side_effect_risk || "").toLowerCase();
+
+    months.forEach((m, idx) => {
+        // Base math curve
+        let heal = successRate * (1 - Math.exp(-(effectiveness/100)*m));
+
+        // Risk adjustments
+        if(risk === "medium" && m===3) heal -= 5;
+        if(risk === "high" && (m===2 || m===5)) heal -= 10;
+
+        // AI adjustment multiplier
+        const aiFactor = aiAdjustments && aiAdjustments[idx] ? aiAdjustments[idx] : 1;
+        heal = heal * aiFactor;
+
+        values.push(Math.max(0, Math.min(100, Math.round(heal))));
+    });
+
+    return { months, values };
+}
+
+function addWiggle(values, magnitude=3) {
+    // magnitude = max % fluctuation per point
+    return values.map(v => {
+        const delta = (Math.random() * 2 - 1) * magnitude; // random between -m and +m
+        return Math.max(0, Math.min(100, Math.round(v + delta)));
+    });
+}
+
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   runMessage.textContent = 'Sending to server...';
@@ -838,8 +873,18 @@ if (result.strong_match && result.best_match) {
     // --- Roller Coaster Area Chart ---
         // Example: new drug vs best match over 6 months
 
-        const ndCurve = generateSimulationCurve(newDrug);
-        const bmCurve = generateSimulationCurve(best);
+        // Use backend AI adjustments if available
+        const ndAiAdjustments = result.ai_curve_new_drug || [1,1,1,1,1,1,1];
+        const bmAiAdjustments = result.ai_curve_best_match || [1,1,1,1,1,1,1];
+
+        const ndCurve = generateHybridCurve(newDrug, ndAiAdjustments);
+        const bmCurve = generateHybridCurve(best, bmAiAdjustments);
+
+        // Add roller-coaster wiggle
+        ndCurve.values = addWiggle(ndCurve.values, 3);
+        bmCurve.values = addWiggle(bmCurve.values, 3);
+
+
         const ctxRoller = document.getElementById('rollerChart').getContext('2d');
 
         // ✅ Destroy old chart if it exists
