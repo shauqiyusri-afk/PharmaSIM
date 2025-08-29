@@ -37,6 +37,86 @@ def get_ingredients_for(med_name):
         )
     return set(), set()
 
+# 🔹 INSERT THIS SNIPPET HERE (after CSV load)
+# --- RDKit support (optional) ---
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, DataStructs
+    RDKit_AVAILABLE = True
+except Exception as e:
+    print("RDKit not available:", e)
+    RDKit_AVAILABLE = False
+
+# Helper: convert SMILES -> Morgan fingerprint
+def smiles_to_fp_bitvec(smiles, radius=2, nBits=2048):
+    if not smiles or not isinstance(smiles, str):
+        return None
+    try:
+        smiles = smiles.strip()
+        if not smiles:  
+            return None  # no SMILES string
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None  # invalid SMILES
+
+        fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits)
+        return fp
+    except Exception:
+        return None
+
+# Add a 'smiles' column to known_meds if exists already; if not, create empty col
+if 'smiles' not in known_meds.columns:
+    known_meds['smiles'] = known_meds.get('smiles', '')
+
+# Precompute RDKit mol / fp for known_meds (only if RDKit present)
+if RDKit_AVAILABLE:
+    mol_objs = []
+    fps = []
+    for idx, row in known_meds.iterrows():
+        s = str(row.get('smiles') or '').strip()
+        if s:
+            m = Chem.MolFromSmiles(s)
+            if m:
+                fp = AllChem.GetMorganFingerprintAsBitVect(m, 2, nBits=2048)
+            else:
+                fp = None
+        else:
+            m = None
+            fp = None
+        mol_objs.append(m)
+        fps.append(fp)
+    known_meds['mol_obj'] = mol_objs
+    known_meds['mol_fp'] = fps
+else:
+    known_meds['mol_obj'] = [None] * len(known_meds)
+    known_meds['mol_fp'] = [None] * len(known_meds)
+
+# ⬇️ PUT THE FUNCTION RIGHT HERE
+def find_closest_molecule(smiles, threshold=0.3):
+    """
+    Compare a new SMILES with known_meds using Tanimoto similarity.
+    Returns (best_match_row, similarity) or (None, 0).
+    """
+    if not RDKit_AVAILABLE:
+        return None, 0.0
+
+    fp = smiles_to_fp_bitvec(smiles)
+    if fp is None:
+        return None, 0.0
+
+    best_sim, best_row = 0.0, None
+    for idx, row in known_meds.iterrows():
+        ref_fp = row.get("mol_fp")
+        if ref_fp is not None:
+            sim = DataStructs.TanimotoSimilarity(fp, ref_fp)
+            if sim > best_sim:
+                best_sim, best_row = sim, row
+
+    if best_row is not None and best_sim >= threshold:
+        return best_row, best_sim
+    return None, 0.0
+
 # ----------------- Indication ontology / hints -----------------
 def _norm(s):
     return (s or "").strip().lower()
@@ -589,6 +669,18 @@ def predict():
             known_scores = [m["effectiveness"] for m in top_matches if m]
             ethnicity_scores["known_medicine"][eth] = round(np.mean(known_scores) * (0.95 + 0.05 * np.random.rand()), 1) if known_scores else 0
 
+        # --- Molecule similarity check (SMILES input) ---
+        smiles = data.get("smiles", "").strip()
+        closest_molecule = None
+        if smiles:
+            best_row, sim = find_closest_molecule(smiles, threshold=0.3)
+            if best_row is not None:
+                closest_molecule = {
+                    "medicine_name": best_row["medicine_name"],
+                    "similarity": round(sim, 3),
+                    "smiles": best_row.get("smiles", "")
+                }
+
         # --- Response JSON ---
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
@@ -621,6 +713,7 @@ def predict():
             },
             "ethnicity_scores": ethnicity_scores,
             "escalation_applied": escalation_applied,
+            "closest_molecule": closest_molecule,
             "debug": {
                 "input_vector": input_vector.tolist(),
                 "raw_predictions": [effectiveness, side_effect_val, success_rate],

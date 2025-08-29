@@ -439,7 +439,11 @@ tbody tr:nth-child(even) { background: #f9fafb; }
   </div>
 </div>
 
+    <div id="viewer" style="width: 500px; height: 400px; position: relative;"></div>
+    <button onclick="loadMolecule('1BNA')">Load Molecule</button>
+
 <script>
+let viewer;
 let radarChartInstance = null;
 let ethnicityChartInstance = null;
 let rollerChartInstance = null;
@@ -550,57 +554,32 @@ function imagePathFor(medName) {
 
 // 3D Molecular Viewer Functions
 function initializeMolecularViewer() {
-  const element = document.getElementById("smilesViewer");
-  
-  // Clear any existing viewer
-  if (currentViewer) {
-    try {
-      currentViewer.clear();
-    } catch (e) {
-      console.log("Error clearing previous viewer:", e);
-    }
-  }
-  
-  element.innerHTML = '<div class="molecule-title" id="moleculeTitle">Molecular Structure</div>';
-  
-  // Create new 3Dmol viewer
-  try {
-    currentViewer = $3Dmol.createViewer(element, {
-      backgroundColor: 0x000000, // no quotes
-      antialias: true
+  if (!viewer) {
+    viewer = $3Dmol.createViewer("viewer", {
+      backgroundColor: "white" // or your preferred color
     });
-    return currentViewer;
-  } catch (error) {
-    console.error("Failed to create 3Dmol viewer:", error);
-    element.innerHTML = '<div class="molecule-title">3D Viewer Error</div><div style="color: white; padding: 20px; text-align: center;">Unable to load 3D molecular viewer</div>';
-    return null;
   }
+  return viewer;
 }
 
-function loadMolecule(smiles = "CCO", moleculeName = "Test Molecule") {
-  const element = document.getElementById("smilesViewer");
+// call this once immediately so the viewer div appears
+initializeMolecularViewer();
 
-  // Clear previous viewer
-  element.innerHTML = '<div class="molecule-title" id="moleculeTitle"></div>';
-  document.getElementById("moleculeTitle").textContent = `${moleculeName} - Molecular Structure`;
+async function loadMolecule(pdbId) {
+  const v = initializeMolecularViewer();
 
-  const viewer = $3Dmol.createViewer(element, {
-    backgroundColor: 0x000000,
-    antialias: true
-  });
+  // fetch PDB data
+  const url = `https://files.rcsb.org/download/${pdbId}.pdb`;
+  const response = await fetch(url);
+  const pdbData = await response.text();
 
-  if (!smiles || smiles.trim() === "") {
-    element.innerHTML += 
-      '<div style="color: white; padding: 20px; text-align: center;">No molecular structure available</div>';
-    return;
-  }
-
-  $3Dmol.download("smiles:" + smiles.trim(), viewer, {}, function() {
-    viewer.setStyle({}, { stick: { colorscheme: "default", radius: 0.2 } });
-    viewer.zoomTo();
-    viewer.render();
-  });
+  v.clear(); // remove previous model
+  v.addModel(pdbData, "pdb"); // add new model
+  v.setStyle({}, { cartoon: { color: 'spectrum' } });
+  v.zoomTo();
+  v.render();
 }
+
 
 // Form elements
 const form = document.getElementById('predictForm');
