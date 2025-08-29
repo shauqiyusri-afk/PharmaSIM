@@ -566,7 +566,7 @@ function initializeMolecularViewer() {
   // Create new 3Dmol viewer
   try {
     currentViewer = $3Dmol.createViewer(element, {
-      backgroundColor: "0x000000",
+      backgroundColor: 0x000000, // no quotes
       antialias: true
     });
     return currentViewer;
@@ -577,53 +577,29 @@ function initializeMolecularViewer() {
   }
 }
 
-function loadMolecule(smiles, moleculeName) {
-  console.log("Loading molecule:", moleculeName, "SMILES:", smiles);
-  
+function loadMolecule(smiles = "CCO", moleculeName = "Test Molecule") {
+  const element = document.getElementById("smilesViewer");
+
+  // Clear previous viewer
+  element.innerHTML = '<div class="molecule-title" id="moleculeTitle"></div>';
+  document.getElementById("moleculeTitle").textContent = `${moleculeName} - Molecular Structure`;
+
+  const viewer = $3Dmol.createViewer(element, {
+    backgroundColor: 0x000000,
+    antialias: true
+  });
+
   if (!smiles || smiles.trim() === "") {
-    console.log("No SMILES provided for", moleculeName);
-    document.getElementById("moleculeTitle").textContent = "No molecular structure available";
+    element.innerHTML += 
+      '<div style="color: white; padding: 20px; text-align: center;">No molecular structure available</div>';
     return;
   }
 
-  const viewer = initializeMolecularViewer();
-  if (!viewer) return;
-
-  // Update title
-  document.getElementById("moleculeTitle").textContent = `${moleculeName} - Molecular Structure`;
-
-  try {
-    // Use the download method to load SMILES
-    $3Dmol.download("smiles:" + smiles.trim(), viewer, {}, function() {
-      try {
-        // Set molecular style
-        viewer.setStyle({}, {
-          stick: {
-            colorscheme: "default",
-            radius: 0.2
-          }
-        });
-        
-        // Zoom to fit the molecule
-        viewer.zoomTo();
-        
-        // Render the scene
-        viewer.render();
-        
-        console.log("Successfully loaded molecule:", moleculeName);
-      } catch (renderError) {
-        console.error("Error rendering molecule:", renderError);
-        document.getElementById("smilesViewer").innerHTML = 
-          '<div class="molecule-title">Rendering Error</div>' +
-          '<div style="color: white; padding: 20px; text-align: center;">Error rendering molecular structure</div>';
-      }
-    });
-  } catch (loadError) {
-    console.error("Error loading SMILES:", loadError);
-    document.getElementById("smilesViewer").innerHTML = 
-      '<div class="molecule-title">Loading Error</div>' +
-      '<div style="color: white; padding: 20px; text-align: center;">Invalid molecular structure</div>';
-  }
+  $3Dmol.download("smiles:" + smiles.trim(), viewer, {}, function() {
+    viewer.setStyle({}, { stick: { colorscheme: "default", radius: 0.2 } });
+    viewer.zoomTo();
+    viewer.render();
+  });
 }
 
 // Form elements
