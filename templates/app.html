@@ -332,6 +332,9 @@ tbody tr:nth-child(even) { background: #f9fafb; }
     </div>
 
     <div id="bestMatchBox" class="mt-4 p-3 border rounded bg-gray-50 text-sm"></div>
+    <!-- Closest Alternative -->
+    <div id="closestAlternativeBox" class="mt-4 p-3 border-l-4 border-yellow-400 bg-yellow-50 rounded-xl shadow text-sm hidden"></div>
+
 
     <div class="mt-2">
         <p class="text-sm text-white font-semibold">Why These Predictions?</p>
@@ -356,6 +359,10 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       <div id="matchedImageArea" class="mb-2"></div>
       <div id="matchedName" class="text-sm font-semibold text-white"></div>
     </div>
+
+    <!-- Add after the matchedName div inside outputPanel -->
+    <div id="smilesViewer" style="width:100%; height:300px; border-radius:12px; border:1px solid rgba(255,255,255,0.3); background-color:rgba(0,0,0,0.15); margin-top:1rem;"></div>
+
 
     <!-- NEW: TABLE AND CHARTS SIDE BY SIDE -->
     <div class="table-charts-container">
@@ -701,6 +708,22 @@ if (matchBox) {
   `;
 }
 
+// ---- 🌟 Show closest alternative molecule ----
+const altBox = document.getElementById("closestAlternativeBox");
+if (altBox) {
+  if (result.closest_molecule) {
+    altBox.innerHTML = `
+      <h3 class="font-semibold text-yellow-700 mb-1">Closest Alternative Molecule</h3>
+      <p><b>Medicine:</b> ${result.closest_molecule.medicine_name}</p>
+      <p><b>Similarity:</b> ${(result.closest_molecule.similarity * 100).toFixed(1)}%</p>
+      <p><b>SMILES:</b> <code>${result.closest_molecule.smiles}</code></p>
+    `;
+    altBox.classList.remove("hidden");
+  } else {
+    altBox.classList.add("hidden");
+  }
+}
+
 // Also update the badge and matchMessage:
 if (result.strong_match && result.best_match) {
   badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent ?? 0}%)`;
@@ -751,6 +774,14 @@ if (result.strong_match && result.best_match) {
       img.onerror = () => img.src = '/static/images/Generic.png';
       matchedImageArea.appendChild(img);
       matchedName.textContent = best.medicine_name;
+      if (best.medicine_name && allMedicines[best.medicine_name]) {
+          loadSmiles(allMedicines[best.medicine_name]);
+      } else {
+          // Fallback to first medicine in JSON
+          const firstMedicine = Object.keys(allMedicines)[0];
+          loadSmiles(allMedicines[firstMedicine]);
+      }
+
 
     // ---- Comparison Table ----
     const newDrug = {
@@ -1055,6 +1086,48 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
   btn.style.display = 'block';
 });
 </script>
+<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+
+<script>
+
+  // Step 1: Load all medicines from JSON
+  let allMedicines = {};
+  fetch("/static/js/molecules.json")
+      .then(response => response.json())
+      .then(data => {
+          allMedicines = data;
+          console.log("Loaded medicines:", allMedicines); // optional debug
+      });
+
+
+  function loadSmiles(smiles) {
+    const element = document.getElementById("smilesViewer");
+    element.innerHTML = ""; // clear previous molecule
+
+    // Create the viewer
+    const viewer = $3Dmol.createViewer(element, { 
+      backgroundColor: "0x000000", // matches your dark panel
+      antialias: true
+    });
+
+    // Step 2: Load a SMILES string into 3Dmol
+    function loadSmiles(smiles) {
+        $3Dmol.download("smiles:" + smiles, viewer, {}, function() {
+            viewer.setStyle({}, { stick: {} });  // Show sticks
+            viewer.zoomTo();                     // Fit molecule
+            viewer.render();                     // Render the scene
+        });
+    }
+
+    // Load SMILES
+    $3Dmol.download("smiles:" + smiles, viewer, {}, function() {
+      viewer.setStyle({}, { stick: {} });  // sticks for bonds
+      viewer.zoomTo();                     // zoom to fit
+      viewer.render();                     // render
+    });
+  }
+</script>
+
 </body>
 </html>
 
