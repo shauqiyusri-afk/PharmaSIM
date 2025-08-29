@@ -1,32 +1,32 @@
-medicine_name,target_symptom,dosage_mg,effectiveness,success_rate,side_effect_risk,known_side_effects,line_of_treatment,risk_factors
-Paracetamol,Fever,500,80,85,Low,"Nausea;Dizziness",General,"Liver disease;Chronic alcohol use"
-Panadol,Headache,650,82,83,Medium,"Dizziness;Irritation",General,"Liver disease;Chronic alcohol use"
-Panadol Extend,Fever,1000,85,88,Medium,"Upset stomach",General,"Liver disease;Chronic alcohol use"
-Ibuprofen,Fever,400,75,74,Low,"Stomach pain;Heartburn",General,"Stomach ulcer;Kidney disease;Asthma"
-Clarinase,Flu,120,78,76,Medium,"Dry mouth;Drowsiness",General,"Hypertension;Heart disease;Glaucoma"
-Cetirizine,Cough,10,70,71,Low,"Drowsiness",General,"Kidney disease;Elderly (sedation risk)"
-Diphenhydramine,Sore Throat,25,72,69,Medium,"Blurred vision;Drowsiness",General,"Glaucoma;Asthma;Elderly (falls risk)"
+medicine_name,target_symptom,dosage_mg,effectiveness,success_rate,side_effect_risk,known_side_effects,line_of_treatment,risk_factors,smiles
+Paracetamol,Fever,500,80,85,Low,"Nausea;Dizziness",General,"Liver disease;Chronic alcohol use",CC(=O)NC1=CC=C(O)C=C1
+Panadol,Headache,650,82,83,Medium,"Dizziness;Irritation",General,"Liver disease;Chronic alcohol use",CC(=O)NC1=CC=C(O)C=C1
+Panadol Extend,Fever,1000,85,88,Medium,"Upset stomach",General,"Liver disease;Chronic alcohol use",CC(=O)NC1=CC=C(O)C=C1
+Ibuprofen,Fever,400,75,74,Low,"Stomach pain;Heartburn",General,"Stomach ulcer;Kidney disease;Asthma",CC(C)CC1=CC=C(C=C1)C(C)C(=O)O
+Clarinase,Flu,120,78,76,Medium,"Dry mouth;Drowsiness",General,"Hypertension;Heart disease;Glaucoma",CC(C)NCC(O)CN1CCC2=CC=CC=C2C1
+Cetirizine,Cough,10,70,71,Low,"Drowsiness",General,"Kidney disease;Elderly (sedation risk)",OCCN(CCO)CC1=CN=C2C=CC=CC2=C1Cl
+Diphenhydramine,Sore Throat,25,72,69,Medium,"Blurred vision;Drowsiness",General,"Glaucoma;Asthma;Elderly (falls risk)",CN(C)CCOC1=CC=CC=C1OCCN(C)C
 
-5-FU + Leucovorin,Colon Cancer,500,68,65,High,"Diarrhea;Mucositis;Neutropenia",First-Line,"Bone marrow suppression;Poor liver function"
-FOLFOX (Oxaliplatin + 5-FU + Leucovorin),Colon Cancer,600,72,70,High,"Neuropathy;Neutropenia;Fatigue",First-Line,"Neuropathy;Low blood counts"
-FOLFIRI (Irinotecan + 5-FU + Leucovorin),Colon Cancer,600,70,68,High,"Diarrhea;Hair loss;Low WBC",Second-Line,"Low WBC;Liver dysfunction"
-Gemcitabine,Pancreatic Cancer,1000,65,62,High,"Flu-like symptoms;Low platelets",First-Line,"Low platelet count;Liver disease"
-Paclitaxel,Breast Cancer,175,74,72,High,"Hair loss;Neuropathy;Fatigue",First-Line,"Neuropathy;Heart disease"
-Doxorubicin,Breast Cancer,60,73,70,High,"Heart damage;Hair loss;Nausea",First-Line,"Heart disease;Cumulative dose > lifetime limit"
-Cyclophosphamide,Lymphoma,600,71,69,High,"Bone marrow suppression;Bladder irritation",First-Line,"Kidney dysfunction;Previous bladder disease"
-Methotrexate,Leukemia,25,70,67,High,"Liver damage;Mouth sores;Fatigue",First-Line,"Liver disease;Kidney disease;Pregnancy"
-Cisplatin,Lung Cancer,50,69,65,High,"Nausea;Kidney damage;Hearing loss",First-Line,"Kidney disease;Hearing impairment"
-Carboplatin,Lung Cancer,450,67,64,High,"Bone marrow suppression;Fatigue",First-Line,"Kidney dysfunction;Low platelet count"
-Imatinib,Leukemia,400,82,78,Medium,"Swelling;Rash;Fatigue",Targeted,"Heart failure;Liver disease"
-Trastuzumab,Breast Cancer (HER2+),150,84,80,Medium,"Heart issues;Fever;Chills",Targeted,"Heart disease;Pregnancy"
-Bevacizumab,Colon Cancer,300,76,72,Medium,"Hypertension;Bleeding;Clots",Second-Line,"Uncontrolled hypertension;Recent surgery"
-Nivolumab,Melanoma,240,79,75,Medium,"Immune-related side effects;Fatigue",Second-Line,"Autoimmune diseases;Organ transplant"
-Pembrolizumab,Lung Cancer,200,80,77,Medium,"Immune-related side effects;Skin rash",First-Line,"Autoimmune disease;Organ transplant"
+5-FU + Leucovorin,Colon Cancer,500,68,65,High,"Diarrhea;Mucositis;Neutropenia",First-Line,"Bone marrow suppression;Poor liver function",C1=CNC(=O)NC1=O
+FOLFOX (Oxaliplatin + 5-FU + Leucovorin),Colon Cancer,600,72,70,High,"Neuropathy;Neutropenia;Fatigue",First-Line,"Neuropathy;Low blood counts",C1=CNC(=O)NC1=O
+FOLFIRI (Irinotecan + 5-FU + Leucovorin),Colon Cancer,600,70,68,High,"Diarrhea;Hair loss;Low WBC",Second-Line,"Low WBC;Liver dysfunction",C1=CNC(=O)NC1=O
+Gemcitabine,Pancreatic Cancer,1000,65,62,High,"Flu-like symptoms;Low platelets",First-Line,"Low platelet count;Liver disease",C1=CN=C2C(=C1)N=CN=C2N
+Paclitaxel,Breast Cancer,175,74,72,High,"Hair loss;Neuropathy;Fatigue",First-Line,"Neuropathy;Heart disease",CC1=C2C(=C(C=C1)O)OC3C(C(C(C(O3)OC(=O)C(C)(C)C)OC(=O)C4=CC=CC=C4)O)O2
+Doxorubicin,Breast Cancer,60,73,70,High,"Heart damage;Hair loss;Nausea",First-Line,"Heart disease;Cumulative dose > lifetime limit",CC1C(C(C(C(O1)O)O)O)OC2=CC(=C3C(=C2)C(=O)C4=C(C3=O)C=CC=C4)O
+Cyclophosphamide,Lymphoma,600,71,69,High,"Bone marrow suppression;Bladder irritation",First-Line,"Kidney dysfunction;Previous bladder disease",C1CN2CCOCC2N1P(=O)(O)O
+Methotrexate,Leukemia,25,70,67,High,"Liver damage;Mouth sores;Fatigue",First-Line,"Liver disease;Kidney disease;Pregnancy",CC1=CN=C(N=C1)NC2=NC=NC(=N2)N
+Cisplatin,Lung Cancer,50,69,65,High,"Nausea;Kidney damage;Hearing loss",First-Line,"Kidney disease;Hearing impairment","Cl[Pt](Cl)(NH3)NH3"
+Carboplatin,Lung Cancer,450,67,64,High,"Bone marrow suppression;Fatigue",First-Line,"Kidney dysfunction;Low platelet count","O=C1O[Pt](O1)(NH3)2"
+Imatinib,Leukemia,400,82,78,Medium,"Swelling;Rash;Fatigue",Targeted,"Heart failure;Liver disease",CC1=CC=CC=C1NC2=NC=NC3=CC=CC=C32
+Trastuzumab,Breast Cancer (HER2+),150,84,80,Medium,"Heart issues;Fever;Chills",Targeted,"Heart disease;Pregnancy",
+Bevacizumab,Colon Cancer,300,76,72,Medium,"Hypertension;Bleeding;Clots",Second-Line,"Uncontrolled hypertension;Recent surgery",
+Nivolumab,Melanoma,240,79,75,Medium,"Immune-related side effects;Fatigue",Second-Line,"Autoimmune diseases;Organ transplant",
+Pembrolizumab,Lung Cancer,200,80,77,Medium,"Immune-related side effects;Skin rash",First-Line,"Autoimmune disease;Organ transplant",
 
-Trastuzumab + Pertuzumab + Docetaxel,Breast Cancer (HER2+),600,86,82,High,"Hair loss;Neuropathy;Heart issues",Second-Line,"Heart disease;Pregnancy"
-FOLFOXIRI (FOLFOX + Irinotecan),Colon Cancer,800,75,72,High,"Diarrhea;Neutropenia;Fatigue",Second-Line,"Bone marrow suppression;Neuropathy;Liver dysfunction"
-FOLFIRINOX (5-FU + Leucovorin + Irinotecan + Oxaliplatin),Pancreatic Cancer,1000,74,70,High,"Diarrhea;Neutropenia;Fatigue",Second-Line,"Bone marrow suppression;Liver dysfunction;Poor performance"
-Bevacizumab + FOLFOX,Colon Cancer,900,79,75,High,"Hypertension;Bleeding;Neuropathy",First-Line,"Uncontrolled hypertension;Recent surgery;Low platelet count"
-Pembrolizumab + Platinum Doublet,Lung Cancer,600,82,78,High,"Immune-related AEs;Nausea;Fatigue",First-Line,"Autoimmune disease;Organ transplant"
-Pembrolizumab + Ipilimumab,Melanoma,500,81,77,High,"Immune-related AEs;Fatigue;Colitis",Second-Line,"Autoimmune disease;Organ transplant"
-Gemcitabine + Nab-Paclitaxel,Pancreatic Cancer,1100,77,73,High,"Neuropathy;Myelosuppression;Fatigue",First-Line,"Low platelet count;Peripheral neuropathy"
+Trastuzumab + Pertuzumab + Docetaxel,Breast Cancer (HER2+),600,86,82,High,"Hair loss;Neuropathy;Heart issues",Second-Line,"Heart disease;Pregnancy",
+FOLFOXIRI (FOLFOX + Irinotecan),Colon Cancer,800,75,72,High,"Diarrhea;Neutropenia;Fatigue",Second-Line,"Bone marrow suppression;Neuropathy;Liver dysfunction",C1=CNC(=O)NC1=O
+FOLFIRINOX (5-FU + Leucovorin + Irinotecan + Oxaliplatin),Pancreatic Cancer,1000,74,70,High,"Diarrhea;Neutropenia;Fatigue",Second-Line,"Bone marrow suppression;Liver dysfunction;Poor performance",C1=CNC(=O)NC1=O
+Bevacizumab + FOLFOX,Colon Cancer,900,79,75,High,"Hypertension;Bleeding;Neuropathy",First-Line,"Uncontrolled hypertension;Recent surgery;Low platelet count",C1=CNC(=O)NC1=O
+Pembrolizumab + Platinum Doublet,Lung Cancer,600,82,78,High,"Immune-related AEs;Nausea;Fatigue",First-Line,"Autoimmune disease;Organ transplant",
+Pembrolizumab + Ipilimumab,Melanoma,500,81,77,High,"Immune-related AEs;Fatigue;Colitis",Second-Line,"Autoimmune disease;Organ transplant",
+Gemcitabine + Nab-Paclitaxel,Pancreatic Cancer,1100,77,73,High,"Neuropathy;Myelosuppression;Fatigue",First-Line,"Low platelet count;Peripheral neuropathy",C1=CN=C2C(=C1)N=CN=C2N
