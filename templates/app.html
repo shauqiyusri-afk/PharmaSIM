@@ -3,13 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PharmaSim AI — Enhanced Simulation with Molecular View</title>
+<title>PharmaSim AI — Enhanced Simulation</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/1.8.0/3Dmol-min.js"></script>
-<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
 <style>
 /* ------------------------- BODY & BACKGROUND ------------------------- */
 body {
@@ -114,73 +112,6 @@ form input:focus, form select:focus {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* ------------------------- MOLECULAR VIEWER ------------------------- */
-.molecular-section {
-  margin-top: 2rem;
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(8px);
-  border-radius: 16px;
-  padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-.molecular-title {
-  color: white;
-  font-size: 1.2rem;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 1rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.molecule-container {
-  display: flex;
-  gap: 2rem;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.molecule-viewer {
-  flex: 1;
-  text-align: center;
-}
-
-.molecule-viewer h4 {
-  color: white;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-}
-
-.molecule-3d {
-  width: 300px;
-  height: 250px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
-  background: rgba(0,0,0,0.3);
-  margin: 0 auto;
-}
-
-.smiles-display {
-  color: #e5e7eb;
-  font-family: monospace;
-  font-size: 0.8rem;
-  margin-top: 0.5rem;
-  word-break: break-all;
-  background: rgba(0,0,0,0.3);
-  padding: 0.5rem;
-  border-radius: 8px;
-}
-
-.similarity-score {
-  color: white;
-  font-weight: bold;
-  text-align: center;
-  margin: 1rem 0;
-  padding: 0.5rem;
-  background: rgba(79,70,229,0.3);
-  border-radius: 8px;
-}
-
 /* ------------------------- TABLE AND CHARTS LAYOUT ------------------------- */
 .table-charts-container {
   display: flex;
@@ -191,7 +122,7 @@ form input:focus, form select:focus {
 
 .table-section {
   flex: 1;
-  min-width: 0;
+  min-width: 0; /* Prevents flex item from overflowing */
 }
 
 .charts-section {
@@ -251,12 +182,9 @@ tbody tr:nth-child(even) { background: #f9fafb; }
   .card { grid-template-columns: 1fr; }
   .table-charts-container { flex-direction: column; }
   .charts-section { flex-direction: row; }
-  .molecule-container { flex-direction: column; align-items: center; }
 }
 @media(max-width:768px){ 
   .charts-section { flex-direction: column; }
-  .molecule-container { flex-direction: column; }
-  .molecule-3d { width: 250px; height: 200px; }
 }
 </style>
 </head>
@@ -303,75 +231,75 @@ tbody tr:nth-child(even) { background: #f9fafb; }
           <input name="age" type="number" min="0" required>
         </div>
         <div>
-          <label class="block mb-2">Concentration (mg/mL)</label>
-          <input name="concentration" id="concentration" type="number" step="any" min="0" placeholder="e.g. 5"
-            class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
-        </div>
+  <label class="block mb-2">Concentration (mg/mL)</label>
+  <input name="concentration" id="concentration" type="number" step="any" min="0" placeholder="e.g. 5"
+    class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
+</div>
+<div class="grid grid-cols-2 gap-4">
+  <div>
+    <label class="block mb-2">Dosage (mg)</label>
+    <input name="dosage_mg" id="dosageMg" type="number" step="any" min="0" placeholder="e.g. 500" 
+      class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
+  </div>
+  <div>
+    <label class="block mb-2">Dosage (mL)</label>
+    <input name="dosage_ml" id="dosageMl" type="number" step="any" min="0" placeholder="auto-calculated" 
+      class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
+  </div>
+</div>
       </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block mb-2">Dosage (mg)</label>
-          <input name="dosage_mg" id="dosageMg" type="number" step="any" min="0" placeholder="e.g. 500" 
-            class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
-        </div>
-        <div>
-          <label class="block mb-2">Dosage (mL)</label>
-          <input name="dosage_ml" id="dosageMl" type="number" step="any" min="0" placeholder="auto-calculated" 
-            class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
-        </div>
-      </div>
-      <div>
-        <label>Target Symptom / Disease</label>
-        <select name="target_symptom" id="targetSymptom" required>
-          <option value="">--Select--</option>
-          <!-- General conditions -->
-          <option>Fever</option>
-          <option>Cough</option>
-          <option>Headache</option>
-          <option>Flu</option>
-          <option>Sore Throat</option>
-          
-          <!-- Oncology conditions -->
-          <option>Colon Cancer</option>
-          <option>Breast Cancer</option>
-          <option>Breast Cancer (HER2+)</option>
-          <option>Lung Cancer</option>
-          <option>Leukemia</option>
-          <option>Lymphoma</option>
-          <option>Pancreatic Cancer</option>
-          <option>Melanoma</option>
-        </select>
-      </div>
+<div>
+  <label>Target Symptom / Disease</label>
+  <select name="target_symptom" id="targetSymptom" required>
+    <option value="">--Select--</option>
+    <!-- General conditions -->
+    <option>Fever</option>
+    <option>Cough</option>
+    <option>Headache</option>
+    <option>Flu</option>
+    <option>Sore Throat</option>
+    
+    <!-- Oncology conditions -->
+    <option>Colon Cancer</option>
+    <option>Breast Cancer</option>
+    <option>Breast Cancer (HER2+)</option>
+    <option>Lung Cancer</option>
+    <option>Leukemia</option>
+    <option>Lymphoma</option>
+    <option>Pancreatic Cancer</option>
+    <option>Melanoma</option>
+  </select>
+</div>
 
-      <div>
-        <label>Line of Treatment</label>
-        <select name="line_of_treatment" id="lineOfTreatment" required>
-          <option value="General">General</option>
-          <option value="First-Line">First-Line</option>
-          <option value="Second-Line">Second-Line</option>
-          <option value="Targeted">Targeted</option>
-        </select>
-      </div>
+<div>
+  <label>Line of Treatment</label>
+  <select name="line_of_treatment" id="lineOfTreatment" required>
+    <option value="General">General</option>
+    <option value="First-Line">First-Line</option>
+    <option value="Second-Line">Second-Line</option>
+    <option value="Targeted">Targeted</option>
+  </select>
+</div>
 
-      <!-- HEALTH CONDITION DROPDOWN -->
-      <div class="mt-4">
-        <label class="block mb-2 text-white">Health Condition</label>
-        <select name="health_condition" class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300 text-black">
-          <option value="">-- Select --</option>
-          <option value="none">None</option>
-          <option value="liver_disease">Liver Disease</option>
-          <option value="kidney_disease">Kidney Disease</option>
-          <option value="asthma">Asthma</option>
-          <option value="heart_disease">Heart Disease</option>
-          <option value="hypertension">Hypertension</option>
-          <option value="pregnancy">Pregnancy</option>
-          <option value="glaucoma">Glaucoma</option>
-          <option value="elderly">Elderly (Sedation Risk)</option>
-        </select>
-      </div>
+<!-- HEALTH CONDITION DROPDOWN -->
+<div class="mt-4">
+  <label class="block mb-2 text-white">Health Condition</label>
+  <select name="health_condition" class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300 text-black">
+    <option value="">-- Select --</option>
+    <option value="none">None</option>
+    <option value="liver_disease">Liver Disease</option>
+    <option value="kidney_disease">Kidney Disease</option>
+    <option value="asthma">Asthma</option>
+    <option value="heart_disease">Heart Disease</option>
+    <option value="hypertension">Hypertension</option>
+    <option value="pregnancy">Pregnancy</option>
+    <option value="glaucoma">Glaucoma</option>
+    <option value="elderly">Elderly (Sedation Risk)</option>
+  </select>
+</div>
       <div>
         <label>Ingredients <span class="text-xs text-gray-500">(separate with ;)</span></label>
-        <input name="ingredients" id="ingredientsInput" placeholder="e.g. Paracetamol;Caffeine" required>
+        <input name="ingredients" placeholder="e.g. Paracetamol;Caffeine" required>
       </div>
       <div class="flex flex-wrap gap-2 mt-2">
         <button type="submit" class="btn-main btn-login flex-1">Simulate</button>
@@ -429,35 +357,7 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       <div id="matchedName" class="text-sm font-semibold text-white"></div>
     </div>
 
-   <!-- MOLECULAR VISUALIZATION SECTION -->
-    <div id="molecularSection" class="molecular-section" style="display: none;">
-      <div class="molecular-title">Molecular Structure Comparison</div>
-      <div class="molecule-container flex justify-between gap-6">
-        
-        <!-- User drug -->
-        <div class="molecule-viewer flex-1 flex flex-col items-center">
-          <h4>Your Drug Ingredients</h4>
-          <div id="userMolecule" class="molecule-3d" style="width:100%; height:300px;"></div>
-          <div id="userSmiles" class="smiles-display"></div>
-        </div>
-
-        <!-- Similarity score in middle -->
-        <div class="similarity-score flex items-center justify-center px-4">
-          <div id="molecularSimilarity" class="text-center text-white font-bold">
-            Molecular Similarity: Computing...
-          </div>
-        </div>
-
-        <!-- Best match -->
-        <div class="molecule-viewer flex-1 flex flex-col items-center">
-          <h4>Best Match Medicine</h4>
-          <div id="matchMolecule" class="molecule-3d" style="width:100%; height:300px;"></div>
-          <div id="matchSmiles" class="smiles-display"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TABLE AND CHARTS SIDE BY SIDE -->
+    <!-- NEW: TABLE AND CHARTS SIDE BY SIDE -->
     <div class="table-charts-container">
       <!-- TABLE SECTION -->
       <div class="table-section">
@@ -494,10 +394,10 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       <canvas id="rollerChart" width="400" height="200"></canvas>
     </div>
 
-    <!-- EXPLANATION SECTION -->
+    <!-- 🔧 Explanation Section -->
     <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
       <h3 class="text-lg font-semibold mb-2">Explanation</h3>
-      <div id="explanationText" class="text-sm leading-relaxed"></div>
+    <div id="explanationText" class="text-sm leading-relaxed"></div>
     </div>
 
     <div class="mt-4 text-center">
@@ -509,145 +409,13 @@ tbody tr:nth-child(even) { background: #f9fafb; }
 <script>
 let radarChartInstance = null;
 let ethnicityChartInstance = null;
-let rollerChartInstance = null;
-let userMolViewer = null;
-let matchMolViewer = null;
-
-// SMILES data for molecules
-const SMILES_DATA = {
-  "Paracetamol": "CC(=O)NC1=CC=C(O)C=C1",
-  "Ibuprofen": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
-  "Clarinase": "CC1=CC=C(C=C1)C(CO)NC(C)C",
-  "Cetirizine": "C1=CC(=CC=C1CCN2CCN(CC2)CCOCCO)Cl",
-  "Diphenhydramine": "CN(C)CCOC(C1=CC=CC=C1)C2=CC=CC=C2",
-  "5-FU": "C1=CN=C(C(=O)N1)F",
-  "Leucovorin": "CC1=C(C(=O)N(C(=O)C1C(=O)O)C)N",
-  "Oxaliplatin": "CC(=O)NC1=CC=C(O)C=C1",
-  "Irinotecan": "CC1=CC2=C(C=C1)N(C(=O)C2O)C",
-  "Gemcitabine": "C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)F",
-  "Paclitaxel": "CC1=CC2=C(C=C1)OC3=C(C(=C(C(=C3O2)C(=O)OC)C)C)C",
-  "Doxorubicin": "CC1=CC(=CC(=C1)O)C(=O)C2=CC=CC=C2",
-  "Cyclophosphamide": "C1CN2CCOCC2O1",
-  "Methotrexate": "CC1=CC(=CC=C1)NC2=NC(=NC(=N2)N)N",
-  "Cisplatin": "CC(=O)NC1=CC=C(O)C=C1",
-  "Carboplatin": "CC(=O)NC1=CC=C(O)C=C1",
-  "Imatinib": "CC1=CC(=C(C=C1)NC(=O)C2=CC=CC=N2)NC3=CC=CC=C3",
-  "Trastuzumab": "CC(=O)NC1=CC=C(O)C=C1",
-  "Bevacizumab": "CC(=O)NC1=CC=C(O)C=C1",
-  "Nivolumab": "CC(=O)NC1=CC=C(O)C=C1"
-};
+let rollerChartInstance = null; // global for roller chart
 
 function formatSideEffects(text) {
   if (!text) return '-';
   return '<ul class="list-disc list-inside">' +
     text.split(';').map(s => `<li>${s.trim()}</li>`).join('') +
     '</ul>';
-}
-
-// Initialize 3Dmol viewers
-function initializeMolecularViewers() {
-  if (userMolViewer) userMolViewer = null;
-  if (matchMolViewer) matchMolViewer = null;
-  
-  const userDiv = document.getElementById('userMolecule');
-  const matchDiv = document.getElementById('matchMolecule');
-  
-  userDiv.innerHTML = '';
-  matchDiv.innerHTML = '';
-  
-  userMolViewer = $3Dmol.createViewer(userDiv, {
-    backgroundColor: 'black',
-    width: 300,
-    height: 250
-  });
-  
-  matchMolViewer = $3Dmol.createViewer(matchDiv, {
-    backgroundColor: 'black',
-    width: 300,
-    height: 250
-  });
-}
-
-// Display molecule from SMILES
-async function displayMolecule(smiles) {
-  const element = document.getElementById("viewer");
-  const viewer = $3Dmol.createViewer(element, { backgroundColor: "white" });
-
-  try {
-    // Fetch 3D SDF from PubChem
-    const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/${encodeURIComponent(smiles)}/SDF?record_type=3d`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error("No 3D data found for this molecule");
-    }
-
-    const sdf = await response.text();
-
-    viewer.addModel(sdf, "sdf");
-    viewer.setStyle({}, {stick: {radius: 0.2}, sphere: {radius: 0.3}});
-    viewer.zoomTo();
-    viewer.render();
-
-  } catch (error) {
-    element.innerHTML = `<p class="text-red-500">❌ Could not load 3D structure: ${error.message}</p>`;
-  }
-}
-
-
-// Calculate simple molecular similarity (Tanimoto coefficient approximation)
-function calculateMolecularSimilarity(smiles1, smiles2) {
-  if (!smiles1 || !smiles2) return 0;
-  
-  // Simple character-based similarity (not chemically accurate but demonstrative)
-  const set1 = new Set(smiles1.toLowerCase().split(''));
-  const set2 = new Set(smiles2.toLowerCase().split(''));
-  
-  const intersection = new Set([...set1].filter(x => set2.has(x)));
-  const union = new Set([...set1, ...set2]);
-  
-  return Math.round((intersection.size / union.size) * 100);
-}
-
-// Show molecular comparison
-function showMolecularComparison(userIngredients, matchedMedicine) {
-  const molecularSection = document.getElementById('molecularSection');
-  const userSmilesDiv = document.getElementById('userSmiles');
-  const matchSmilesDiv = document.getElementById('matchSmiles');
-  const similarityDiv = document.getElementById('molecularSimilarity');
-  
-  // Get first ingredient for user drug
-  const ingredients = userIngredients.split(';').map(i => i.trim());
-  const firstIngredient = ingredients[0];
-  
-  // Get SMILES for user ingredient and matched medicine
-  const userSmiles = SMILES_DATA[firstIngredient] || SMILES_DATA["Paracetamol"]; // fallback
-  const matchSmiles = SMILES_DATA[matchedMedicine] || SMILES_DATA["Paracetamol"]; // fallback
-  
-  // Display SMILES strings
-  userSmilesDiv.textContent = `SMILES: ${userSmiles}`;
-  matchSmilesDiv.textContent = `SMILES: ${matchSmiles}`;
-  
-  // Initialize viewers if needed
-  if (!userMolViewer || !matchMolViewer) {
-    initializeMolecularViewers();
-  }
-  
-  // Display molecules
-  displayMolecule(userMolViewer, userSmiles, firstIngredient);
-  displayMolecule(matchMolViewer, matchSmiles, matchedMedicine);
-  
-  // Calculate and display similarity
-  const similarity = calculateMolecularSimilarity(userSmiles, matchSmiles);
-  similarityDiv.innerHTML = `
-    <div>Molecular Similarity: ${similarity}%</div>
-    <div style="font-size: 0.8rem; margin-top: 0.25rem;">
-      Comparing: ${firstIngredient} vs ${matchedMedicine}
-    </div>
-  `;
-  
-  // Show the section
-  molecularSection.style.display = 'block';
 }
 
 const concInput = document.getElementById("concentration");
@@ -677,8 +445,10 @@ concInput.addEventListener("input", () => {
   else if (mlInput.value) updateFromMl();
 });
 
-// Image mapping
+// ------------------------- IMAGE MAP (added) -------------------------
+// Exact filename mapping for /static/images/*.png
 const imageMap = {
+  // OTC
   "Paracetamol": "Paracetamol.png",
   "Panadol": "Panadol.png",
   "Panadol Extend": "Panadol_Extend.png",
@@ -692,6 +462,8 @@ const imageMap = {
   "Pseudoephedrine": "Pseudoephedrine.png",
   "Loratadine": "Loratadine.png",
   "Mefenamic_Acid": "Mefenamic_Acid.png",
+
+  // Oncology (expanded)
   "5-FU + Leucovorin": "5FU_Leucovorin.png",
   "FOLFOX (Oxaliplatin + 5-FU + Leucovorin)": "FOLFOX.png",
   "FOLFIRI (Irinotecan + 5-FU + Leucovorin)": "FOLFIRI.png",
@@ -707,9 +479,12 @@ const imageMap = {
   "Bevacizumab": "Bevacizumab.png",
   "Nivolumab": "Nivolumab.png",
   "Pembrolizumab": "Pembrolizumab.png",
+
+  // fallback
   "Generic": "Generic.png"
 };
 
+// Utility: build image path from medicine name
 function imagePathFor(medName) {
   if (!medName) return "/static/images/Generic.png";
 
@@ -721,7 +496,11 @@ function imagePathFor(medName) {
   return `/static/images/${underscoreName}.png`;
 }
 
-// Form elements and global variables
+// ------------------------- TYPEWRITER HEADER (kept) -------------------------
+const header = document.querySelector('.typewriter');
+if (header) { header.classList.add('typing'); }
+
+// ------------------------- FORM LOGIC (kept) -------------------------
 const form = document.getElementById('predictForm');
 const outputPanel = document.getElementById('outputPanel');
 const runMessage = document.getElementById('runMessage');
@@ -737,11 +516,9 @@ const comparisonTableBody = document.getElementById('comparisonTableBody');
 const badge = document.getElementById('badge');
 const clearBtn = document.getElementById('clearBtn');
 
-// Clear button functionality
 clearBtn.addEventListener('click', () => {
     form.reset();
     outputPanel.style.display = 'none';
-    document.getElementById('molecularSection').style.display = 'none';
     runMessage.textContent = '';
     matchesList.innerHTML = '';
     matchMessage.textContent = '';
@@ -751,8 +528,6 @@ clearBtn.addEventListener('click', () => {
     if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
     if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
     if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
-    if (userMolViewer) { userMolViewer.clear(); }
-    if (matchMolViewer) { matchMolViewer.clear(); }
 });
 
 // Auto-set Line of Treatment based on disease
@@ -760,16 +535,17 @@ const targetSymptomEl = document.getElementById('targetSymptom');
 const lineOfTreatmentEl = document.getElementById('lineOfTreatment');
 
 const autoTreatmentMap = {
-  // Oncology
-  "Breast Cancer (HER2+)": "Targeted",
-  "Breast Cancer": "First-Line",
-  "Colon Cancer": "First-Line",
-  "Lung Cancer": "First-Line",
-  "Leukemia": "Targeted",
-  "Lymphoma": "First-Line",
-  "Pancreatic Cancer": "Second-Line",
-  "Melanoma": "Targeted",
-  // General Primary Care
+  // ---- Oncology ----
+  "Breast Cancer (HER2+)": "Targeted",   // HER2+ → Trastuzumab / targeted therapy
+  "Breast Cancer": "First-Line",         // first-line chemo (Anthracycline/Taxane)
+  "Colon Cancer": "First-Line",          // FOLFOX/FOLFIRI
+  "Lung Cancer": "First-Line",           // platinum doublet
+  "Leukemia": "Targeted",                // Imatinib, TKIs
+  "Lymphoma": "First-Line",              // R-CHOP (curative intent)
+  "Pancreatic Cancer": "Second-Line",    // gemcitabine → second-line FOLFIRINOX
+  "Melanoma": "Targeted",                // BRAF/MEK or PD-1 inhibitors
+
+  // ---- General Primary Care ----
   "Fever": "General",
   "Cough": "General",
   "Headache": "General",
@@ -790,8 +566,8 @@ function generateSimulationCurve(drug) {
   const months = [0, 1, 2, 3, 4, 5, 6];
   const values = [];
 
-  const successRate = Number(drug.success_rate) || 0;
-  const effectiveness = Number(drug.effectiveness) || 0;
+  const successRate = Number(drug.success_rate) || 0;     // ceiling
+  const effectiveness = Number(drug.effectiveness) || 0;  // curve steepness
   const risk = (drug.side_effect_risk || "").toLowerCase();
 
   months.forEach(m => {
@@ -834,110 +610,124 @@ function generateHybridCurve(drug, aiAdjustments) {
 }
 
 function addWiggle(values, magnitude=3) {
+    // magnitude = max % fluctuation per point
     return values.map(v => {
-        const delta = (Math.random() * 2 - 1) * magnitude;
+        const delta = (Math.random() * 2 - 1) * magnitude; // random between -m and +m
         return Math.max(0, Math.min(100, Math.round(v + delta)));
     });
 }
 
-// Main form submission handler
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   runMessage.textContent = 'Sending to server...';
   outputPanel.style.display = 'none';
-  document.getElementById('molecularSection').style.display = 'none';
   matchesList.innerHTML = '';
   matchMessage.textContent = '';
   matchedImageArea.innerHTML = '';
   matchedName.textContent = '';
   comparisonTableBody.innerHTML = '';
   if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
-  if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
-  if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
 
   // Collect form data
   const formData = new FormData(form);
   const data = Object.fromEntries(formData.entries());
 
-  const selectedCondition = formData.get("health_condition");
-  data.health_conditions = selectedCondition && selectedCondition !== "none" 
-      ? [selectedCondition] 
-      : [];
+// new
+const selectedCondition = formData.get("health_condition");
+data.health_conditions = selectedCondition && selectedCondition !== "none" 
+    ? [selectedCondition] 
+    : [];
 
-  try {
-    const res = await fetch('/predict', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    });
-    
-    const result = await res.json();
-    if (res.status !== 200) { 
-      runMessage.textContent = result.error || 'Server returned an error'; 
-      return; 
+try {
+  const res = await fetch('/predict', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  
+  const result = await res.json();
+  if (res.status !== 200) { 
+    runMessage.textContent = result.error || 'Server returned an error'; 
+    return; 
+  }
+  runMessage.textContent = '';
+  outputPanel.style.display = 'block';
+
+  // Always show numbers in the top section
+  effectivenessEl.textContent = (result.predicted_effectiveness ?? '-') + '%';
+  sideEffectEl.textContent = result.predicted_side_effect_risk ?? '-';
+  successRateEl.textContent = (result.predicted_success_rate ?? '-') + '%';
+
+  // --- Show explanations in the reasons box ---
+  const reasonsBox = document.getElementById("newDrugReasons");
+  reasonsBox.innerHTML = "";
+
+  if (result.new_drug_note) {
+    const warn = document.createElement("div");
+    warn.className = "bg-red-100 text-red-800 rounded px-2 py-1 text-sm";
+    warn.textContent = result.new_drug_note;
+    reasonsBox.appendChild(warn);
+  }
+
+  if (result.new_drug_explanations) {
+  result.new_drug_explanations.forEach(msg => {
+    if (msg && msg.trim() !== "") {
+      const div = document.createElement("div");
+      div.textContent = "• " + msg;
+      reasonsBox.appendChild(div);
     }
-    runMessage.textContent = '';
-    outputPanel.style.display = 'block';
+  });
+}
 
-    // Display basic predictions
-    effectivenessEl.textContent = (result.predicted_effectiveness ?? '-') + '%';
-    sideEffectEl.textContent = result.predicted_side_effect_risk ?? '-';
-    successRateEl.textContent = (result.predicted_success_rate ?? '-') + '%';
+    // If backend gives detailed explanations (effectiveness, side effects, success rate)
+  if (result.explanations) {
+    const exp = result.explanations;
+    const html = `
+      <p><b>Effectiveness:</b> ${exp.effectiveness || '-'}</p>
+      <p><b>Side Effects:</b> ${exp.side_effects || '-'}</p>
+      <p><b>Success Rate:</b> ${exp.success_rate || '-'}</p>
+    `;
+    reasonsBox.innerHTML += html;
+  }
 
-    // Show explanations
-    const reasonsBox = document.getElementById("newDrugReasons");
-    reasonsBox.innerHTML = "";
+  // ---- 🔥 Show best match & escalation note ----
+const matchBox = document.getElementById("bestMatchBox");
+if (matchBox) {
+  matchBox.innerHTML = `
+    <h3 class="text-lg font-semibold mb-1">Best Match</h3>
+    <p><b>Medicine:</b> ${result.best_match?.medicine_name || "No match found"}</p>
+    <p><b>Similarity Score:</b> ${result.best_match?.percent ?? 0}%</p>
+    ${result.escalation_applied ? `<p class="text-yellow-600"><b>Note:</b> Escalated to ${result.input_summary.line_of_treatment}</p>` : ""}
+  `;
+}
 
-    if (result.new_drug_note) {
-      const warn = document.createElement("div");
-      warn.className = "bg-red-100 text-red-800 rounded px-2 py-1 text-sm";
-      warn.textContent = result.new_drug_note;
-      reasonsBox.appendChild(warn);
-    }
+// Also update the badge and matchMessage:
+if (result.strong_match && result.best_match) {
+  badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent ?? 0}%)`;
+  matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent ?? 0}% similarity.`;
+} else {
+  badge.textContent = 'No strong match';
+  matchMessage.textContent = result.message || 'No strong match found.';
+}
 
-    if (result.new_drug_explanations) {
-      result.new_drug_explanations.forEach(msg => {
-        if (msg && msg.trim() !== "") {
-          const div = document.createElement("div");
-          div.textContent = "• " + msg;
-          reasonsBox.appendChild(div);
-        }
-      });
-    }
+//if (Array.isArray(result.new_drug_explanations) && result.new_drug_explanations.length) {//
+//  result.new_drug_explanations.forEach(exp => {
+//    const li = document.createElement("div");
+//    li.textContent = "• " + exp;
+//    reasonsBox.appendChild(li);
+//  });
+//}
+    specificSideEffectsEl.textContent = result.predicted_specific_side_effects ?? '-';
 
-    if (result.explanations) {
-      const exp = result.explanations;
-      const html = `
-        <p><b>Effectiveness:</b> ${exp.effectiveness || '-'}</p>
-        <p><b>Side Effects:</b> ${exp.side_effects || '-'}</p>
-        <p><b>Success Rate:</b> ${exp.success_rate || '-'}</p>
-      `;
-      reasonsBox.innerHTML += html;
-    }
-
-    // Show best match info
-    const matchBox = document.getElementById("bestMatchBox");
-    if (matchBox) {
-      matchBox.innerHTML = `
-        <h3 class="text-lg font-semibold mb-1">Best Match</h3>
-        <p><b>Medicine:</b> ${result.best_match?.medicine_name || "No match found"}</p>
-        <p><b>Similarity Score:</b> ${result.best_match?.percent ?? 0}%</p>
-        ${result.escalation_applied ? `<p class="text-yellow-600"><b>Note:</b> Escalated to ${result.input_summary.line_of_treatment}</p>` : ""}
-      `;
-    }
-
-    // Update badge and match message
     if (result.strong_match && result.best_match) {
-      badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent ?? 0}%)`;
-      matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent ?? 0}% similarity.`;
+      badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent}%)`;
+      matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent}% similarity.`;
     } else {
       badge.textContent = 'No strong match';
       matchMessage.textContent = result.message || 'No strong match found.';
     }
 
-    specificSideEffectsEl.textContent = result.predicted_specific_side_effects ?? '-';
-
-    // Display top matches
+    // ---- Top matches list ----
     (result.top_matches || []).forEach(m => {
       const card = document.createElement('div');
       card.innerHTML = `
@@ -952,7 +742,7 @@ form.addEventListener('submit', async (e) => {
       matchesList.appendChild(card);
     });
 
-    // Show matched image and molecular comparison
+    // ---- Matched Image + Name ----
     const best = result.best_match || (result.top_matches && result.top_matches[0]);
     if (best) {
       const img = document.createElement('img');
@@ -962,11 +752,8 @@ form.addEventListener('submit', async (e) => {
       matchedImageArea.appendChild(img);
       matchedName.textContent = best.medicine_name;
 
-      // Show molecular comparison
-      showMolecularComparison(data.ingredients, best.medicine_name);
-
-      // Build comparison table
-      const newDrug = {
+    // ---- Comparison Table ----
+    const newDrug = {
         drug_name: data.drug_name,
         ingredients: data.ingredients,
         dosage_mg: data.dosage_mg || data.dosageMg || '-',  
@@ -979,13 +766,13 @@ form.addEventListener('submit', async (e) => {
         predicted_specific_side_effects: result.predicted_specific_side_effects || []
       };
 
-      const formatSideEffectsTable = (effects) => {
+      const formatSideEffects = (effects) => {
         if (!effects || effects === '-') return '-';
         if (Array.isArray(effects)) return effects.join(', ');
         return effects.split(/[,;]+/).map(e => e.trim()).filter(Boolean).join(', ');
       };
 
-      comparisonTableBody.innerHTML = '';
+      comparisonTableBody.innerHTML = ''; // clear previous rows
 
       const rows = [
         ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
@@ -1003,8 +790,8 @@ form.addEventListener('submit', async (e) => {
         ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
         ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
         ['Likely Side Effects',
-          formatSideEffectsTable(newDrug.predicted_specific_side_effects),
-          formatSideEffectsTable(best?.known_side_effects || '-')
+          formatSideEffects(newDrug.predicted_specific_side_effects),
+          formatSideEffects(best?.known_side_effects || '-')
         ]
       ];
 
@@ -1018,7 +805,9 @@ form.addEventListener('submit', async (e) => {
         comparisonTableBody.appendChild(tr);
       });
 
-      // Create radar chart
+  
+
+      // ---- Radar Chart ----
       const safetyMap = { 'Low': 100, 'Medium': 50, 'High': 10 };
       const ndEffect = Number(newDrug.effectiveness) || 0;
       const ndSuccess = Number(newDrug.success_rate) || 0;
@@ -1076,11 +865,17 @@ form.addEventListener('submit', async (e) => {
         }
       });
 
-      // Create ethnicity radar chart
+      
+
       const ctx2 = document.getElementById('ethnicityRadarChart').getContext('2d');
+
       const labels = ["Malay", "Chinese", "Indian", "Indigenous"];
+
+      // Replace dummy data with backend data
       const newDrugData = labels.map(l => result.ethnicity_scores?.new_drug?.[l] ?? 0);
       const knownMedData = labels.map(l => result.ethnicity_scores?.known_medicine?.[l] ?? 0);
+
+      // Optional: highlight user's selected ethnicity
       const selectedEthnicity = data.race || '';
 
       if (ethnicityChartInstance) ethnicityChartInstance.destroy();
@@ -1135,101 +930,105 @@ form.addEventListener('submit', async (e) => {
           }
       });
 
-      // Create patient recovery simulation chart
-      const ndAiAdjustments = result.ai_curve_new_drug || [1,1,1,1,1,1,1];
-      const bmAiAdjustments = result.ai_curve_best_match || [1,1,1,1,1,1,1];
+    // --- Roller Coaster Area Chart ---
+        // Example: new drug vs best match over 6 months
 
-      const ndCurve = generateHybridCurve(newDrug, ndAiAdjustments);
-      const bmCurve = generateHybridCurve(best, bmAiAdjustments);
+        // Use backend AI adjustments if available
+        const ndAiAdjustments = result.ai_curve_new_drug || [1,1,1,1,1,1,1];
+        const bmAiAdjustments = result.ai_curve_best_match || [1,1,1,1,1,1,1];
 
-      // Add realistic fluctuations
-      ndCurve.values = addWiggle(ndCurve.values, 3);
-      bmCurve.values = addWiggle(bmCurve.values, 3);
+        const ndCurve = generateHybridCurve(newDrug, ndAiAdjustments);
+        const bmCurve = generateHybridCurve(best, bmAiAdjustments);
 
-      const ctxRoller = document.getElementById('rollerChart').getContext('2d');
+        // Add roller-coaster wiggle
+        ndCurve.values = addWiggle(ndCurve.values, 3);
+        bmCurve.values = addWiggle(bmCurve.values, 3);
 
-      if (rollerChartInstance) {
-        rollerChartInstance.destroy();
-      }
+        const ctxRoller = document.getElementById('rollerChart').getContext('2d');
 
-      rollerChartInstance = new Chart(ctxRoller, {
-        type: 'line',
-        data: {
-          labels: ndCurve.months.map(m => `Month ${m}`),
-          datasets: [
-            {
-              label: newDrug.drug_name || "New Drug",
-              data: ndCurve.values,
-              borderColor: "rgba(75,192,192,1)",
-              backgroundColor: "rgba(75,192,192,0.3)",
-              tension: 0.4,
-              fill: true
-            },
-            {
-              label: best.medicine_name || "Best Match",
-              data: bmCurve.values,
-              borderColor: "rgba(255,99,132,1)",
-              backgroundColor: "rgba(255,99,132,0.3)",
-              tension: 0.4,
-              fill: true
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: "Predicted Patient Healing Over 6 Months",
-              color: 'white',
-              font: { size: 16 }
-            },
-            legend: {
-              labels: { color: 'white' }
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-            }
+        // ✅ Destroy old chart if it exists
+        if (rollerChartInstance) {
+          rollerChartInstance.destroy();
+        }
+
+        rollerChartInstance = new Chart(ctxRoller, {
+          type: 'line',
+          data: {
+            labels: ndCurve.months.map(m => `Month ${m}`),
+            datasets: [
+              {
+                label: newDrug.drug_name || "New Drug",
+                data: ndCurve.values,
+                borderColor: "rgba(75,192,192,1)",
+                backgroundColor: "rgba(75,192,192,0.3)",
+                tension: 0.4,
+                fill: true
+              },
+              {
+                label: best.medicine_name || "Best Match",
+                data: bmCurve.values,
+                borderColor: "rgba(255,99,132,1)",
+                backgroundColor: "rgba(255,99,132,0.3)",
+                tension: 0.4,
+                fill: true
+              }
+            ]
           },
-          interaction: {
-            mode: 'nearest',
-            axis: 'x',
-            intersect: false
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
+          options: {
+            responsive: true,
+            plugins: {
               title: {
                 display: true,
-                text: 'Patient Cure/Healing (%)',
-                color: 'white'
+                text: "Predicted Patient Healing Over 6 Months",
+                color: 'white',
+                font: { size: 16 }
               },
-              ticks: { color: 'white' },
-              grid: { color: 'rgba(255,255,255,0.1)' }
+              legend: {
+                labels: { color: 'white' }
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false,
+              }
             },
-            x: {
-              title: {
-                display: true,
-                text: 'Months',
-                color: 'white'
+            interaction: {
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                  display: true,
+                  text: 'Patient Cure/Healing (%)',
+                  color: 'white'
+                },
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255,255,255,0.1)' }
               },
-              ticks: { color: 'white' },
-              grid: { color: 'rgba(255,255,255,0.1)' }
+              x: {
+                title: {
+                  display: true,
+                  text: 'Months',
+                  color: 'white'
+                },
+                ticks: { color: 'white' },
+                grid: { color: 'rgba(255,255,255,0.1)' }
+              }
             }
           }
-        }
-      });  
+        });  
     }
 
-  } catch (err) {
-    console.error(err);
-    runMessage.textContent = 'Server Error';
-  }
-});
+      } catch (err) {
+        console.error(err);
+        runMessage.textContent = 'Server Error';
+      }
+    });
 
-// PDF Download functionality
+// ------------------------- PDF DOWNLOAD (kept) -------------------------
 document.getElementById('downloadPDF').addEventListener('click', async () => {
   const { jsPDF } = window.jspdf;
   const section = document.getElementById('outputPanel');
