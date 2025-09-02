@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/1.8.0/3Dmol-min.js"></script>
+<script src="https://3Dmol.org/build/3Dmol-min.js"></script>
 <style>
 /* ------------------------- BODY & BACKGROUND ------------------------- */
 body {
@@ -428,21 +429,29 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       <div id="matchedName" class="text-sm font-semibold text-white"></div>
     </div>
 
-    <!-- MOLECULAR VISUALIZATION SECTION -->
+   <!-- MOLECULAR VISUALIZATION SECTION -->
     <div id="molecularSection" class="molecular-section" style="display: none;">
       <div class="molecular-title">Molecular Structure Comparison</div>
-      <div class="molecule-container">
-        <div class="molecule-viewer">
+      <div class="molecule-container flex justify-between gap-6">
+        
+        <!-- User drug -->
+        <div class="molecule-viewer flex-1 flex flex-col items-center">
           <h4>Your Drug Ingredients</h4>
-          <div id="userMolecule" class="molecule-3d"></div>
+          <div id="userMolecule" class="molecule-3d" style="width:100%; height:300px;"></div>
           <div id="userSmiles" class="smiles-display"></div>
         </div>
-        <div class="similarity-score">
-          <div id="molecularSimilarity">Molecular Similarity: Computing...</div>
+
+        <!-- Similarity score in middle -->
+        <div class="similarity-score flex items-center justify-center px-4">
+          <div id="molecularSimilarity" class="text-center text-white font-bold">
+            Molecular Similarity: Computing...
+          </div>
         </div>
-        <div class="molecule-viewer">
+
+        <!-- Best match -->
+        <div class="molecule-viewer flex-1 flex flex-col items-center">
           <h4>Best Match Medicine</h4>
-          <div id="matchMolecule" class="molecule-3d"></div>
+          <div id="matchMolecule" class="molecule-3d" style="width:100%; height:300px;"></div>
           <div id="matchSmiles" class="smiles-display"></div>
         </div>
       </div>
