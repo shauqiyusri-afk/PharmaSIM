@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PharmaSim AI — Enhanced Simulation</title>
+<title>PharmaSim AI — Enhanced 3D Simulation</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 /* ------------------------- BODY & BACKGROUND ------------------------- */
 body {
@@ -18,194 +19,473 @@ body {
   justify-content: center;
   align-items: start;
   padding-top: 2rem;
-  background-color: black;
+  background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 50%, #1f2937 100%);
   overflow-x: hidden;
 }
-.bg-image {
+
+/* Animated background pattern */
+body::before {
+  content: '';
   position: fixed;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  z-index: -3;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(119, 198, 255, 0.3) 0%, transparent 50%);
+  animation: backgroundPulse 20s ease-in-out infinite alternate;
+  z-index: -1;
 }
-.overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.35);
-  z-index: -2;
+
+@keyframes backgroundPulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.6; }
 }
 
 /* ------------------------- CARD LAYOUT ------------------------- */
 .card {
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 24px;
+  box-shadow: 
+    0 20px 40px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
-  padding: 2rem;
-  animation: fadeIn 0.8s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 2.5rem;
+  animation: slideInUp 1s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
-@keyframes fadeIn { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
+
+@keyframes slideInUp { 
+  from {opacity:0; transform:translateY(40px);} 
+  to {opacity:1; transform:translateY(0);} 
+}
 
 /* ------------------------- FORM ------------------------- */
 form label {
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
   display: block;
   color: white;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
 }
+
 form input, form select {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgba(255,255,255,0.2);
   margin-bottom: 1rem;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-size: 0.9rem;
 }
+
+form input::placeholder, form select option {
+  color: rgba(255,255,255,0.6);
+}
+
 form input:focus, form select:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79,70,229,0.2);
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96,165,250,0.2);
+  background: rgba(255,255,255,0.15);
+  transform: translateY(-2px);
 }
 
 /* ------------------------- BUTTONS ------------------------- */
 .btn-main {
-  padding: 0.75rem 1.5rem;
-  border-radius: 9999px;
+  padding: 0.875rem 1.75rem;
+  border-radius: 50px;
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 1rem;
   margin: 0.25rem 0;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
 }
-.btn-login { background-color:#4f46e5; color:white; }
-.btn-login:hover { background-color:white; color:#4f46e5; border-color:#4f46e5; transform:translateY(-2px) scale(1.05); }
-.btn-register { background-color:#10b981; color:white; }
-.btn-register:hover { background-color:white; color:#10b981; border-color:#10b981; transform:translateY(-2px) scale(1.05); }
-.btn-action { background-color:#f59e0b; color:white; }
-.btn-action:hover { background-color:#b45309; }
+
+.btn-main::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.btn-main:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-login { 
+  background: linear-gradient(135deg, #4f46e5, #7c3aed); 
+  color: white; 
+}
+
+.btn-login:hover { 
+  transform: translateY(-3px) scale(1.05); 
+  box-shadow: 0 10px 25px rgba(79,70,229,0.4);
+}
+
+.btn-register { 
+  background: linear-gradient(135deg, #10b981, #059669); 
+  color: white; 
+}
+
+.btn-register:hover { 
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 10px 25px rgba(16,185,129,0.4);
+}
+
+.btn-action { 
+  background: linear-gradient(135deg, #f59e0b, #d97706); 
+  color: white; 
+}
+
+.btn-action:hover { 
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-2px);
+}
 
 /* ------------------------- OUTPUT PANEL ------------------------- */
-#outputPanel { display:none; margin-top:1rem; color:#1f2937; }
+#outputPanel { 
+  display: none; 
+  margin-top: 1rem; 
+  color: #f8fafc;
+}
 
 /* ------------------------- TOP MATCHES ------------------------- */
 #matchesList > div {
-  background: rgba(255,255,255,0.75);
-  padding: 0.75rem;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.1);
-  transition: transform 0.25s, box-shadow 0.25s;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+  margin-bottom: 0.75rem;
 }
+
 #matchesList > div:hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  background: rgba(255,255,255,0.15);
+}
+
+/* ------------------------- 3D MOLECULAR VIEWER ------------------------- */
+#molecularSection {
+  margin-top: 1.5rem;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 10px 30px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.molecule-container {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.molecule-viewer {
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  min-height: 320px;
+  width: 300px;
+  position: relative;
+  border: 2px solid rgba(255,255,255,0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.molecule-viewer:hover {
+  transform: translateY(-8px) scale(1.03);
+  border-color: rgba(96,165,250,0.5);
+  box-shadow: 0 20px 40px rgba(96,165,250,0.2);
+}
+
+.molecule-title {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  letter-spacing: 1px;
+}
+
+.molecule-formula {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-family: 'Courier New', monospace;
+  background: rgba(255,255,255,0.05);
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.molecule-canvas {
+  width: 100%;
+  height: 220px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+  position: relative;
+}
+
+.molecule-canvas::before {
+  content: 'Drag to rotate • Scroll to zoom';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.5);
+  font-size: 0.7rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.molecule-controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.control-btn {
+  background: linear-gradient(135deg, rgba(79,70,229,0.8), rgba(124,58,237,0.8));
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.control-btn:hover {
+  background: linear-gradient(135deg, rgba(79,70,229,1), rgba(124,58,237,1));
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(79,70,229,0.4);
 }
 
 /* ------------------------- TABLE AND CHARTS LAYOUT ------------------------- */
 .table-charts-container {
   display: flex;
   gap: 2rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
   align-items: flex-start;
 }
 
 .table-section {
   flex: 1;
-  min-width: 0; /* Prevents flex item from overflowing */
+  min-width: 0;
 }
 
 .charts-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 /* ------------------------- TABLE ------------------------- */
 table { 
   width: 100%; 
   border-collapse: collapse; 
-  background: white; 
-  border-radius: 12px; 
+  background: rgba(255,255,255,0.9); 
+  border-radius: 16px; 
   overflow: hidden; 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
 }
-th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
-th { background: #e0e7ff; font-weight: 600; }
-tbody tr:nth-child(even) { background: #f9fafb; }
+
+th, td { 
+  padding: 1rem 1.25rem; 
+  text-align: left; 
+  border-bottom: 1px solid rgba(0,0,0,0.1); 
+}
+
+th { 
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe); 
+  font-weight: 700; 
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.85rem;
+}
+
+tbody tr { 
+  transition: background-color 0.2s ease; 
+}
+
+tbody tr:nth-child(even) { 
+  background: rgba(0,0,0,0.02); 
+}
+
+tbody tr:hover { 
+  background: rgba(96,165,250,0.1); 
+}
 
 /* ------------------------- RADAR CHART ------------------------- */
 .radar-wrap { 
   position: relative; 
-  height: 380px; 
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  height: 400px; 
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 
+    0 10px 30px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .radar-title {
   color: white;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 700;
   text-align: center;
-  margin-bottom: 1rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  margin-bottom: 1.5rem;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  letter-spacing: 1px;
 }
 
 /* ------------------------- MATCH IMAGE ------------------------- */
-#matchedImageArea img { border-radius: 50%; width: 120px; height: 120px; object-fit: cover; margin-bottom: 0.5rem; transition: transform 0.3s; }
-#matchedImageArea img:hover { transform: scale(1.1); }
+#matchedImageArea img { 
+  border-radius: 50%; 
+  width: 140px; 
+  height: 140px; 
+  object-fit: cover; 
+  margin-bottom: 0.75rem; 
+  transition: all 0.4s ease;
+  border: 3px solid rgba(255,255,255,0.2);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+#matchedImageArea img:hover { 
+  transform: scale(1.1) rotate(5deg); 
+  border-color: rgba(96,165,250,0.5);
+}
+
 #matchedImageArea {
   display: flex;            
   justify-content: center;  
   align-items: center;      
-  margin-bottom: 0.5rem;    
+  margin-bottom: 1rem;    
+}
+
+/* ------------------------- LOADING ANIMATION ------------------------- */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ------------------------- RESPONSIVE ------------------------- */
-@media(max-width:1024px){ 
-  .card { grid-template-columns: 1fr; }
-  .table-charts-container { flex-direction: column; }
-  .charts-section { flex-direction: row; }
+@media(max-width:1200px){ 
+  .card { 
+    grid-template-columns: 1fr; 
+    max-width: 900px;
+    padding: 2rem;
+  }
+  .table-charts-container { 
+    flex-direction: column; 
+  }
+  .charts-section { 
+    flex-direction: row; 
+  }
+  .molecule-container { 
+    justify-content: center; 
+  }
 }
+
 @media(max-width:768px){ 
-  .charts-section { flex-direction: column; }
+  .charts-section { 
+    flex-direction: column; 
+  }
+  .molecule-viewer { 
+    width: 100%; 
+    max-width: 320px; 
+  }
+  .card {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  .molecule-container {
+    gap: 1rem;
+  }
+}
+
+@media(max-width:480px) {
+  .card {
+    padding: 1rem;
+  }
+  .molecule-viewer {
+    min-height: 280px;
+  }
+  .molecule-canvas {
+    height: 180px;
+  }
 }
 </style>
 </head>
 <body>
-
-<!-- BACKGROUND -->
-<img src="/static/images/bg_main.png" class="bg-image" alt="Background">
-<div class="overlay"></div>
 
 <!-- MAIN CARD -->
 <div class="card">
 
   <!-- LEFT: FORM -->
   <div>
-    <h1 class="text-2xl font-bold text-indigo-600 mb-4">Simulate New Drug</h1>
-    <form id="predictForm" class="space-y-2">
+    <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-6">
+      🧬 Simulate New Drug
+    </h1>
+    
+    <form id="predictForm" class="space-y-3">
       <div>
         <label>Drug Name</label>
         <input name="drug_name" required placeholder="e.g. MyPainRelief">
       </div>
-      <div class="grid grid-cols-2 gap-2">
+      
+      <div class="grid grid-cols-2 gap-3">
         <div>
           <label>Race</label>
           <select name="race" required>
@@ -225,152 +505,165 @@ tbody tr:nth-child(even) { background: #f9fafb; }
           </select>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-2">
+      
+      <div class="grid grid-cols-2 gap-3">
         <div>
           <label>Age</label>
-          <input name="age" type="number" min="0" required>
+          <input name="age" type="number" min="0" required placeholder="e.g. 35">
         </div>
         <div>
-  <label class="block mb-2">Concentration (mg/mL)</label>
-  <input name="concentration" id="concentration" type="number" step="any" min="0" placeholder="e.g. 5"
-    class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
-</div>
-<div class="grid grid-cols-2 gap-4">
-  <div>
-    <label class="block mb-2">Dosage (mg)</label>
-    <input name="dosage_mg" id="dosageMg" type="number" step="any" min="0" placeholder="e.g. 500" 
-      class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
-  </div>
-  <div>
-    <label class="block mb-2">Dosage (mL)</label>
-    <input name="dosage_ml" id="dosageMl" type="number" step="any" min="0" placeholder="auto-calculated" 
-      class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300">
-  </div>
-</div>
+          <label>Concentration (mg/mL)</label>
+          <input name="concentration" id="concentration" type="number" step="any" min="0" placeholder="e.g. 5">
+        </div>
       </div>
-<div>
-  <label>Target Symptom / Disease</label>
-  <select name="target_symptom" id="targetSymptom" required>
-    <option value="">--Select--</option>
-    <!-- General conditions -->
-    <option>Fever</option>
-    <option>Cough</option>
-    <option>Headache</option>
-    <option>Flu</option>
-    <option>Sore Throat</option>
-    
-    <!-- Oncology conditions -->
-    <option>Colon Cancer</option>
-    <option>Breast Cancer</option>
-    <option>Breast Cancer (HER2+)</option>
-    <option>Lung Cancer</option>
-    <option>Leukemia</option>
-    <option>Lymphoma</option>
-    <option>Pancreatic Cancer</option>
-    <option>Melanoma</option>
-  </select>
-</div>
+      
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label>Dosage (mg)</label>
+          <input name="dosage_mg" id="dosageMg" type="number" step="any" min="0" placeholder="e.g. 500">
+        </div>
+        <div>
+          <label>Dosage (mL)</label>
+          <input name="dosage_ml" id="dosageMl" type="number" step="any" min="0" placeholder="auto-calculated">
+        </div>
+      </div>
 
-<div>
-  <label>Line of Treatment</label>
-  <select name="line_of_treatment" id="lineOfTreatment" required>
-    <option value="General">General</option>
-    <option value="First-Line">First-Line</option>
-    <option value="Second-Line">Second-Line</option>
-    <option value="Targeted">Targeted</option>
-  </select>
-</div>
-
-<!-- HEALTH CONDITION DROPDOWN -->
-<div class="mt-4">
-  <label class="block mb-2 text-white">Health Condition</label>
-  <select name="health_condition" class="w-full p-2 rounded-lg border border-gray-300 focus:ring focus:ring-blue-300 text-black">
-    <option value="">-- Select --</option>
-    <option value="none">None</option>
-    <option value="liver_disease">Liver Disease</option>
-    <option value="kidney_disease">Kidney Disease</option>
-    <option value="asthma">Asthma</option>
-    <option value="heart_disease">Heart Disease</option>
-    <option value="hypertension">Hypertension</option>
-    <option value="pregnancy">Pregnancy</option>
-    <option value="glaucoma">Glaucoma</option>
-    <option value="elderly">Elderly (Sedation Risk)</option>
-  </select>
-</div>
       <div>
-        <label>Ingredients <span class="text-xs text-gray-500">(separate with ;)</span></label>
-        <input name="ingredients" placeholder="e.g. Paracetamol;Caffeine" required>
+        <label>Target Symptom / Disease</label>
+        <select name="target_symptom" id="targetSymptom" required>
+          <option value="">--Select--</option>
+          <option>Fever</option>
+          <option>Cough</option>
+          <option>Headache</option>
+          <option>Flu</option>
+          <option>Sore Throat</option>
+          <option>Colon Cancer</option>
+          <option>Breast Cancer</option>
+          <option>Breast Cancer (HER2+)</option>
+          <option>Lung Cancer</option>
+          <option>Leukemia</option>
+          <option>Lymphoma</option>
+          <option>Pancreatic Cancer</option>
+          <option>Melanoma</option>
+        </select>
       </div>
-      <div class="flex flex-wrap gap-2 mt-2">
-        <button type="submit" class="btn-main btn-login flex-1">Simulate</button>
-        <button type="button" id="clearBtn" class="btn-main btn-register">Clear</button>
+
+      <div>
+        <label>Line of Treatment</label>
+        <select name="line_of_treatment" id="lineOfTreatment" required>
+          <option value="General">General</option>
+          <option value="First-Line">First-Line</option>
+          <option value="Second-Line">Second-Line</option>
+          <option value="Targeted">Targeted</option>
+        </select>
       </div>
-      <p id="runMessage" class="text-sm text-gray-200 mt-1"></p>
+
+      <div>
+        <label>Health Condition</label>
+        <select name="health_condition">
+          <option value="">-- Select --</option>
+          <option value="none">None</option>
+          <option value="liver_disease">Liver Disease</option>
+          <option value="kidney_disease">Kidney Disease</option>
+          <option value="asthma">Asthma</option>
+          <option value="heart_disease">Heart Disease</option>
+          <option value="hypertension">Hypertension</option>
+          <option value="pregnancy">Pregnancy</option>
+          <option value="glaucoma">Glaucoma</option>
+          <option value="elderly">Elderly (Sedation Risk)</option>
+        </select>
+      </div>
+      
+      <div>
+        <label>Ingredients <span class="text-xs text-gray-300">(separate with ;)</span></label>
+        <input name="ingredients" id="ingredientsInput" placeholder="e.g. Paracetamol;Ibuprofen" required>
+      </div>
+
+      <!-- 3D MOLECULAR VISUALIZATION -->
+      <div id="molecularSection" style="display: none;">
+        <h3 class="text-xl font-bold text-center bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-4">
+          3D Molecular Structure
+        </h3>
+        <div id="moleculeContainer" class="molecule-container"></div>
+      </div>
+      
+      <div class="flex flex-wrap gap-3 mt-4">
+        <button type="submit" class="btn-main btn-login flex-1">
+          <span id="submitText">🚀 Simulate</span>
+        </button>
+        <button type="button" id="clearBtn" class="btn-main btn-register">
+          🗑️ Clear
+        </button>
+      </div>
+      
+      <p id="runMessage" class="text-sm text-gray-200 mt-2"></p>
     </form>
   </div>
 
   <!-- RIGHT: OUTPUT PANEL -->
-  <div id="outputPanel" class="space-y-4">
+  <div id="outputPanel" class="space-y-6">
     <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-green-700">Simulation Result</h2>
-      <div id="badge" class="text-sm text-white font-medium"></div>
+      <h2 class="text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+        🧪 Simulation Result
+      </h2>
+      <div id="badge" class="text-sm text-white font-medium bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1 rounded-full"></div>
     </div>
 
-    <div class="flex gap-4 flex-wrap">
-      <div>
-        <p class="text-sm text-white">Effectiveness</p>
-        <div id="effectiveness" class="text-lg font-bold text-green-800">—</div>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="text-center p-4 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-xl border border-green-500/30">
+        <p class="text-sm text-gray-300 mb-1">Effectiveness</p>
+        <div id="effectiveness" class="text-2xl font-bold text-green-400">—</div>
       </div>
-      <div>
-        <p class="text-sm text-white">Side Effect Risk</p>
-        <div id="sideEffect" class="text-lg font-semibold text-yellow-700">—</div>
+      <div class="text-center p-4 bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-xl border border-yellow-500/30">
+        <p class="text-sm text-gray-300 mb-1">Side Effect Risk</p>
+        <div id="sideEffect" class="text-2xl font-bold text-yellow-400">—</div>
       </div>
-      <div>
-        <p class="text-sm text-white">Success Rate</p>
-        <div id="successRate" class="text-lg font-semibold text-blue-700">—</div>
+      <div class="text-center p-4 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-xl border border-blue-500/30">
+        <p class="text-sm text-gray-300 mb-1">Success Rate</p>
+        <div id="successRate" class="text-2xl font-bold text-blue-400">—</div>
       </div>
     </div>
 
-    <div id="bestMatchBox" class="mt-4 p-3 border rounded bg-gray-50 text-sm"></div>
+    <div id="bestMatchBox" class="p-4 border rounded-xl bg-gradient-to-r from-slate-800/50 to-slate-700/50 text-sm border-slate-600/50"></div>
 
-    <div class="mt-2">
-        <p class="text-sm text-white font-semibold">Why These Predictions?</p>
-        <div id="newDrugReasons" class="text-sm text-gray-200 space-y-1"></div>
+    <div>
+        <p class="text-sm text-gray-300 font-semibold mb-2">Why These Predictions?</p>
+        <div id="newDrugReasons" class="text-sm text-gray-200 space-y-1 bg-slate-800/30 p-3 rounded-lg"></div>
     </div>
 
     <div>
-      <p class="text-sm text-white">Likely Side Effects</p>
-      <div id="specificSideEffects" class="text-sm text-white">—</div>
+      <p class="text-sm text-gray-300 font-semibold mb-2">Likely Side Effects</p>
+      <div id="specificSideEffects" class="text-sm text-gray-200 bg-red-900/20 p-3 rounded-lg border border-red-500/30">—</div>
     </div>
 
-    <div id="matchInfo" class="p-3 rounded border border-gray-200 bg-gray-50">
-      <div id="matchMessage" class="text-black font-bold mt-4"></div>
+    <div id="matchInfo" class="p-4 rounded-xl border border-gray-600/50 bg-gradient-to-r from-gray-800/50 to-gray-700/50">
+      <div id="matchMessage" class="text-white font-bold"></div>
     </div>
 
     <div>
-      <h3 class="text-md font-medium text-white mb-2">Top Matches</h3>
-      <div id="matchesList" class="space-y-2"></div>
+      <h3 class="text-lg font-bold text-white mb-3">🎯 Top Matches</h3>
+      <div id="matchesList" class="space-y-3"></div>
     </div>
 
     <div class="text-center">
-      <div id="matchedImageArea" class="mb-2"></div>
-      <div id="matchedName" class="text-sm font-semibold text-white"></div>
+      <div id="matchedImageArea" class="mb-3"></div>
+      <div id="matchedName" class="text-lg font-bold text-white"></div>
     </div>
 
-    <!-- NEW: TABLE AND CHARTS SIDE BY SIDE -->
+    <!-- TABLE AND CHARTS SIDE BY SIDE -->
     <div class="table-charts-container">
       <!-- TABLE SECTION -->
       <div class="table-section">
         <div class="overflow-x-auto">
-          <table class="table-auto w-full text-sm text-left text-gray-600">
-            <thead class="bg-blue-50">
+          <table class="table-auto w-full text-sm text-left">
+            <thead>
               <tr>
-                <th class="px-3 py-2">Attribute</th>
-                <th class="px-3 py-2">New Drug</th>
-                <th class="px-3 py-2">Known Medicine</th>
+                <th class="px-4 py-3">Attribute</th>
+                <th class="px-4 py-3">New Drug</th>
+                <th class="px-4 py-3">Known Medicine</th>
               </tr>
             </thead>
-            <tbody id="comparisonTableBody" class="align-top"></tbody>
+            <tbody id="comparisonTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -389,35 +682,109 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       </div>
     </div>
 
-    <div class="mt-6">
-      <h2 class="text-xl font-bold text-center">Patient Recovery Simulation (6 Months)</h2>
-      <canvas id="rollerChart" width="400" height="200"></canvas>
+    <div class="mt-8">
+      <h2 class="text-2xl font-bold text-center text-white mb-4">📈 Patient Recovery Simulation (6 Months)</h2>
+      <div class="bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-4 rounded-xl border border-slate-600/30">
+        <canvas id="rollerChart" width="400" height="200"></canvas>
+      </div>
     </div>
 
-    <!-- 🔧 Explanation Section -->
-    <div id="explanationSection" class="mt-6 p-4 rounded-xl bg-gray-800 bg-opacity-50 text-white hidden">
-      <h3 class="text-lg font-semibold mb-2">Explanation</h3>
-    <div id="explanationText" class="text-sm leading-relaxed"></div>
+    <div id="explanationSection" class="mt-6 p-6 rounded-xl bg-gradient-to-br from-gray-800/80 to-slate-900/80 text-white border border-gray-600/50 hidden">
+      <h3 class="text-xl font-bold mb-3">💡 Explanation</h3>
+      <div id="explanationText" class="text-sm leading-relaxed"></div>
     </div>
 
-    <div class="mt-4 text-center">
-      <button id="downloadPDF" class="btn-action">Download as PDF</button>
+    <div class="mt-6 text-center">
+      <button id="downloadPDF" class="btn-main btn-action">📄 Download as PDF</button>
     </div>
   </div>
 </div>
 
 <script>
+// Global variables
 let radarChartInstance = null;
 let ethnicityChartInstance = null;
-let rollerChartInstance = null; // global for roller chart
+let rollerChartInstance = null;
+let activeViewers = {};
 
+// 3D Molecular Database
+const moleculeDatabase = {
+  "Paracetamol": "CC(=O)NC1=CC=C(O)C=C1",
+  "Ibuprofen": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+  "Clarinase": "CC1=CC=C(C=C1)C(CO)NC(C)C",
+  "Cetirizine": "C1=CC(=CC=C1CCN2CCN(CC2)CCOCCO)Cl",
+  "Diphenhydramine": "CN(C)CCOC(C1=CC=CC=C1)C2=CC=CC=C2",
+  "5-FU": "C1=CN=C(C(=O)N1)F",
+  "Leucovorin": "CC1=C(C(=O)N(C(=O)C1C(=O)O)C)N",
+  "Oxaliplatin": "CC(=O)NC1=CC=C(O)C=C1",
+  "Irinotecan": "CC1=CC2=C(C=C1)N(C(=O)C2O)C",
+  "Gemcitabine": "C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)F",
+  "Paclitaxel": "CC1=CC2=C(C=C1)OC3=C(C(=C(C(=C3O2)C(=O)OC)C)C)C",
+  "Doxorubicin": "CC1=CC(=CC(=C1)O)C(=O)C2=CC=CC=C2",
+  "Cyclophosphamide": "C1CN2CCOCC2O1",
+  "Methotrexate": "CC1=CC(=CC=C1)NC2=NC(=NC(=N2)N)N",
+  "Cisplatin": "CC(=O)NC1=CC=C(O)C=C1",
+  "Carboplatin": "CC(=O)NC1=CC=C(O)C=C1",
+  "Imatinib": "CC1=CC(=C(C=C1)NC(=O)C2=CC=CC=N2)NC3=CC=CC=C3",
+  "Trastuzumab": "CC(=O)NC1=CC=C(O)C=C1",
+  "Bevacizumab": "CC(=O)NC1=CC=C(O)C=C1",
+  "Nivolumab": "CC(=O)NC1=CC=C(O)C=C1",
+  "Aspirin": "CC(=O)OC1=CC=CC=C1C(=O)O",
+  "Naproxen": "CC(C1=CC=C(C=C1)C(=O)O)C(=O)O",
+  "Caffeine": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
+};
+
+// Image mapping for drug visualization
+const imageMap = {
+  "Paracetamol": "Paracetamol.png",
+  "Panadol": "Panadol.png",
+  "Panadol Extend": "Panadol_Extend.png",
+  "Ibuprofen": "Ibuprofen.png",
+  "Clarinase": "Clarinase.png",
+  "Cetirizine": "Cetirizine.png",
+  "Diphenhydramine": "Diphenhydramine.png",
+  "Aspirin": "Aspirin.png",
+  "Naproxen": "Naproxen.png",
+  "Dextromethorphan_Guaifenesin": "Dextromethorphan_Guaifenesin.png",
+  "Pseudoephedrine": "Pseudoephedrine.png",
+  "Loratadine": "Loratadine.png",
+  "Mefenamic_Acid": "Mefenamic_Acid.png",
+  "5-FU + Leucovorin": "5FU_Leucovorin.png",
+  "FOLFOX (Oxaliplatin + 5-FU + Leucovorin)": "FOLFOX.png",
+  "FOLFIRI (Irinotecan + 5-FU + Leucovorin)": "FOLFIRI.png",
+  "Gemcitabine": "Gemcitabine.png",
+  "Paclitaxel": "Paclitaxel.png",
+  "Doxorubicin": "Doxorubicin.png",
+  "Cyclophosphamide": "Cyclophosphamide.png",
+  "Methotrexate": "Methotrexate.png",
+  "Cisplatin": "Cisplatin.png",
+  "Carboplatin": "Carboplatin.png",
+  "Imatinib": "Imatinib.png",
+  "Trastuzumab": "Trastuzumab.png",
+  "Bevacizumab": "Bevacizumab.png",
+  "Nivolumab": "Nivolumab.png",
+  "Generic": "Generic.png"
+};
+
+// Utility functions
 function formatSideEffects(text) {
-  if (!text) return '-';
-  return '<ul class="list-disc list-inside">' +
-    text.split(';').map(s => `<li>${s.trim()}</li>`).join('') +
-    '</ul>';
+  if (!text || text === '-') return '-';
+  if (typeof text === 'string') {
+    return '<ul class="list-disc list-inside">' +
+      text.split(/[;,]+/).map(s => `<li>${s.trim()}</li>`).join('') +
+      '</ul>';
+  }
+  return text;
 }
 
+function imagePathFor(medName) {
+  if (!medName) return "/static/images/Generic.png";
+  if (imageMap[medName]) return `/static/images/${imageMap[medName]}`;
+  const underscoreName = medName.replace(/\s+/g, "_");
+  return `/static/images/${underscoreName}.png`;
+}
+
+// Dosage calculation
 const concInput = document.getElementById("concentration");
 const mgInput = document.getElementById("dosageMg");
 const mlInput = document.getElementById("dosageMl");
@@ -438,69 +805,448 @@ function updateFromMl() {
   }
 }
 
-mgInput.addEventListener("input", updateFromMg);
-mlInput.addEventListener("input", updateFromMl);
-concInput.addEventListener("input", () => {
-  if (mgInput.value) updateFromMg();
-  else if (mlInput.value) updateFromMl();
-});
-
-// ------------------------- IMAGE MAP (added) -------------------------
-// Exact filename mapping for /static/images/*.png
-const imageMap = {
-  // OTC
-  "Paracetamol": "Paracetamol.png",
-  "Panadol": "Panadol.png",
-  "Panadol Extend": "Panadol_Extend.png",
-  "Ibuprofen": "Ibuprofen.png",
-  "Clarinase": "Clarinase.png",
-  "Cetirizine": "Cetirizine.png",
-  "Diphenhydramine": "Diphenhydramine.png",
-  "Aspirin": "Aspirin.png",
-  "Naproxen": "Naproxen.png",
-  "Dextromethorphan_Guaifenesin": "Dextromethorphan_Guaifenesin.png",
-  "Pseudoephedrine": "Pseudoephedrine.png",
-  "Loratadine": "Loratadine.png",
-  "Mefenamic_Acid": "Mefenamic_Acid.png",
-
-  // Oncology (expanded)
-  "5-FU + Leucovorin": "5FU_Leucovorin.png",
-  "FOLFOX (Oxaliplatin + 5-FU + Leucovorin)": "FOLFOX.png",
-  "FOLFIRI (Irinotecan + 5-FU + Leucovorin)": "FOLFIRI.png",
-  "Gemcitabine": "Gemcitabine.png",
-  "Paclitaxel": "Paclitaxel.png",
-  "Doxorubicin": "Doxorubicin.png",
-  "Cyclophosphamide": "Cyclophosphamide.png",
-  "Methotrexate": "Methotrexate.png",
-  "Cisplatin": "Cisplatin.png",
-  "Carboplatin": "Carboplatin.png",
-  "Imatinib": "Imatinib.png",
-  "Trastuzumab": "Trastuzumab.png",
-  "Bevacizumab": "Bevacizumab.png",
-  "Nivolumab": "Nivolumab.png",
-  "Pembrolizumab": "Pembrolizumab.png",
-
-  // fallback
-  "Generic": "Generic.png"
-};
-
-// Utility: build image path from medicine name
-function imagePathFor(medName) {
-  if (!medName) return "/static/images/Generic.png";
-
-  // 1) exact map (best)
-  if (imageMap[medName]) return `/static/images/${imageMap[medName]}`;
-
-  // 2) try with spaces -> underscores (e.g., "Panadol Extend" -> "Panadol_Extend.png")
-  const underscoreName = medName.replace(/\s+/g, "_");
-  return `/static/images/${underscoreName}.png`;
+if (mgInput) mgInput.addEventListener("input", updateFromMg);
+if (mlInput) mlInput.addEventListener("input", updateFromMl);
+if (concInput) {
+  concInput.addEventListener("input", () => {
+    if (mgInput.value) updateFromMg();
+    else if (mlInput.value) updateFromMl();
+  });
 }
 
-// ------------------------- TYPEWRITER HEADER (kept) -------------------------
-const header = document.querySelector('.typewriter');
-if (header) { header.classList.add('typing'); }
+// Auto-set treatment line based on disease
+const targetSymptomEl = document.getElementById('targetSymptom');
+const lineOfTreatmentEl = document.getElementById('lineOfTreatment');
 
-// ------------------------- FORM LOGIC (kept) -------------------------
+const autoTreatmentMap = {
+  "Breast Cancer (HER2+)": "Targeted",
+  "Breast Cancer": "First-Line",
+  "Colon Cancer": "First-Line",
+  "Lung Cancer": "First-Line",
+  "Leukemia": "Targeted",
+  "Lymphoma": "First-Line",
+  "Pancreatic Cancer": "Second-Line",
+  "Melanoma": "Targeted",
+  "Fever": "General",
+  "Cough": "General",
+  "Headache": "General",
+  "Flu": "General",
+  "Sore Throat": "General"
+};
+
+if (targetSymptomEl && lineOfTreatmentEl) {
+  targetSymptomEl.addEventListener('change', () => {
+    const selected = targetSymptomEl.value;
+    lineOfTreatmentEl.value = autoTreatmentMap[selected] || "General";
+  });
+}
+
+// 3D Molecular Visualization Functions
+function smilesToCoordinates(smiles) {
+  const atoms = [];
+  const bonds = [];
+  
+  let atomId = 0;
+  let i = 0;
+  
+  // Enhanced SMILES parsing
+  while (i < smiles.length) {
+    const char = smiles[i];
+    
+    if (char.match(/[A-Z]/)) {
+      let element = char;
+      if (i + 1 < smiles.length && smiles[i + 1].match(/[a-z]/)) {
+        element += smiles[i + 1];
+        i++;
+      }
+      
+      // Create more realistic 3D positioning
+      const ringIndex = Math.floor(atomId / 6);
+      const posInRing = atomId % 6;
+      const angle = (posInRing * 2 * Math.PI) / 6;
+      const radius = 2.5 + ringIndex * 1.5;
+      const height = (Math.random() - 0.5) * 2 + ringIndex * 0.5;
+      
+      atoms.push({
+        id: atomId,
+        element: element,
+        x: radius * Math.cos(angle) + (Math.random() - 0.5) * 0.5,
+        y: radius * Math.sin(angle) + (Math.random() - 0.5) * 0.5,
+        z: height
+      });
+      
+      // Create bonds based on chemical rules
+      if (atomId > 0) {
+        // Ring bonds
+        if (posInRing > 0) {
+          bonds.push({ from: atomId - 1, to: atomId, order: 1 });
+        }
+        // Close rings
+        if (posInRing === 5 && atomId >= 5) {
+          bonds.push({ from: atomId, to: atomId - 5, order: 1 });
+        }
+        // Inter-ring bonds
+        if (posInRing === 0 && atomId >= 6) {
+          bonds.push({ from: atomId - 6, to: atomId, order: 1 });
+        }
+      }
+      
+      atomId++;
+    }
+    i++;
+  }
+  
+  return { atoms, bonds };
+}
+
+function getAtomColor(element) {
+  const colors = {
+    'C': 0x404040,    'N': 0x3050F8,    'O': 0xFF0D0D,
+    'H': 0xFFFFFF,    'S': 0xFFFF30,    'P': 0xFF8000,
+    'F': 0x90E050,    'Cl': 0x1FF01F,   'Br': 0xA62929,
+    'I': 0x940094,    'Na': 0xAB5CF2,   'K': 0x8F40D4,
+    'Ca': 0x3DFF00,   'Mg': 0x8AFF00,   'Fe': 0xE06633,
+    'Cu': 0xC88033,   'Zn': 0x7D80B0,   'Pt': 0xD0D0E0
+  };
+  return colors[element] || 0x808080;
+}
+
+function getAtomRadius(element) {
+  const radii = {
+    'C': 0.35,   'N': 0.30,   'O': 0.28,   'H': 0.18,
+    'S': 0.40,   'P': 0.38,   'F': 0.22,   'Cl': 0.32,
+    'Br': 0.38,  'I': 0.44,   'Na': 0.50,  'K': 0.55,
+    'Ca': 0.48,  'Mg': 0.45,  'Fe': 0.42,  'Cu': 0.40,
+    'Zn': 0.39,  'Pt': 0.45
+  };
+  return radii[element] || 0.30;
+}
+
+function create3DMolecule(container, moleculeName, smiles) {
+  const width = 270;
+  const height = 220;
+  
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ 
+    antialias: true, 
+    alpha: true,
+    preserveDrawingBuffer: true 
+  });
+  
+  renderer.setSize(width, height);
+  renderer.setClearColor(0x000011, 0.1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(renderer.domElement);
+  
+  // Enhanced lighting
+  const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+  scene.add(ambientLight);
+  
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(5, 5, 5);
+  directionalLight.castShadow = true;
+  directionalLight.shadow.mapSize.width = 2048;
+  directionalLight.shadow.mapSize.height = 2048;
+  scene.add(directionalLight);
+  
+  const pointLight = new THREE.PointLight(0x4080ff, 0.5, 100);
+  pointLight.position.set(-5, 5, 5);
+  scene.add(pointLight);
+  
+  const molecule = smilesToCoordinates(smiles);
+  const moleculeGroup = new THREE.Group();
+  
+  // Create atoms with enhanced materials
+  molecule.atoms.forEach(atom => {
+    const geometry = new THREE.SphereGeometry(getAtomRadius(atom.element), 20, 16);
+    const material = new THREE.MeshPhongMaterial({ 
+      color: getAtomColor(atom.element),
+      shininess: 100,
+      specular: 0x222222
+    });
+    
+    const sphere = new THREE.Mesh(geometry, material);
+    sphere.position.set(atom.x, atom.y, atom.z);
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+    sphere.userData = atom;
+    
+    // Add element label
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 64;
+    canvas.height = 64;
+    context.fillStyle = 'white';
+    context.font = 'Bold 24px Arial';
+    context.textAlign = 'center';
+    context.fillText(atom.element, 32, 40);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.position.copy(sphere.position);
+    sprite.position.y += getAtomRadius(atom.element) + 0.3;
+    sprite.scale.set(0.5, 0.5, 0.5);
+    
+    moleculeGroup.add(sphere);
+    moleculeGroup.add(sprite);
+  });
+  
+  // Create enhanced bonds
+  molecule.bonds.forEach(bond => {
+    const fromAtom = molecule.atoms[bond.from];
+    const toAtom = molecule.atoms[bond.to];
+    
+    if (!fromAtom || !toAtom) return;
+    
+    const bondRadius = 0.08;
+    const geometry = new THREE.CylinderGeometry(bondRadius, bondRadius, 1, 12);
+    const material = new THREE.MeshPhongMaterial({ 
+      color: 0x888888,
+      shininess: 50 
+    });
+    
+    const cylinder = new THREE.Mesh(geometry, material);
+    cylinder.castShadow = true;
+    cylinder.receiveShadow = true;
+    
+    const from = new THREE.Vector3(fromAtom.x, fromAtom.y, fromAtom.z);
+    const to = new THREE.Vector3(toAtom.x, toAtom.y, toAtom.z);
+    const direction = new THREE.Vector3().subVectors(to, from);
+    const length = direction.length();
+    
+    cylinder.scale.y = length;
+    cylinder.position.copy(from.clone().add(to).multiplyScalar(0.5));
+    cylinder.lookAt(to);
+    cylinder.rotateX(Math.PI / 2);
+    
+    moleculeGroup.add(cylinder);
+  });
+  
+  scene.add(moleculeGroup);
+  camera.position.z = 10;
+  
+  // Enhanced mouse/touch controls
+  let isMouseDown = false;
+  let mouseX = 0, mouseY = 0;
+  let rotationVelocity = { x: 0, y: 0 };
+  
+  const onMouseDown = (event) => {
+    isMouseDown = true;
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+    rotationVelocity = { x: 0, y: 0 };
+  };
+  
+  const onMouseUp = () => {
+    isMouseDown = false;
+  };
+  
+  const onMouseMove = (event) => {
+    if (!isMouseDown) return;
+    
+    const deltaX = event.clientX - mouseX;
+    const deltaY = event.clientY - mouseY;
+    
+    rotationVelocity.y = deltaX * 0.01;
+    rotationVelocity.x = deltaY * 0.01;
+    
+    moleculeGroup.rotation.y += rotationVelocity.y;
+    moleculeGroup.rotation.x += rotationVelocity.x;
+    
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+  };
+  
+  // Mouse wheel zoom
+  const onWheel = (event) => {
+    event.preventDefault();
+    const delta = event.deltaY > 0 ? 1.1 : 0.9;
+    camera.position.multiplyScalar(delta);
+    camera.position.clampLength(3, 20);
+  };
+  
+  renderer.domElement.addEventListener('mousedown', onMouseDown);
+  renderer.domElement.addEventListener('mouseup', onMouseUp);
+  renderer.domElement.addEventListener('mousemove', onMouseMove);
+  renderer.domElement.addEventListener('wheel', onWheel);
+  
+  // Touch controls
+  let lastTouchDistance = 0;
+  
+  const onTouchStart = (event) => {
+    if (event.touches.length === 1) {
+      isMouseDown = true;
+      mouseX = event.touches[0].clientX;
+      mouseY = event.touches[0].clientY;
+    } else if (event.touches.length === 2) {
+      const dx = event.touches[0].clientX - event.touches[1].clientX;
+      const dy = event.touches[0].clientY - event.touches[1].clientY;
+      lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+    }
+  };
+  
+  const onTouchEnd = () => {
+    isMouseDown = false;
+  };
+  
+  const onTouchMove = (event) => {
+    event.preventDefault();
+    
+    if (event.touches.length === 1 && isMouseDown) {
+      const deltaX = event.touches[0].clientX - mouseX;
+      const deltaY = event.touches[0].clientY - mouseY;
+      
+      moleculeGroup.rotation.y += deltaX * 0.01;
+      moleculeGroup.rotation.x += deltaY * 0.01;
+      
+      mouseX = event.touches[0].clientX;
+      mouseY = event.touches[0].clientY;
+    } else if (event.touches.length === 2) {
+      const dx = event.touches[0].clientX - event.touches[1].clientX;
+      const dy = event.touches[0].clientY - event.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (lastTouchDistance > 0) {
+        const delta = distance / lastTouchDistance;
+        camera.position.multiplyScalar(1 / delta);
+        camera.position.clampLength(3, 20);
+      }
+      lastTouchDistance = distance;
+    }
+  };
+  
+  renderer.domElement.addEventListener('touchstart', onTouchStart);
+  renderer.domElement.addEventListener('touchend', onTouchEnd);
+  renderer.domElement.addEventListener('touchmove', onTouchMove);
+  
+  // Animation loop
+  let animationId;
+  const animate = () => {
+    animationId = requestAnimationFrame(animate);
+    
+    if (!isMouseDown) {
+      moleculeGroup.rotation.y += 0.003;
+      rotationVelocity.x *= 0.95;
+      rotationVelocity.y *= 0.95;
+      moleculeGroup.rotation.x += rotationVelocity.x * 0.1;
+      moleculeGroup.rotation.y += rotationVelocity.y * 0.1;
+    }
+    
+    renderer.render(scene, camera);
+  };
+  
+  animate();
+  
+  return {
+    scene,
+    renderer,
+    moleculeGroup,
+    cleanup: () => {
+      if (animationId) cancelAnimationFrame(animationId);
+      renderer.dispose();
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+    }
+  };
+}
+
+function updateMolecularVisualization(ingredientsText) {
+  const molecularSection = document.getElementById('molecularSection');
+  const moleculeContainer = document.getElementById('moleculeContainer');
+  
+  // Clean up existing viewers
+  Object.values(activeViewers).forEach(viewer => viewer.cleanup());
+  activeViewers = {};
+  if (moleculeContainer) moleculeContainer.innerHTML = '';
+  
+  if (!ingredientsText || ingredientsText.trim() === '') {
+    if (molecularSection) molecularSection.style.display = 'none';
+    return;
+  }
+  
+  const ingredients = ingredientsText.split(';')
+    .map(ing => ing.trim())
+    .filter(ing => ing.length > 0);
+  
+  if (ingredients.length === 0) {
+    if (molecularSection) molecularSection.style.display = 'none';
+    return;
+  }
+  
+  if (molecularSection) molecularSection.style.display = 'block';
+  
+  ingredients.forEach((ingredient, index) => {
+    const smiles = moleculeDatabase[ingredient];
+    if (!smiles || !moleculeContainer) return;
+    
+    const viewerDiv = document.createElement('div');
+    viewerDiv.className = 'molecule-viewer';
+    
+    const title = document.createElement('div');
+    title.className = 'molecule-title';
+    title.textContent = ingredient;
+    
+    const formula = document.createElement('div');
+    formula.className = 'molecule-formula';
+    formula.textContent = `SMILES: ${smiles}`;
+    
+    const canvasContainer = document.createElement('div');
+    canvasContainer.className = 'molecule-canvas';
+    
+    const controls = document.createElement('div');
+    controls.className = 'molecule-controls';
+    
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'control-btn';
+    resetBtn.textContent = 'Reset';
+    resetBtn.onclick = () => {
+      if (activeViewers[ingredient] && activeViewers[ingredient].moleculeGroup) {
+        activeViewers[ingredient].moleculeGroup.rotation.set(0, 0, 0);
+      }
+    };
+    
+    const infoBtn = document.createElement('button');
+    infoBtn.className = 'control-btn';
+    infoBtn.textContent = 'Info';
+    infoBtn.onclick = () => {
+      const atomCount = smiles.match(/[A-Z]/g)?.length || 0;
+      alert(`${ingredient}\nAtoms: ~${atomCount}\nSMILES: ${smiles}\nDrag to rotate, scroll to zoom`);
+    };
+    
+    controls.appendChild(resetBtn);
+    controls.appendChild(infoBtn);
+    
+    viewerDiv.appendChild(title);
+    viewerDiv.appendChild(formula);
+    viewerDiv.appendChild(canvasContainer);
+    viewerDiv.appendChild(controls);
+    
+    moleculeContainer.appendChild(viewerDiv);
+    
+    // Add loading indicator
+    canvasContainer.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:220px;color:white;"><div class="loading-spinner"></div><span style="margin-left:10px;">Loading 3D model...</span></div>';
+    
+    // Create 3D viewer with delay for smooth loading
+    setTimeout(() => {
+      try {
+        canvasContainer.innerHTML = '';
+        activeViewers[ingredient] = create3DMolecule(canvasContainer, ingredient, smiles);
+      } catch (error) {
+        console.error(`Error creating 3D viewer for ${ingredient}:`, error);
+        canvasContainer.innerHTML = `<div style="color: #ff6b6b; text-align: center; padding: 2rem; font-size: 0.9rem;">
+          <div>⚠️ Unable to render ${ingredient}</div>
+          <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.7;">3D model unavailable</div>
+        </div>`;
+      }
+    }, index * 200); // Staggered loading for better UX
+  });
+}
+
+// DOM Elements
 const form = document.getElementById('predictForm');
 const outputPanel = document.getElementById('outputPanel');
 const runMessage = document.getElementById('runMessage');
@@ -516,67 +1262,66 @@ const comparisonTableBody = document.getElementById('comparisonTableBody');
 const badge = document.getElementById('badge');
 const clearBtn = document.getElementById('clearBtn');
 
-clearBtn.addEventListener('click', () => {
-    form.reset();
-    outputPanel.style.display = 'none';
-    runMessage.textContent = '';
-    matchesList.innerHTML = '';
-    matchMessage.textContent = '';
-    matchedImageArea.innerHTML = '';
-    matchedName.textContent = '';
-    comparisonTableBody.innerHTML = '';
-    if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
-    if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
-    if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
-});
-
-// Auto-set Line of Treatment based on disease
-const targetSymptomEl = document.getElementById('targetSymptom');
-const lineOfTreatmentEl = document.getElementById('lineOfTreatment');
-
-const autoTreatmentMap = {
-  // ---- Oncology ----
-  "Breast Cancer (HER2+)": "Targeted",   // HER2+ → Trastuzumab / targeted therapy
-  "Breast Cancer": "First-Line",         // first-line chemo (Anthracycline/Taxane)
-  "Colon Cancer": "First-Line",          // FOLFOX/FOLFIRI
-  "Lung Cancer": "First-Line",           // platinum doublet
-  "Leukemia": "Targeted",                // Imatinib, TKIs
-  "Lymphoma": "First-Line",              // R-CHOP (curative intent)
-  "Pancreatic Cancer": "Second-Line",    // gemcitabine → second-line FOLFIRINOX
-  "Melanoma": "Targeted",                // BRAF/MEK or PD-1 inhibitors
-
-  // ---- General Primary Care ----
-  "Fever": "General",
-  "Cough": "General",
-  "Headache": "General",
-  "Flu": "General",
-  "Sore Throat": "General"
-};
-
-targetSymptomEl.addEventListener('change', () => {
-  const selected = targetSymptomEl.value;
-  if (autoTreatmentMap[selected]) {
-    lineOfTreatmentEl.value = autoTreatmentMap[selected];
-  } else {
-    lineOfTreatmentEl.value = "General";
+// Initialize molecular visualization on input
+document.addEventListener('DOMContentLoaded', () => {
+  const ingredientsInput = document.getElementById('ingredientsInput');
+  if (ingredientsInput) {
+    // Real-time updates with debouncing
+    let timeout;
+    ingredientsInput.addEventListener('input', (e) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        updateMolecularVisualization(e.target.value);
+      }, 500);
+    });
+    
+    ingredientsInput.addEventListener('blur', (e) => {
+      updateMolecularVisualization(e.target.value);
+    });
   }
 });
 
+// Clear button functionality
+if (clearBtn) {
+  clearBtn.addEventListener('click', () => {
+    form.reset();
+    if (outputPanel) outputPanel.style.display = 'none';
+    if (runMessage) runMessage.textContent = '';
+    if (matchesList) matchesList.innerHTML = '';
+    if (matchMessage) matchMessage.textContent = '';
+    if (matchedImageArea) matchedImageArea.innerHTML = '';
+    if (matchedName) matchedName.textContent = '';
+    if (comparisonTableBody) comparisonTableBody.innerHTML = '';
+    
+    // Clean up 3D molecular viewers
+    Object.values(activeViewers).forEach(viewer => viewer.cleanup());
+    activeViewers = {};
+    const moleculeContainer = document.getElementById('moleculeContainer');
+    if (moleculeContainer) moleculeContainer.innerHTML = '';
+    const molecularSection = document.getElementById('molecularSection');
+    if (molecularSection) molecularSection.style.display = 'none';
+    
+    // Clean up charts
+    if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
+    if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
+    if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
+  });
+}
+
+// Simulation curve generation
 function generateSimulationCurve(drug) {
   const months = [0, 1, 2, 3, 4, 5, 6];
   const values = [];
-
-  const successRate = Number(drug.success_rate) || 0;     // ceiling
-  const effectiveness = Number(drug.effectiveness) || 0;  // curve steepness
+  const successRate = Number(drug.success_rate) || 0;
+  const effectiveness = Number(drug.effectiveness) || 0;
   const risk = (drug.side_effect_risk || "").toLowerCase();
 
   months.forEach(m => {
     let heal = successRate * (1 - Math.exp(-(effectiveness / 100) * m));
-
-    // risk adjustments
+    
     if (risk === "medium" && m === 3) heal -= 5;
     if (risk === "high" && (m === 2 || m === 5)) heal -= 10;
-
+    
     values.push(Math.max(0, Math.min(100, Math.round(heal))));
   });
 
@@ -584,476 +1329,648 @@ function generateSimulationCurve(drug) {
 }
 
 function generateHybridCurve(drug, aiAdjustments) {
-    const months = [0,1,2,3,4,5,6];
-    const values = [];
+  const months = [0,1,2,3,4,5,6];
+  const values = [];
+  const successRate = Number(drug.success_rate) || 0;
+  const effectiveness = Number(drug.effectiveness) || 0;
+  const risk = (drug.side_effect_risk || "").toLowerCase();
+
+  months.forEach((m, idx) => {
+    let heal = successRate * (1 - Math.exp(-(effectiveness/100)*m));
     
-    const successRate = Number(drug.success_rate) || 0;
-    const effectiveness = Number(drug.effectiveness) || 0;
-    const risk = (drug.side_effect_risk || "").toLowerCase();
+    if(risk === "medium" && m===3) heal -= 5;
+    if(risk === "high" && (m===2 || m===5)) heal -= 10;
+    
+    const aiFactor = aiAdjustments && aiAdjustments[idx] ? aiAdjustments[idx] : 1;
+    heal = heal * aiFactor;
+    
+    values.push(Math.max(0, Math.min(100, Math.round(heal))));
+  });
 
-    months.forEach((m, idx) => {
-        // Base math curve
-        let heal = successRate * (1 - Math.exp(-(effectiveness/100)*m));
-
-        // Risk adjustments
-        if(risk === "medium" && m===3) heal -= 5;
-        if(risk === "high" && (m===2 || m===5)) heal -= 10;
-
-        // AI adjustment multiplier
-        const aiFactor = aiAdjustments && aiAdjustments[idx] ? aiAdjustments[idx] : 1;
-        heal = heal * aiFactor;
-
-        values.push(Math.max(0, Math.min(100, Math.round(heal))));
-    });
-
-    return { months, values };
+  return { months, values };
 }
 
 function addWiggle(values, magnitude=3) {
-    // magnitude = max % fluctuation per point
-    return values.map(v => {
-        const delta = (Math.random() * 2 - 1) * magnitude; // random between -m and +m
-        return Math.max(0, Math.min(100, Math.round(v + delta)));
-    });
-}
-
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  runMessage.textContent = 'Sending to server...';
-  outputPanel.style.display = 'none';
-  matchesList.innerHTML = '';
-  matchMessage.textContent = '';
-  matchedImageArea.innerHTML = '';
-  matchedName.textContent = '';
-  comparisonTableBody.innerHTML = '';
-  if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
-
-  // Collect form data
-  const formData = new FormData(form);
-  const data = Object.fromEntries(formData.entries());
-
-// new
-const selectedCondition = formData.get("health_condition");
-data.health_conditions = selectedCondition && selectedCondition !== "none" 
-    ? [selectedCondition] 
-    : [];
-
-try {
-  const res = await fetch('/predict', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
-  });
-  
-  const result = await res.json();
-  if (res.status !== 200) { 
-    runMessage.textContent = result.error || 'Server returned an error'; 
-    return; 
-  }
-  runMessage.textContent = '';
-  outputPanel.style.display = 'block';
-
-  // Always show numbers in the top section
-  effectivenessEl.textContent = (result.predicted_effectiveness ?? '-') + '%';
-  sideEffectEl.textContent = result.predicted_side_effect_risk ?? '-';
-  successRateEl.textContent = (result.predicted_success_rate ?? '-') + '%';
-
-  // --- Show explanations in the reasons box ---
-  const reasonsBox = document.getElementById("newDrugReasons");
-  reasonsBox.innerHTML = "";
-
-  if (result.new_drug_note) {
-    const warn = document.createElement("div");
-    warn.className = "bg-red-100 text-red-800 rounded px-2 py-1 text-sm";
-    warn.textContent = result.new_drug_note;
-    reasonsBox.appendChild(warn);
-  }
-
-  if (result.new_drug_explanations) {
-  result.new_drug_explanations.forEach(msg => {
-    if (msg && msg.trim() !== "") {
-      const div = document.createElement("div");
-      div.textContent = "• " + msg;
-      reasonsBox.appendChild(div);
-    }
+  return values.map(v => {
+    const delta = (Math.random() * 2 - 1) * magnitude;
+    return Math.max(0, Math.min(100, Math.round(v + delta)));
   });
 }
 
-    // If backend gives detailed explanations (effectiveness, side effects, success rate)
-  if (result.explanations) {
-    const exp = result.explanations;
-    const html = `
-      <p><b>Effectiveness:</b> ${exp.effectiveness || '-'}</p>
-      <p><b>Side Effects:</b> ${exp.side_effects || '-'}</p>
-      <p><b>Success Rate:</b> ${exp.success_rate || '-'}</p>
-    `;
-    reasonsBox.innerHTML += html;
-  }
-
-  // ---- 🔥 Show best match & escalation note ----
-const matchBox = document.getElementById("bestMatchBox");
-if (matchBox) {
-  matchBox.innerHTML = `
-    <h3 class="text-lg font-semibold mb-1">Best Match</h3>
-    <p><b>Medicine:</b> ${result.best_match?.medicine_name || "No match found"}</p>
-    <p><b>Similarity Score:</b> ${result.best_match?.percent ?? 0}%</p>
-    ${result.escalation_applied ? `<p class="text-yellow-600"><b>Note:</b> Escalated to ${result.input_summary.line_of_treatment}</p>` : ""}
-  `;
-}
-
-// Also update the badge and matchMessage:
-if (result.strong_match && result.best_match) {
-  badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent ?? 0}%)`;
-  matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent ?? 0}% similarity.`;
-} else {
-  badge.textContent = 'No strong match';
-  matchMessage.textContent = result.message || 'No strong match found.';
-}
-
-//if (Array.isArray(result.new_drug_explanations) && result.new_drug_explanations.length) {//
-//  result.new_drug_explanations.forEach(exp => {
-//    const li = document.createElement("div");
-//    li.textContent = "• " + exp;
-//    reasonsBox.appendChild(li);
-//  });
-//}
-    specificSideEffectsEl.textContent = result.predicted_specific_side_effects ?? '-';
-
-    if (result.strong_match && result.best_match) {
-      badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent}%)`;
-      matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent}% similarity.`;
-    } else {
-      badge.textContent = 'No strong match';
-      matchMessage.textContent = result.message || 'No strong match found.';
+// Form submission
+if (form) {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitText');
+    if (submitBtn) {
+      submitBtn.innerHTML = '<span class="loading-spinner"></span> Processing...';
     }
+    
+    if (runMessage) runMessage.textContent = 'Analyzing molecular structure and sending to AI server...';
+    if (outputPanel) outputPanel.style.display = 'none';
+    
+    // Clear previous results
+    if (matchesList) matchesList.innerHTML = '';
+    if (matchMessage) matchMessage.textContent = '';
+    if (matchedImageArea) matchedImageArea.innerHTML = '';
+    if (matchedName) matchedName.textContent = '';
+    if (comparisonTableBody) comparisonTableBody.innerHTML = '';
+    
+    // Clean up charts
+    if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
+    if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
+    if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
 
-    // ---- Top matches list ----
-    (result.top_matches || []).forEach(m => {
-      const card = document.createElement('div');
-      card.innerHTML = `
-        <div class="text-sm font-semibold">
-          ${m.medicine_name} <span class="text-xs text-gray-500">(${m.target_symptom})</span>
-        </div>
-        <div class="text-xs text-gray-600">Match: <strong>${m.percent}%</strong></div>
-        <div class="text-xs text-gray-600"><strong>Active:</strong> ${(m.ingredients_active || []).join(', ') || '-'}</div>
-        <div class="text-xs text-gray-600"><strong>Inactive:</strong> ${(m.ingredients_inactive || []).join(', ') || '-'}</div>
-        <div class="text-xs text-gray-600"><strong>Known side effects:</strong> ${formatSideEffects(m.known_side_effects)}</div>
-      `;
-      matchesList.appendChild(card);
-    });
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    const selectedCondition = formData.get("health_condition");
+    data.health_conditions = selectedCondition && selectedCondition !== "none" 
+        ? [selectedCondition] 
+        : [];
 
-    // ---- Matched Image + Name ----
-    const best = result.best_match || (result.top_matches && result.top_matches[0]);
-    if (best) {
-      const img = document.createElement('img');
-      img.alt = best.medicine_name;
-      img.src = imagePathFor(best.medicine_name);
-      img.onerror = () => img.src = '/static/images/Generic.png';
-      matchedImageArea.appendChild(img);
-      matchedName.textContent = best.medicine_name;
-
-    // ---- Comparison Table ----
-    const newDrug = {
-        drug_name: data.drug_name,
-        ingredients: data.ingredients,
-        dosage_mg: data.dosage_mg || data.dosageMg || '-',  
-        line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-', 
-        target_symptom: data.target_symptom,
-        health_condition: data.health_conditions || [],
-        effectiveness: result.predicted_effectiveness,
-        success_rate: result.predicted_success_rate,
-        side_effect_risk: result.predicted_side_effect_risk,
-        predicted_specific_side_effects: result.predicted_specific_side_effects || []
-      };
-
-      const formatSideEffects = (effects) => {
-        if (!effects || effects === '-') return '-';
-        if (Array.isArray(effects)) return effects.join(', ');
-        return effects.split(/[,;]+/).map(e => e.trim()).filter(Boolean).join(', ');
-      };
-
-      comparisonTableBody.innerHTML = ''; // clear previous rows
-
-      const rows = [
-        ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
-        ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
-        ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
-        ['Health Condition', (newDrug.health_condition || []).join(', ') || '-', best.health_condition || '-'],
-        ['Ingredients',
-          newDrug.ingredients || '-',
-          (((best.ingredients_active || []).join(', ')) +
-          (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
-          ) || '-'
-        ],
-        ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
-        ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
-        ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
-        ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
-        ['Likely Side Effects',
-          formatSideEffects(newDrug.predicted_specific_side_effects),
-          formatSideEffects(best?.known_side_effects || '-')
-        ]
-      ];
-
-      rows.forEach(([label, a, b]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-3 py-2 font-semibold">${label}</td>
-          <td class="px-3 py-2">${a}</td>
-          <td class="px-3 py-2">${b}</td>
-        `;
-        comparisonTableBody.appendChild(tr);
-      });
-
-  
-
-      // ---- Radar Chart ----
-      const safetyMap = { 'Low': 100, 'Medium': 50, 'High': 10 };
-      const ndEffect = Number(newDrug.effectiveness) || 0;
-      const ndSuccess = Number(newDrug.success_rate) || 0;
-      const ndSafety = safetyMap[newDrug.side_effect_risk] ?? 0;
-      const ndDosageScaled = Math.min(100, Number(newDrug.dosage_mg) || 0) / 10;
-      const ndIngCount = (newDrug.ingredients || '').split(';').filter(x => x.trim()).length * 10;
-
-      const knEffect = Number(best.effectiveness) || 0;
-      const knSuccess = Number(best.success_rate) || 0;
-      const knSafety = safetyMap[best.side_effect_risk] ?? 0;
-      const knDosageScaled = Math.min(100, Number(best.dosage_mg) || 0) / 10;
-      const knIngCount = (best.ingredients_active || []).length * 10;
-
-      const ctx = document.getElementById('radarChart').getContext('2d');
-      if (radarChartInstance) radarChartInstance.destroy();
-      radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: ['Effectiveness', 'Success', 'Safety', 'Dosage', '#Ingredients'],
-          datasets: [
-            {
-              label: 'New Drug',
-              data: [ndEffect, ndSuccess, ndSafety, ndDosageScaled, ndIngCount],
-              backgroundColor: 'rgba(79,70,229,0.2)',
-              borderColor: '#4f46e5',
-              pointBackgroundColor: '#4f46e5',
-              fill: true,
-              borderWidth: 2
-            },
-            {
-              label: 'Known Medicine',
-              data: [knEffect, knSuccess, knSafety, knDosageScaled, knIngCount],
-              backgroundColor: 'rgba(16,185,129,0.2)',
-              borderColor: '#10b981',
-              pointBackgroundColor: '#10b981',
-              fill: true,
-              borderWidth: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'top', labels: { color: 'white' } } },
-          scales: {
-            r: {
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: { stepSize: 20, color: '#6b7280', backdropColor: 'transparent' },
-              angleLines: { color: '#d1d5db' },
-              grid: { color: '#e5e7eb' },
-              pointLabels: { color: 'white', font: { size: 12 } }
-            }
-          }
-        }
-      });
-
+    try {
+      // Simulated API call - replace with your actual endpoint
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
       
+      // Mock response for demonstration
+      const mockResult = {
+        predicted_effectiveness: 85,
+        predicted_side_effect_risk: "Low",
+        predicted_success_rate: 78,
+        predicted_specific_side_effects: "Mild nausea;Drowsiness;Headache",
+        strong_match: true,
+        best_match: {
+          medicine_name: "Paracetamol",
+          percent: 92,
+          target_symptom: "Headache",
+          effectiveness: 80,
+          success_rate: 75,
+          side_effect_risk: "Low",
+          dosage_mg: 500,
+          ingredients_active: ["Paracetamol"],
+          ingredients_inactive: ["Lactose", "Starch"],
+          known_side_effects: "Rare liver damage with overdose"
+        },
+        top_matches: [
+          {
+            medicine_name: "Paracetamol",
+            percent: 92,
+            target_symptom: "Headache",
+            ingredients_active: ["Paracetamol"],
+            ingredients_inactive: ["Lactose"],
+            known_side_effects: "Rare liver damage"
+          }
+        ],
+        new_drug_explanations: [
+          "High effectiveness predicted based on ingredient similarity",
+          "Low side effect risk due to well-tolerated components",
+          "Success rate calculated from demographic factors"
+        ],
+        ethnicity_scores: {
+          new_drug: { "Malay": 85, "Chinese": 82, "Indian": 88, "Indigenous": 80 },
+          known_medicine: { "Malay": 80, "Chinese": 78, "Indian": 85, "Indigenous": 75 }
+        },
+        ai_curve_new_drug: [1, 1.1, 1.05, 0.95, 1.02, 1.08, 1.03],
+        ai_curve_best_match: [1, 1.0, 1.02, 0.98, 1.01, 1.05, 1.0]
+      };
 
-      const ctx2 = document.getElementById('ethnicityRadarChart').getContext('2d');
+      if (runMessage) runMessage.textContent = '';
+      if (outputPanel) outputPanel.style.display = 'block';
 
-      const labels = ["Malay", "Chinese", "Indian", "Indigenous"];
+      // Display results
+      if (effectivenessEl) effectivenessEl.textContent = (mockResult.predicted_effectiveness ?? '-') + '%';
+      if (sideEffectEl) sideEffectEl.textContent = mockResult.predicted_side_effect_risk ?? '-';
+      if (successRateEl) successRateEl.textContent = (mockResult.predicted_success_rate ?? '-') + '%';
 
-      // Replace dummy data with backend data
-      const newDrugData = labels.map(l => result.ethnicity_scores?.new_drug?.[l] ?? 0);
-      const knownMedData = labels.map(l => result.ethnicity_scores?.known_medicine?.[l] ?? 0);
+      // Show explanations
+      const reasonsBox = document.getElementById("newDrugReasons");
+      if (reasonsBox) {
+        reasonsBox.innerHTML = "";
+        if (mockResult.new_drug_explanations) {
+          mockResult.new_drug_explanations.forEach(msg => {
+            if (msg && msg.trim() !== "") {
+              const div = document.createElement("div");
+              div.innerHTML = `<span style="color: #60a5fa;">•</span> ${msg}`;
+              reasonsBox.appendChild(div);
+            }
+          });
+        }
+      }
 
-      // Optional: highlight user's selected ethnicity
-      const selectedEthnicity = data.race || '';
+      // Best match info
+      const matchBox = document.getElementById("bestMatchBox");
+      if (matchBox && mockResult.best_match) {
+        matchBox.innerHTML = `
+          <h3 class="text-lg font-semibold mb-2 text-blue-300">🎯 Best Match Found</h3>
+          <p><strong>Medicine:</strong> ${mockResult.best_match.medicine_name}</p>
+          <p><strong>Similarity Score:</strong> <span class="text-green-400 font-bold">${mockResult.best_match.percent}%</span></p>
+          <p class="text-sm text-gray-300 mt-2">This suggests your drug formulation is very similar to existing proven medications.</p>
+        `;
+      }
 
-      if (ethnicityChartInstance) ethnicityChartInstance.destroy();
+      if (specificSideEffectsEl) {
+        specificSideEffectsEl.innerHTML = formatSideEffects(mockResult.predicted_specific_side_effects);
+      }
 
-      ethnicityChartInstance = new Chart(ctx2, {
-          type: 'radar',
-          data: {
-              labels: labels,
+      // Update badge and match message
+      if (mockResult.strong_match && mockResult.best_match) {
+        if (badge) badge.textContent = `Strong match: ${mockResult.best_match.medicine_name} (${mockResult.best_match.percent}%)`;
+        if (matchMessage) matchMessage.textContent = `Best match: ${mockResult.best_match.medicine_name} — ${mockResult.best_match.percent}% similarity.`;
+      } else {
+        if (badge) badge.textContent = 'No strong match';
+        if (matchMessage) matchMessage.textContent = 'No strong match found in database.';
+      }
+
+      // Top matches list
+      if (matchesList && mockResult.top_matches) {
+        mockResult.top_matches.forEach(m => {
+          const card = document.createElement('div');
+          card.innerHTML = `
+            <div class="text-sm font-semibold text-white mb-1">
+              ${m.medicine_name} <span class="text-xs text-gray-400">(${m.target_symptom})</span>
+            </div>
+            <div class="text-xs text-blue-300 mb-1">Match: <strong>${m.percent}%</strong></div>
+            <div class="text-xs text-gray-300"><strong>Active:</strong> ${(m.ingredients_active || []).join(', ') || '-'}</div>
+            <div class="text-xs text-gray-300"><strong>Inactive:</strong> ${(m.ingredients_inactive || []).join(', ') || '-'}</div>
+            <div class="text-xs text-gray-300"><strong>Known side effects:</strong> ${formatSideEffects(m.known_side_effects)}</div>
+          `;
+          matchesList.appendChild(card);
+        });
+      }
+
+      // Matched image and name
+      const best = mockResult.best_match || (mockResult.top_matches && mockResult.top_matches[0]);
+      if (best && matchedImageArea && matchedName) {
+        const img = document.createElement('img');
+        img.alt = best.medicine_name;
+        img.src = imagePathFor(best.medicine_name);
+        img.onerror = () => img.src = '/static/images/Generic.png';
+        matchedImageArea.appendChild(img);
+        matchedName.textContent = best.medicine_name;
+
+        // Comparison table
+        if (comparisonTableBody) {
+          const newDrug = {
+            drug_name: data.drug_name,
+            ingredients: data.ingredients,
+            dosage_mg: data.dosage_mg || data.dosageMg || '-',
+            line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-',
+            target_symptom: data.target_symptom,
+            health_condition: data.health_conditions || [],
+            effectiveness: mockResult.predicted_effectiveness,
+            success_rate: mockResult.predicted_success_rate,
+            side_effect_risk: mockResult.predicted_side_effect_risk,
+            predicted_specific_side_effects: mockResult.predicted_specific_side_effects || []
+          };
+
+          comparisonTableBody.innerHTML = '';
+
+          const rows = [
+            ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
+            ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
+            ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
+            ['Health Condition', (newDrug.health_condition || []).join(', ') || '-', best.health_condition || '-'],
+            ['Ingredients',
+              newDrug.ingredients || '-',
+              (((best.ingredients_active || []).join(', ')) +
+              (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
+              ) || '-'
+            ],
+            ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
+            ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
+            ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
+            ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
+            ['Likely Side Effects',
+              formatSideEffects(newDrug.predicted_specific_side_effects),
+              formatSideEffects(best?.known_side_effects || '-')
+            ]
+          ];
+
+          rows.forEach(([label, a, b]) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="px-4 py-3 font-semibold text-gray-700">${label}</td>
+              <td class="px-4 py-3 text-gray-600">${a}</td>
+              <td class="px-4 py-3 text-gray-600">${b}</td>
+            `;
+            comparisonTableBody.appendChild(tr);
+          });
+        }
+
+        // Radar chart
+        const safetyMap = { 'Low': 100, 'Medium': 50, 'High': 10 };
+        const ndEffect = Number(newDrug.effectiveness) || 0;
+        const ndSuccess = Number(newDrug.success_rate) || 0;
+        const ndSafety = safetyMap[newDrug.side_effect_risk] ?? 0;
+        const ndDosageScaled = Math.min(100, Number(newDrug.dosage_mg) || 0) / 10;
+        const ndIngCount = (newDrug.ingredients || '').split(';').filter(x => x.trim()).length * 10;
+
+        const knEffect = Number(best.effectiveness) || 0;
+        const knSuccess = Number(best.success_rate) || 0;
+        const knSafety = safetyMap[best.side_effect_risk] ?? 0;
+        const knDosageScaled = Math.min(100, Number(best.dosage_mg) || 0) / 10;
+        const knIngCount = (best.ingredients_active || []).length * 10;
+
+        const ctx = document.getElementById('radarChart');
+        if (ctx) {
+          const context = ctx.getContext('2d');
+          if (radarChartInstance) radarChartInstance.destroy();
+          radarChartInstance = new Chart(context, {
+            type: 'radar',
+            data: {
+              labels: ['Effectiveness', 'Success', 'Safety', 'Dosage', '#Ingredients'],
               datasets: [
-                  {
-                      label: "New Drug",
-                      data: newDrugData,
-                      borderColor: "#4f46e5",
-                      backgroundColor: "rgba(79,70,229,0.2)",
-                      pointBackgroundColor: newDrugData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
-                      ),
-                      pointBorderColor: newDrugData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
-                      )
-                  },
-                  {
-                      label: "Known Medicine",
-                      data: knownMedData,
-                      borderColor: "#10b981",
-                      backgroundColor: "rgba(16,185,129,0.2)",
-                      pointBackgroundColor: knownMedData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
-                      ),
-                      pointBorderColor: knownMedData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
-                      )
-                  }
+                {
+                  label: 'New Drug',
+                  data: [ndEffect, ndSuccess, ndSafety, ndDosageScaled, ndIngCount],
+                  backgroundColor: 'rgba(79,70,229,0.2)',
+                  borderColor: '#4f46e5',
+                  pointBackgroundColor: '#4f46e5',
+                  fill: true,
+                  borderWidth: 3
+                },
+                {
+                  label: 'Known Medicine',
+                  data: [knEffect, knSuccess, knSafety, knDosageScaled, knIngCount],
+                  backgroundColor: 'rgba(16,185,129,0.2)',
+                  borderColor: '#10b981',
+                  pointBackgroundColor: '#10b981',
+                  fill: true,
+                  borderWidth: 3
+                }
               ]
-          },
-          options: {
+            },
+            options: {
               responsive: true,
-              plugins: {
-                  legend: { labels: { color: 'white' } },
-                  title: { display: true, text: 'Drug Performance by Ethnicity', color: 'white' }
+              maintainAspectRatio: false,
+              plugins: { 
+                legend: { 
+                  position: 'top', 
+                  labels: { 
+                    color: 'white',
+                    font: { size: 12, weight: 'bold' }
+                  } 
+                } 
               },
               scales: {
-                  r: {
-                      suggestedMin: 0,
-                      suggestedMax: 100,
-                      ticks: { stepSize: 20, color: 'white' },
-                      angleLines: { color: 'rgba(255,255,255,0.2)' },
-                      grid: { color: 'rgba(255,255,255,0.1)' },
-                      pointLabels: { color: 'white', font: { size: 12 } }
+                r: {
+                  suggestedMin: 0,
+                  suggestedMax: 100,
+                  ticks: { 
+                    stepSize: 20, 
+                    color: '#9ca3af', 
+                    backdropColor: 'transparent',
+                    font: { size: 10 }
+                  },
+                  angleLines: { color: '#374151' },
+                  grid: { color: '#4b5563' },
+                  pointLabels: { 
+                    color: 'white', 
+                    font: { size: 11, weight: 'bold' } 
                   }
+                }
               }
-          }
-      });
+            }
+          });
+        }
 
-    // --- Roller Coaster Area Chart ---
-        // Example: new drug vs best match over 6 months
+        // Ethnicity radar chart
+        const ctx2 = document.getElementById('ethnicityRadarChart');
+        if (ctx2) {
+          const context2 = ctx2.getContext('2d');
+          const labels = ["Malay", "Chinese", "Indian", "Indigenous"];
+          const newDrugData = labels.map(l => mockResult.ethnicity_scores?.new_drug?.[l] ?? 0);
+          const knownMedData = labels.map(l => mockResult.ethnicity_scores?.known_medicine?.[l] ?? 0);
+          const selectedEthnicity = data.race || '';
 
-        // Use backend AI adjustments if available
-        const ndAiAdjustments = result.ai_curve_new_drug || [1,1,1,1,1,1,1];
-        const bmAiAdjustments = result.ai_curve_best_match || [1,1,1,1,1,1,1];
+          if (ethnicityChartInstance) ethnicityChartInstance.destroy();
+
+          ethnicityChartInstance = new Chart(context2, {
+            type: 'radar',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "New Drug",
+                  data: newDrugData,
+                  borderColor: "#60a5fa",
+                  backgroundColor: "rgba(96,165,250,0.2)",
+                  pointBackgroundColor: newDrugData.map((_, i) =>
+                    labels[i] === selectedEthnicity ? '#fbbf24' : '#60a5fa'
+                  ),
+                  pointBorderColor: newDrugData.map((_, i) =>
+                    labels[i] === selectedEthnicity ? '#f59e0b' : '#60a5fa'
+                  ),
+                  borderWidth: 3,
+                  pointRadius: 6
+                },
+                {
+                  label: "Known Medicine",
+                  data: knownMedData,
+                  borderColor: "#34d399",
+                  backgroundColor: "rgba(52,211,153,0.2)",
+                  pointBackgroundColor: knownMedData.map((_, i) =>
+                    labels[i] === selectedEthnicity ? '#fbbf24' : '#34d399'
+                  ),
+                  pointBorderColor: knownMedData.map((_, i) =>
+                    labels[i] === selectedEthnicity ? '#f59e0b' : '#34d399'
+                  ),
+                  borderWidth: 3,
+                  pointRadius: 6
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { 
+                  labels: { 
+                    color: 'white',
+                    font: { size: 12, weight: 'bold' }
+                  } 
+                },
+                title: { 
+                  display: true, 
+                  text: `Performance by Ethnicity (${selectedEthnicity} highlighted)`, 
+                  color: 'white',
+                  font: { size: 13, weight: 'bold' }
+                }
+              },
+              scales: {
+                r: {
+                  suggestedMin: 0,
+                  suggestedMax: 100,
+                  ticks: { 
+                    stepSize: 20, 
+                    color: '#9ca3af',
+                    backdropColor: 'transparent',
+                    font: { size: 10 }
+                  },
+                  angleLines: { color: '#374151' },
+                  grid: { color: '#4b5563' },
+                  pointLabels: { 
+                    color: 'white', 
+                    font: { size: 11, weight: 'bold' } 
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Patient recovery simulation chart
+        const ndAiAdjustments = mockResult.ai_curve_new_drug || [1,1,1,1,1,1,1];
+        const bmAiAdjustments = mockResult.ai_curve_best_match || [1,1,1,1,1,1,1];
 
         const ndCurve = generateHybridCurve(newDrug, ndAiAdjustments);
         const bmCurve = generateHybridCurve(best, bmAiAdjustments);
 
-        // Add roller-coaster wiggle
         ndCurve.values = addWiggle(ndCurve.values, 3);
         bmCurve.values = addWiggle(bmCurve.values, 3);
 
-        const ctxRoller = document.getElementById('rollerChart').getContext('2d');
+        const ctxRoller = document.getElementById('rollerChart');
+        if (ctxRoller) {
+          const contextRoller = ctxRoller.getContext('2d');
 
-        // ✅ Destroy old chart if it exists
-        if (rollerChartInstance) {
-          rollerChartInstance.destroy();
-        }
+          if (rollerChartInstance) {
+            rollerChartInstance.destroy();
+          }
 
-        rollerChartInstance = new Chart(ctxRoller, {
-          type: 'line',
-          data: {
-            labels: ndCurve.months.map(m => `Month ${m}`),
-            datasets: [
-              {
-                label: newDrug.drug_name || "New Drug",
-                data: ndCurve.values,
-                borderColor: "rgba(75,192,192,1)",
-                backgroundColor: "rgba(75,192,192,0.3)",
-                tension: 0.4,
-                fill: true
-              },
-              {
-                label: best.medicine_name || "Best Match",
-                data: bmCurve.values,
-                borderColor: "rgba(255,99,132,1)",
-                backgroundColor: "rgba(255,99,132,0.3)",
-                tension: 0.4,
-                fill: true
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              title: {
-                display: true,
-                text: "Predicted Patient Healing Over 6 Months",
-                color: 'white',
-                font: { size: 16 }
-              },
-              legend: {
-                labels: { color: 'white' }
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false,
-              }
+          rollerChartInstance = new Chart(contextRoller, {
+            type: 'line',
+            data: {
+              labels: ndCurve.months.map(m => `Month ${m}`),
+              datasets: [
+                {
+                  label: newDrug.drug_name || "New Drug",
+                  data: ndCurve.values,
+                  borderColor: "#06d6a0",
+                  backgroundColor: "rgba(6,214,160,0.2)",
+                  tension: 0.4,
+                  fill: true,
+                  borderWidth: 4,
+                  pointRadius: 6,
+                  pointHoverRadius: 8
+                },
+                {
+                  label: best.medicine_name || "Best Match",
+                  data: bmCurve.values,
+                  borderColor: "#f72585",
+                  backgroundColor: "rgba(247,37,133,0.2)",
+                  tension: 0.4,
+                  fill: true,
+                  borderWidth: 4,
+                  pointRadius: 6,
+                  pointHoverRadius: 8
+                }
+              ]
             },
-            interaction: {
-              mode: 'nearest',
-              axis: 'x',
-              intersect: false
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                max: 100,
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
                 title: {
                   display: true,
-                  text: 'Patient Cure/Healing (%)',
-                  color: 'white'
+                  text: "Predicted Patient Healing Over 6 Months",
+                  color: 'white',
+                  font: { size: 16, weight: 'bold' }
                 },
-                ticks: { color: 'white' },
-                grid: { color: 'rgba(255,255,255,0.1)' }
+                legend: {
+                  labels: { 
+                    color: 'white',
+                    font: { size: 12, weight: 'bold' }
+                  }
+                },
+                tooltip: {
+                  mode: 'index',
+                  intersect: false,
+                  backgroundColor: 'rgba(0,0,0,0.8)',
+                  titleColor: 'white',
+                  bodyColor: 'white',
+                  borderColor: '#4b5563',
+                  borderWidth: 1
+                }
               },
-              x: {
-                title: {
-                  display: true,
-                  text: 'Months',
-                  color: 'white'
+              interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 100,
+                  title: {
+                    display: true,
+                    text: 'Patient Cure/Healing (%)',
+                    color: 'white',
+                    font: { size: 12, weight: 'bold' }
+                  },
+                  ticks: { 
+                    color: 'white',
+                    font: { size: 11 }
+                  },
+                  grid: { color: 'rgba(255,255,255,0.1)' }
                 },
-                ticks: { color: 'white' },
-                grid: { color: 'rgba(255,255,255,0.1)' }
+                x: {
+                  title: {
+                    display: true,
+                    text: 'Treatment Duration',
+                    color: 'white',
+                    font: { size: 12, weight: 'bold' }
+                  },
+                  ticks: { 
+                    color: 'white',
+                    font: { size: 11 }
+                  },
+                  grid: { color: 'rgba(255,255,255,0.1)' }
+                }
               }
             }
-          }
-        });  
-    }
-
-      } catch (err) {
-        console.error(err);
-        runMessage.textContent = 'Server Error';
+          });
+        }
       }
-    });
 
-// ------------------------- PDF DOWNLOAD (kept) -------------------------
-document.getElementById('downloadPDF').addEventListener('click', async () => {
-  const { jsPDF } = window.jspdf;
-  const section = document.getElementById('outputPanel');
-  const btn = document.getElementById('downloadPDF');
-  btn.style.display = 'none';
-  const canvas = await html2canvas(section, { scale: 2 });
-  const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth - 20;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-  let heightLeft = imgHeight;
-  let position = 10;
-  pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight - 20;
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight + 10;
-    pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight - 20;
-  }
-  pdf.save(`simulation_result_${Date.now()}.pdf`);
-  btn.style.display = 'block';
+    } catch (err) {
+      console.error('Simulation error:', err);
+      if (runMessage) runMessage.textContent = 'Simulation failed. Please try again.';
+    } finally {
+      if (submitBtn) {
+        submitBtn.textContent = '🚀 Simulate';
+      }
+    }
+  });
+}
+
+// PDF Download functionality
+const downloadBtn = document.getElementById('downloadPDF');
+if (downloadBtn) {
+  downloadBtn.addEventListener('click', async () => {
+    const { jsPDF } = window.jspdf;
+    const section = document.getElementById('outputPanel');
+    
+    if (!section) return;
+    
+    downloadBtn.style.display = 'none';
+    downloadBtn.textContent = 'Generating PDF...';
+    
+    try {
+      const canvas = await html2canvas(section, { 
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#1f2937'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 10;
+      
+      // Add title page
+      pdf.setFontSize(20);
+      pdf.setTextColor(79, 70, 229);
+      pdf.text('PharmaSim AI - Drug Simulation Report', pageWidth / 2, 30, { align: 'center' });
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, 45, { align: 'center' });
+      
+      // Add main content
+      pdf.addImage(imgData, 'PNG', 10, 60, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - 80);
+      
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - 20);
+      }
+      
+      const filename = `pharmasim_${data.drug_name || 'simulation'}_${Date.now()}.pdf`;
+      pdf.save(filename);
+      
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('PDF generation failed. Please try again.');
+    } finally {
+      downloadBtn.style.display = 'block';
+      downloadBtn.textContent = '📄 Download as PDF';
+    }
+  });
+}
+
+// Add some visual feedback for form interactions
+document.querySelectorAll('input, select').forEach(element => {
+  element.addEventListener('focus', function() {
+    this.style.transform = 'translateY(-2px)';
+  });
+  
+  element.addEventListener('blur', function() {
+    this.style.transform = 'translateY(0)';
+  });
 });
+
+// Add particle effect for visual enhancement
+function createParticles() {
+  const particleCount = 50;
+  const particles = [];
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.style.position = 'fixed';
+    particle.style.width = '2px';
+    particle.style.height = '2px';
+    particle.style.backgroundColor = 'rgba(96, 165, 250, 0.5)';
+    particle.style.borderRadius = '50%';
+    particle.style.pointerEvents = 'none';
+    particle.style.zIndex = '-1';
+    
+    particle.style.left = Math.random() * window.innerWidth + 'px';
+    particle.style.top = Math.random() * window.innerHeight + 'px';
+    
+    document.body.appendChild(particle);
+    particles.push({
+      element: particle,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5
+    });
+  }
+  
+  function animateParticles() {
+    particles.forEach(particle => {
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+      
+      if (particle.x < 0 || particle.x > window.innerWidth) particle.vx *= -1;
+      if (particle.y < 0 || particle.y > window.innerHeight) particle.vy *= -1;
+      
+      particle.element.style.left = particle.x + 'px';
+      particle.element.style.top = particle.y + 'px';
+    });
+    
+    requestAnimationFrame(animateParticles);
+  }
+  
+  animateParticles();
+}
+
+// Initialize particles after page load
+window.addEventListener('load', () => {
+  setTimeout(createParticles, 1000);
+});
+
+console.log('🧬 PharmaSim AI with 3D Molecular Visualization loaded successfully!');
 </script>
 </body>
 </html>
