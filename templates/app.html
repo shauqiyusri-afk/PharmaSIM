@@ -8,6 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- RDKit-JS for molecule rendering -->
+<script src="https://unpkg.com/@rdkit/rdkit@2022.3.5/dist/RDKit_minimal.js"></script>
 <style>
 /* ------------------------- BODY & BACKGROUND ------------------------- */
 body {
@@ -99,6 +101,74 @@ form input:focus, form select:focus {
 /* ------------------------- OUTPUT PANEL ------------------------- */
 #outputPanel { display:none; margin-top:1rem; color:#1f2937; }
 
+/* ------------------------- MOLECULE VIEWER STYLES ------------------------- */
+.molecule-section {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.molecule-title {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.molecules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.molecule-card {
+  background: rgba(255,255,255,0.9);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.molecule-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.molecule-viewer {
+  width: 100%;
+  height: 200px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.molecule-name {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.molecule-smiles {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-family: monospace;
+  word-break: break-all;
+}
+
 /* ------------------------- TOP MATCHES ------------------------- */
 #matchesList > div {
   background: rgba(255,255,255,0.75);
@@ -182,9 +252,11 @@ tbody tr:nth-child(even) { background: #f9fafb; }
   .card { grid-template-columns: 1fr; }
   .table-charts-container { flex-direction: column; }
   .charts-section { flex-direction: row; }
+  .molecules-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 }
 @media(max-width:768px){ 
   .charts-section { flex-direction: column; }
+  .molecules-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -347,6 +419,17 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       <div id="matchMessage" class="text-black font-bold mt-4"></div>
     </div>
 
+    <!-- NEW: MOLECULE VIEWER SECTIONS -->
+    <div id="inputMoleculesSection" class="molecule-section" style="display: none;">
+      <div class="molecule-title">Input Drug Ingredients - Molecular Structures</div>
+      <div id="inputMoleculesGrid" class="molecules-grid"></div>
+    </div>
+
+    <div id="matchMoleculesSection" class="molecule-section" style="display: none;">
+      <div class="molecule-title">Best Match Medicine - Molecular Structures</div>
+      <div id="matchMoleculesGrid" class="molecules-grid"></div>
+    </div>
+
     <div>
       <h3 class="text-md font-medium text-white mb-2">Top Matches</h3>
       <div id="matchesList" class="space-y-2"></div>
@@ -409,7 +492,205 @@ tbody tr:nth-child(even) { background: #f9fafb; }
 <script>
 let radarChartInstance = null;
 let ethnicityChartInstance = null;
-let rollerChartInstance = null; // global for roller chart
+let rollerChartInstance = null;
+let rdkitModule = null;
+
+// Molecule SMILES database
+const moleculesDB = {
+  "Paracetamol": "CC(=O)NC1=CC=C(O)C=C1",
+  "Ibuprofen": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+  "Clarinase": "CC1=CC=C(C=C1)C(CO)NC(C)C",
+  "Cetirizine": "C1=CC(=CC=C1CCN2CCN(CC2)CCOCCO)Cl",
+  "Diphenhydramine": "CN(C)CCOC(C1=CC=CC=C1)C2=CC=CC=C2",
+  "5-FU": "C1=CN=C(C(=O)N1)F",
+  "Leucovorin": "CC1=C(C(=O)N(C(=O)C1C(=O)O)C)N",
+  "Oxaliplatin": "CC(=O)NC1=CC=C(O)C=C1",
+  "Irinotecan": "CC1=CC2=C(C=C1)N(C(=O)C2O)C",
+  "Gemcitabine": "C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)F",
+  "Paclitaxel": "CC1=CC2=C(C=C1)OC3=C(C(=C(C(=C3O2)C(=O)OC)C)C)C",
+  "Doxorubicin": "CC1=CC(=CC(=C1)O)C(=O)C2=CC=CC=C2",
+  "Cyclophosphamide": "C1CN2CCOCC2O1",
+  "Methotrexate": "CC1=CC(=CC=C1)NC2=NC(=NC(=N2)N)N",
+  "Cisplatin": "CC(=O)NC1=CC=C(O)C=C1",
+  "Carboplatin": "CC(=O)NC1=CC=C(O)C=C1",
+  "Imatinib": "CC1=CC(=C(C=C1)NC(=O)C2=CC=CC=N2)NC3=CC=CC=C3",
+  "Trastuzumab": "CC(=O)NC1=CC=C(O)C=C1",
+  "Bevacizumab": "CC(=O)NC1=CC=C(O)C=C1",
+  "Nivolumab": "CC(=O)NC1=CC=C(O)C=C1"
+};
+
+// Initialize RDKit when the page loads
+async function initRDKit() {
+  try {
+    console.log('Initializing RDKit...');
+    rdkitModule = await window.initRDKitModule();
+    console.log('RDKit initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize RDKit:', error);
+  }
+}
+
+// Render molecule structure
+function renderMolecule(smiles, containerId, width = 250, height = 200) {
+  if (!rdkitModule) {
+    console.warn('RDKit not initialized');
+    return false;
+  }
+
+  try {
+    const mol = rdkitModule.get_mol(smiles);
+    if (!mol) {
+      console.warn('Invalid SMILES:', smiles);
+      return false;
+    }
+
+    const svg = mol.get_svg(width, height);
+    mol.delete();
+
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = svg;
+      return true;
+    }
+  } catch (error) {
+    console.error('Error rendering molecule:', error);
+    return false;
+  }
+  return false;
+}
+
+// Create molecule viewer card
+function createMoleculeCard(moleculeName, smiles) {
+  const cardId = `mol-card-${moleculeName.replace(/\s+/g, '-').toLowerCase()}`;
+  const viewerId = `mol-viewer-${moleculeName.replace(/\s+/g, '-').toLowerCase()}`;
+  
+  const card = document.createElement('div');
+  card.className = 'molecule-card';
+  card.innerHTML = `
+    <div class="molecule-name">${moleculeName}</div>
+    <div id="${viewerId}" class="molecule-viewer">Loading structure...</div>
+    <div class="molecule-smiles">${smiles}</div>
+  `;
+
+  // Render molecule after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    const success = renderMolecule(smiles, viewerId, 230, 180);
+    if (!success) {
+      document.getElementById(viewerId).innerHTML = `
+        <div class="text-center text-gray-500">
+          <div>Unable to render</div>
+          <div class="text-xs mt-1">Structure not available</div>
+        </div>
+      `;
+    }
+  }, 100);
+
+  return card;
+}
+
+// Display molecules for input ingredients
+function displayInputMolecules(ingredientsString) {
+  const ingredients = ingredientsString.split(';').map(ing => ing.trim()).filter(ing => ing);
+  const grid = document.getElementById('inputMoleculesGrid');
+  const section = document.getElementById('inputMoleculesSection');
+  
+  if (ingredients.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  grid.innerHTML = '';
+  let hasValidMolecules = false;
+
+  ingredients.forEach(ingredient => {
+    if (moleculesDB[ingredient]) {
+      const card = createMoleculeCard(ingredient, moleculesDB[ingredient]);
+      grid.appendChild(card);
+      hasValidMolecules = true;
+    } else {
+      // Create a card for unknown molecules
+      const card = document.createElement('div');
+      card.className = 'molecule-card';
+      card.innerHTML = `
+        <div class="molecule-name">${ingredient}</div>
+        <div class="molecule-viewer">
+          <div class="text-center text-gray-500">
+            <div>Structure not available</div>
+            <div class="text-xs mt-1">Not in database</div>
+          </div>
+        </div>
+        <div class="molecule-smiles">Unknown SMILES</div>
+      `;
+      grid.appendChild(card);
+    }
+  });
+
+  section.style.display = hasValidMolecules ? 'block' : 'none';
+}
+
+// Display molecules for best match medicine
+function displayMatchMolecules(bestMatch) {
+  const grid = document.getElementById('matchMoleculesGrid');
+  const section = document.getElementById('matchMoleculesSection');
+  
+  if (!bestMatch || !bestMatch.medicine_name) {
+    section.style.display = 'none';
+    return;
+  }
+
+  grid.innerHTML = '';
+  let hasValidMolecules = false;
+
+  // Get all ingredients for the matched medicine
+  const ingredients = [];
+  
+  // Add active ingredients
+  if (bestMatch.ingredients_active && Array.isArray(bestMatch.ingredients_active)) {
+    ingredients.push(...bestMatch.ingredients_active);
+  }
+  
+  // If no active ingredients found, try to extract from medicine name
+  if (ingredients.length === 0) {
+    const medicineName = bestMatch.medicine_name;
+    if (moleculesDB[medicineName]) {
+      ingredients.push(medicineName);
+    }
+  }
+
+  // Special handling for combination medicines
+  if (ingredients.length === 0) {
+    const medicineName = bestMatch.medicine_name;
+    // Try to extract individual components from combination names
+    if (medicineName.includes('+')) {
+      const components = medicineName.split('+').map(c => c.trim());
+      components.forEach(component => {
+        // Clean up component names (remove parentheses, extra text)
+        const cleanName = component.replace(/\([^)]*\)/g, '').trim();
+        if (moleculesDB[cleanName]) {
+          ingredients.push(cleanName);
+        }
+      });
+    }
+  }
+
+  if (ingredients.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  ingredients.forEach(ingredient => {
+    if (moleculesDB[ingredient]) {
+      const card = createMoleculeCard(ingredient, moleculesDB[ingredient]);
+      grid.appendChild(card);
+      hasValidMolecules = true;
+    }
+  });
+
+  section.style.display = hasValidMolecules ? 'block' : 'none';
+}
+
+// Initialize RDKit when page loads
+window.addEventListener('load', initRDKit);
 
 function formatSideEffects(text) {
   if (!text) return '-';
@@ -525,6 +806,13 @@ clearBtn.addEventListener('click', () => {
     matchedImageArea.innerHTML = '';
     matchedName.textContent = '';
     comparisonTableBody.innerHTML = '';
+    
+    // Hide molecule sections
+    document.getElementById('inputMoleculesSection').style.display = 'none';
+    document.getElementById('matchMoleculesSection').style.display = 'none';
+    document.getElementById('inputMoleculesGrid').innerHTML = '';
+    document.getElementById('matchMoleculesGrid').innerHTML = '';
+    
     if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
     if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
     if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
@@ -626,17 +914,22 @@ form.addEventListener('submit', async (e) => {
   matchedImageArea.innerHTML = '';
   matchedName.textContent = '';
   comparisonTableBody.innerHTML = '';
+  
+  // Hide molecule sections during loading
+  document.getElementById('inputMoleculesSection').style.display = 'none';
+  document.getElementById('matchMoleculesSection').style.display = 'none';
+  
   if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
 
   // Collect form data
   const formData = new FormData(form);
   const data = Object.fromEntries(formData.entries());
 
-// new
-const selectedCondition = formData.get("health_condition");
-data.health_conditions = selectedCondition && selectedCondition !== "none" 
-    ? [selectedCondition] 
-    : [];
+  // new
+  const selectedCondition = formData.get("health_condition");
+  data.health_conditions = selectedCondition && selectedCondition !== "none" 
+      ? [selectedCondition] 
+      : [];
 
 try {
   const res = await fetch('/predict', {
@@ -652,6 +945,9 @@ try {
   }
   runMessage.textContent = '';
   outputPanel.style.display = 'block';
+
+  // Display input molecules first
+  displayInputMolecules(data.ingredients);
 
   // Always show numbers in the top section
   effectivenessEl.textContent = (result.predicted_effectiveness ?? '-') + '%';
@@ -710,13 +1006,6 @@ if (result.strong_match && result.best_match) {
   matchMessage.textContent = result.message || 'No strong match found.';
 }
 
-//if (Array.isArray(result.new_drug_explanations) && result.new_drug_explanations.length) {//
-//  result.new_drug_explanations.forEach(exp => {
-//    const li = document.createElement("div");
-//    li.textContent = "• " + exp;
-//    reasonsBox.appendChild(li);
-//  });
-//}
     specificSideEffectsEl.textContent = result.predicted_specific_side_effects ?? '-';
 
     if (result.strong_match && result.best_match) {
@@ -751,6 +1040,9 @@ if (result.strong_match && result.best_match) {
       img.onerror = () => img.src = '/static/images/Generic.png';
       matchedImageArea.appendChild(img);
       matchedName.textContent = best.medicine_name;
+
+      // Display match molecules
+      displayMatchMolecules(best);
 
     // ---- Comparison Table ----
     const newDrug = {
@@ -1057,4 +1349,3 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
 </script>
 </body>
 </html>
-
