@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PharmaSim — Elegant UI (Redesign)</title>
-  <meta name="description" content="PharmaSim redesigned front-end — preserves all backend hooks and IDs." />
+  <title>PharmaSim — Elegant UI (Redesign, Backend-Wired)</title>
+  <meta name="description" content="PharmaSim redesigned front-end — wired to Flask backend without breaking field names/IDs." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Charts (optional; used if backend provides chart data) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     /* === Core layout === */
     :root{
@@ -40,9 +42,7 @@
       min-height:640px; display:flex;flex-direction:column; gap:14px;backdrop-filter: blur(8px);
     }
 
-    .brand{
-      display:flex;gap:12px;align-items:center;margin-bottom:6px
-    }
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:6px}
     .logo-blob{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:18px}
     .h1{font-size:20px;font-weight:700;color:#f3f7ff}
     .h2{color:var(--muted);font-size:13px}
@@ -309,13 +309,11 @@
 
   <script>
     /*
-      IMPORTANT: This front-end preserves all form field NAMES and element IDs used by your backend.
-      I intentionally did NOT change endpoint names or form structure to avoid breaking the server.
-      Behavior hooks (fetch to /predict, rendering into #effectiveness, #matchesList etc.) are kept
-      so you can drop this file in place of your current app.html without touching Python.
+      IMPORTANT: Front-end preserves all form field NAMES/IDs used by backend.
+      Endpoint: POST /predict (same origin). This file is intended to live at templates/app.html.
     */
 
-    // Simple helper to keep dosage auto-calc logic compatible with backend
+    // ===== Dosage auto-calc (compatible with backend expectations) =====
     const concInput = document.getElementById('concentration');
     const mgInput = document.getElementById('dosageMg');
     const mlInput = document.getElementById('dosageMl');
@@ -325,51 +323,147 @@
       mgInput.addEventListener('input',updateFromMg); mlInput.addEventListener('input',updateFromMl); concInput.addEventListener('input',()=>{ if(mgInput.value) updateFromMg(); else if(mlInput.value) updateFromMl(); });
     }
 
-    const form = document.getElementById('predictForm');
-    const simulateBtn = document.getElementById('simulateBtn');
+    // ===== Helpers =====
+    const $ = (id)=>document.getElementById(id);
+    function imagePathFor(name){
+      const safe = (name || 'Generic').replace(/[^a-z0-9]+/gi,'_');
+      return `/static/images/${safe}.png`;
+    }
+    function pct(val){
+      if(val==null || val==="") return '—';
+      const num = Number(val);
+      if(Number.isNaN(num)) return String(val);
+      return `${Math.round(num * 100) / (num>1?1:1)}${num>1?'':'%'}`.replace('NaN','—');
+    }
+    function toList(x){
+      if(!x) return [];
+      if(Array.isArray(x)) return x;
+      return String(x).split(/[;,]+/).map(s=>s.trim()).filter(Boolean);
+    }
+
+    // ===== Form submit =====
+    const form = $('predictForm');
+    const simulateBtn = $('simulateBtn');
 
     form && form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       simulateBtn.disabled = true; simulateBtn.textContent = 'Simulating...';
-      const data = Object.fromEntries(new FormData(form).entries());
+
+      // Collect
+      const fd = new FormData(form);
+      const data = Object.fromEntries(fd.entries());
+
+      // Backend expects health_conditions (array). Convert single select accordingly.
+      const selectedHC = fd.get('health_condition');
+      data.health_conditions = (selectedHC && selectedHC !== 'none') ? [selectedHC] : [];
 
       try {
-        const res = await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        const res = await fetch('/predict',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+        });
         const json = await res.json();
-        if(!res.ok){ throw new Error(json.error||'Server error'); }
-        // Map known backend responses into preserved IDs
-        document.getElementById('effectiveness').textContent = (json.effectiveness ? (Math.round(json.effectiveness*100)/100) : json.effectiveness) || '—';
-        document.getElementById('sideEffect').textContent = json.side_effect_label || json.side_effect || '—';
-        document.getElementById('successRate').textContent = (json.success_rate ? (Math.round(json.success_rate*100)/100) : json.success_rate) || '—';
+        if(!res.ok){ throw new Error(json.error || 'Server error'); }
 
-        // Best match
-        if(json.best_match && json.best_match.medicine_name){
-          document.getElementById('matchedName').textContent = json.best_match.medicine_name;
-          document.getElementById('bestMatchBox').textContent = json.best_match.summary || json.best_match.medicine_name;
-          // image: backend expects display via #matchedImageArea
-          const imgArea = document.getElementById('matchedImageArea'); imgArea.innerHTML = '';
-          if(json.best_match.image){ const img=document.createElement('img');img.src=json.best_match.image; img.style.width='68px'; img.style.height='68px'; img.style.borderRadius='10px'; imgArea.appendChild(img);} 
+        // Map possible key variants to UI (support both legacy and v3 names)
+        const eff = json.predicted_effectiveness ?? json.effectiveness ?? null;
+        const ser = json.predicted_success_rate ?? json.success_rate ?? null;
+        const risk = json.predicted_side_effect_risk ?? json.side_effect_label ?? json.side_effect ?? null;
+
+        $('effectiveness').textContent = (eff==null? '—' : (typeof eff==='number'? `${eff}%` : eff));
+        $('successRate').textContent = (ser==null? '—' : (typeof ser==='number'? `${ser}%` : ser));
+        $('sideEffect').textContent = risk ?? '—';
+
+        // Best match (backend may return best_match OR top_matches[0])
+        const best = json.best_match || (Array.isArray(json.top_matches) && json.top_matches.length? json.top_matches[0] : null);
+        $('matchedName').textContent = best?.medicine_name || '—';
+        $('bestMatchBox').textContent = json.message || best?.summary || (best? `Similarity: ${best.percent ?? best.similarity ?? '-'}%` : '—');
+        const imgArea = $('matchedImageArea'); imgArea.innerHTML = '';
+        if (best && best.medicine_name){
+          const img = document.createElement('img');
+          img.alt = best.medicine_name;
+          img.src = imagePathFor(best.medicine_name);
+          img.style.width='68px'; img.style.height='68px'; img.style.borderRadius='10px';
+          img.onerror = ()=> img.src = '/static/images/Generic.png';
+          imgArea.appendChild(img);
         }
 
-        // Comparison table — preserve your backend table id usage
-        const leftBody = document.getElementById('comparisonTableBodyLeft');
-        const rightBody = document.getElementById('comparisonTableBodyRight');
-        leftBody.innerHTML = '';
-        rightBody.innerHTML = '';
-        if(json.comparison){
-          for(const r of json.comparison){
-            const trL = document.createElement('tr'); trL.innerHTML = `<td>${r.attribute}</td><td>${r.new_value || '-'}</td>`; leftBody.appendChild(trL);
-            const trR = document.createElement('tr'); trR.innerHTML = `<td>${r.attribute}</td><td>${r.known_value || '-'}</td>`; rightBody.appendChild(trR);
-          }
+        // Comparison (split L/R bodies)
+        const leftBody = $('comparisonTableBodyLeft');
+        const rightBody = $('comparisonTableBodyRight');
+        leftBody.innerHTML = ''; rightBody.innerHTML = '';
+
+        const newDrug = {
+          drug_name: data.drug_name,
+          ingredients: data.ingredients,
+          dosage_mg: data.dosage_mg || data.dosageMg || '-',
+          line_of_treatment: data.line_of_treatment || '-',
+          target_symptom: data.target_symptom,
+          health_condition: data.health_conditions || [],
+          effectiveness: eff,
+          success_rate: ser,
+          side_effect_risk: risk,
+          predicted_specific_side_effects: json.predicted_specific_side_effects
+        };
+
+        const known = best || {};
+        const knownIngredientsJoined = (()=>{
+          const active = toList(known.ingredients_active || known.ingredients);
+          const inactive = toList(known.ingredients_inactive);
+          let txt = active.join(', ');
+          if(inactive.length) txt += ` (inactive: ${inactive.join(', ')})`;
+          return txt || '-';
+        })();
+
+        const rows = [
+          ['Drug Name', newDrug.drug_name || '-', known.medicine_name || '-'],
+          ['Target Symptom', newDrug.target_symptom || '-', known.target_symptom || '-'],
+          ['Line of Treatment', newDrug.line_of_treatment || '-', known.line_of_treatment || '-'],
+          ['Health Condition', (newDrug.health_condition || []).join(', ') || '-', known.health_condition || '-'],
+          ['Ingredients', newDrug.ingredients || '-', knownIngredientsJoined],
+          ['Dosage (mg)', newDrug.dosage_mg || '-', known.dosage_mg ?? '-'],
+          ['Effectiveness', (newDrug.effectiveness ?? '-') + (typeof newDrug.effectiveness==='number'?'%':''),
+                            known.effectiveness!=null ? known.effectiveness + '%' : '-'],
+          ['Success Rate', (newDrug.success_rate ?? '-') + (typeof newDrug.success_rate==='number'?'%':''),
+                           known.success_rate!=null ? known.success_rate + '%' : '-'],
+          ['Side Effect Risk', newDrug.side_effect_risk || '-', known.side_effect_risk || '-'],
+          ['Likely Side Effects', toList(newDrug.predicted_specific_side_effects).join(', ') || '-', toList(known.known_side_effects).join(', ') || '-']
+        ];
+
+        rows.forEach(([label, left, right])=>{
+          const trL = document.createElement('tr'); trL.innerHTML = `<td>${label}</td><td>${left}</td>`;
+          const trR = document.createElement('tr'); trR.innerHTML = `<td>${label}</td><td>${right}</td>`;
+          leftBody.appendChild(trL); rightBody.appendChild(trR);
+        });
+
+        // Molecules: from ingredients input + best match
+        const molGrid = $('inputMoleculesGrid'); molGrid.innerHTML='';
+        const inputIngs = toList(data.ingredients);
+        inputIngs.forEach(name=>{
+          const div=document.createElement('div');div.className='mol';div.innerHTML=`<div class='name'>${name}</div>`; molGrid.appendChild(div);
+        });
+        if(known.medicine_name){
+          const div=document.createElement('div');div.className='mol';div.innerHTML=`<div class='name'>${known.medicine_name}</div>`; molGrid.appendChild(div);
         }
 
-        // Molecules grid — if backend returns list
-        const molGrid = document.getElementById('inputMoleculesGrid'); molGrid.innerHTML='';
-        if(json.input_molecules && Array.isArray(json.input_molecules)){
-          json.input_molecules.forEach(m=>{
-            const div=document.createElement('div');div.className='mol';div.innerHTML=`<div>${m.svg || m.name || '—'}</div><div class='name'>${m.name||''}</div>`; molGrid.appendChild(div);
-          })
-        }
+        // Charts (optional) — expect json.radar or json.recovery arrays; fallback demo if absent
+        try {
+          const radarData = json.radar || {labels:['Efficacy','Safety','Tolerability','Onset','Duration'], values:[
+            typeof eff==='number'? Math.min(100, Math.max(0, eff)) : 60,
+            risk==='High'? 35 : risk==='Medium'? 60 : 80,
+            65, 50, 70
+          ]};
+          const rc = document.getElementById('radarChart').getContext('2d');
+          if(window._radar) window._radar.destroy();
+          window._radar = new Chart(rc, { type:'radar', data:{ labels: radarData.labels, datasets:[{ label:'Profile', data: radarData.values }] }, options:{ plugins:{legend:{display:false}}, scales:{ r:{ angleLines:{display:false}, pointLabels:{color:'#cbd5e1'} } } } });
+        } catch(_e){}
+        try {
+          const rec = json.recovery || {x:[0,1,2,3,4,5,6], y:[100,80,65,50,38,30,25]};
+          const lc = document.getElementById('rollerChart').getContext('2d');
+          if(window._line) window._line.destroy();
+          window._line = new Chart(lc, { type:'line', data:{ labels: rec.x, datasets:[{ label:'Recovery (lower is better)', data: rec.y }] }, options:{ plugins:{legend:{display:false}}, elements:{point:{radius:2}}, scales:{ x:{ ticks:{color:'#cbd5e1'}}, y:{ ticks:{color:'#cbd5e1'} } } } });
+        } catch(_e){}
 
       } catch(err){
         console.error(err);
@@ -378,11 +472,16 @@
     });
 
     // Clear button
-    document.getElementById('clearBtn')?.addEventListener('click', ()=>{ form.reset(); document.getElementById('effectiveness').textContent='—'; document.getElementById('sideEffect').textContent='—'; document.getElementById('successRate').textContent='—'; document.getElementById('matchedName').textContent='—'; document.getElementById('bestMatchBox').textContent='—'; document.getElementById('inputMoleculesGrid').innerHTML=''; });
+    document.getElementById('clearBtn')?.addEventListener('click', ()=>{ 
+      form.reset(); 
+      $('effectiveness').textContent='—'; $('sideEffect').textContent='—'; $('successRate').textContent='—'; 
+      $('matchedName').textContent='—'; $('bestMatchBox').textContent='—'; $('inputMoleculesGrid').innerHTML=''; 
+      $('comparisonTableBodyLeft').innerHTML=''; $('comparisonTableBodyRight').innerHTML='';
+      if(window._radar) window._radar.destroy(); if(window._line) window._line.destroy();
+    });
 
-    // PDF export uses html2canvas + jspdf if you already had them; fallback simple print
+    // PDF export (simple print fallback)
     document.getElementById('downloadPDF')?.addEventListener('click', ()=>{ window.print(); });
-
   </script>
 </body>
 </html>
