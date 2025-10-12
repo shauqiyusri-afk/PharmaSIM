@@ -8,6 +8,8 @@ import os
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+from dotenv import load_dotenv 
+import openai 
 
 # -----------------------------
 # Models / encoders
@@ -258,6 +260,12 @@ app = Flask(
     template_folder=os.path.join(BASE_DIR, 'templates'),
     static_folder=os.path.join(BASE_DIR, 'static')
 )
+
+# -----------------------------
+# Chatbot Configuration
+# -----------------------------
+load_dotenv()  # loads OPENAI_API_KEY from .env file if present
+openai.api_key = os.getenv("OPENAI_API_KEY", "your_api_key_here")
 
 # ---------- Auth API ----------
 @app.route("/api/register", methods=["POST"])
@@ -637,6 +645,44 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# -----------------------------
+# Chatbot Endpoint
+# -----------------------------
+@app.route("/chatbot", methods=["POST"])
+def chatbot():
+    data = request.get_json(force=True)
+    user_message = data.get("message", "").strip()
+
+    if not user_message:
+        return jsonify({"reply": "Please type something first."}), 400
+
+    try:
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are PharmaSim AI Assistant — a helpful AI that explains drug "
+                    "simulation results, effectiveness, and medical information in a "
+                    "clear and safe way. Always guide users about using PharmaSim properly."
+                ),
+            },
+            {"role": "user", "content": user_message},
+        ]
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or "gpt-4" if you have access
+            messages=messages,
+            max_tokens=300,
+            temperature=0.7,
+        )
+
+        reply = response.choices[0].message["content"].strip()
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        print("Chatbot error:", e)
+        return jsonify({"reply": "Sorry, I encountered an issue while processing your message."}), 500
       
 @app.route("/ethnicity-data", methods=["GET"])
 def ethnicity_data():

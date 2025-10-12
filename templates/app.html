@@ -486,6 +486,24 @@ tbody tr:nth-child(even) { background: #f9fafb; }
     <div class="mt-4 text-center">
       <button id="downloadPDF" class="btn-action">Download as PDF</button>
     </div>
+
+    <!-- 💬 PharmaSim AI Chatbot Panel -->
+<div id="chatbotPanel"
+     class="mt-8 p-4 rounded-xl bg-gray-800 bg-opacity-60 text-white border border-gray-700">
+  <h3 class="text-lg font-semibold mb-3">PharmaSim AI Assistant 🤖</h3>
+  <div id="chatMessages"
+       class="h-64 overflow-y-auto bg-black bg-opacity-30 p-3 rounded mb-3 text-sm space-y-2"></div>
+
+  <div class="flex gap-2">
+    <input id="chatInput"
+           type="text"
+           placeholder="Ask PharmaSim about your results..."
+           class="flex-1 p-2 rounded-lg text-black focus:ring focus:ring-blue-300">
+    <button id="chatSend"
+            class="btn-action whitespace-nowrap">Send</button>
+  </div>
+</div>
+
   </div>
 </div>
 
@@ -1346,6 +1364,56 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
   pdf.save(`simulation_result_${Date.now()}.pdf`);
   btn.style.display = 'block';
 });
+
+// ------------------------- AI CHATBOT -------------------------
+const chatInput = document.getElementById("chatInput");
+const chatSend = document.getElementById("chatSend");
+const chatMessages = document.getElementById("chatMessages");
+
+async function sendMessage() {
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  // Append user's message
+  const userBubble = document.createElement("div");
+  userBubble.className = "text-right text-blue-300";
+  userBubble.innerHTML = `<b>You:</b> ${message}`;
+  chatMessages.appendChild(userBubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  chatInput.value = "";
+
+  try {
+    const res = await fetch("/chatbot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+
+    const data = await res.json();
+    const reply = data.reply || "No response from PharmaSim AI.";
+
+    // Append AI reply
+    const botBubble = document.createElement("div");
+    botBubble.className = "text-left text-green-300";
+    botBubble.innerHTML = `<b>PharmaSim:</b> ${reply}`;
+    chatMessages.appendChild(botBubble);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  } catch (error) {
+    console.error("Chatbot error:", error);
+    const errorMsg = document.createElement("div");
+    errorMsg.className = "text-left text-red-400";
+    errorMsg.textContent = "Error contacting PharmaSim AI.";
+    chatMessages.appendChild(errorMsg);
+  }
+}
+
+// Send on click or Enter key
+chatSend.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+
 </script>
 </body>
 </html>
