@@ -1,9 +1,10 @@
+//PHARMASIM_APP_SPOTIFY_TABS//
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PharmaSim AI — Enhanced Simulation</title>
+<title>PharmaSim AI — Enhanced Simulation (Spotify Tabs)</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -111,7 +112,6 @@ form input:focus, form select:focus {
   margin-top: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
-
 .molecule-title {
   color: white;
   font-size: 1.1rem;
@@ -120,14 +120,12 @@ form input:focus, form select:focus {
   margin-bottom: 1rem;
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
-
 .molecules-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
-
 .molecule-card {
   background: rgba(255,255,255,0.9);
   border-radius: 12px;
@@ -136,12 +134,10 @@ form input:focus, form select:focus {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
 .molecule-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
-
 .molecule-viewer {
   width: 100%;
   height: 200px;
@@ -155,19 +151,8 @@ form input:focus, form select:focus {
   font-size: 0.8rem;
   color: #6b7280;
 }
-
-.molecule-name {
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.molecule-smiles {
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-family: monospace;
-  word-break: break-all;
-}
+.molecule-name { font-weight: 600; color: #1f2937; margin-bottom: 0.25rem; }
+.molecule-smiles { font-size: 0.75rem; color: #6b7280; font-family: monospace; word-break: break-all; }
 
 /* ------------------------- TOP MATCHES ------------------------- */
 #matchesList > div {
@@ -189,18 +174,8 @@ form input:focus, form select:focus {
   margin-top: 1.5rem;
   align-items: flex-start;
 }
-
-.table-section {
-  flex: 1;
-  min-width: 0; /* Prevents flex item from overflowing */
-}
-
-.charts-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+.table-section { flex: 1; min-width: 0; }
+.charts-section { flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
 
 /* ------------------------- TABLE ------------------------- */
 table { 
@@ -227,7 +202,6 @@ tbody tr:nth-child(even) { background: #f9fafb; }
   box-shadow: 0 6px 20px rgba(0,0,0,0.2);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
-
 .radar-title {
   color: white;
   font-size: 1.1rem;
@@ -240,12 +214,7 @@ tbody tr:nth-child(even) { background: #f9fafb; }
 /* ------------------------- MATCH IMAGE ------------------------- */
 #matchedImageArea img { border-radius: 50%; width: 120px; height: 120px; object-fit: cover; margin-bottom: 0.5rem; transition: transform 0.3s; }
 #matchedImageArea img:hover { transform: scale(1.1); }
-#matchedImageArea {
-  display: flex;            
-  justify-content: center;  
-  align-items: center;      
-  margin-bottom: 0.5rem;    
-}
+#matchedImageArea { display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem; }
 
 /* ------------------------- RESPONSIVE ------------------------- */
 @media(max-width:1024px){ 
@@ -258,6 +227,18 @@ tbody tr:nth-child(even) { background: #f9fafb; }
   .charts-section { flex-direction: column; }
   .molecules-grid { grid-template-columns: 1fr; }
 }
+
+/* ------------------------- SPOTIFY-LIKE TABS (added) ------------------------- */
+.ps-tabs { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-bottom:.5rem; }
+.ps-tabbtn { padding:.5rem 1rem; border-radius:9999px; font-weight:600; 
+  background:rgba(255,255,255,.08); color:#e5e7eb; border:1px solid rgba(255,255,255,.12);
+  transition:transform .15s ease, background-color .15s ease, color .15s ease; }
+.ps-tabbtn:hover { transform:translateY(-1px); background:rgba(255,255,255,.14); }
+.ps-tabbtn.active { background:#1db954; color:black; border-color:#1db954; }
+.ps-panels { margin-top:.5rem; }
+.ps-panel { display:none; }
+.ps-panel.active { display:block; }
+.ps-hidden { display:none !important; }
 </style>
 </head>
 <body>
@@ -269,7 +250,43 @@ tbody tr:nth-child(even) { background: #f9fafb; }
 <!-- MAIN CARD -->
 <div class="card">
 
-  <!-- LEFT: FORM -->
+  <!-- ===== SPOTIFY-LIKE TABS (new scaffold, NO design change to your content) ===== -->
+  <div style="grid-column: 1 / -1;">
+    <div class="ps-tabs" id="psTabNav">
+      <button class="ps-tabbtn active" data-tab="details">Details</button>
+      <button class="ps-tabbtn" data-tab="results">Results</button>
+      <button class="ps-tabbtn" data-tab="similarity">Similarity</button>
+      <button class="ps-tabbtn" data-tab="charts">Charts</button>
+      <button class="ps-tabbtn" data-tab="molecules">Molecules</button>
+      <button class="ps-tabbtn" data-tab="history">History</button>
+      <div class="pill ml-2 rounded-full bg-indigo-600/40 px-3 py-1 text-xs font-semibold text-white" id="badge">Ready</div>
+    </div>
+    <div class="ps-panels">
+      <section id="psPanel-details" class="ps-panel active"></section>
+      <section id="psPanel-results" class="ps-panel"></section>
+      <section id="psPanel-similarity" class="ps-panel"></section>
+      <section id="psPanel-charts" class="ps-panel"></section>
+      <section id="psPanel-molecules" class="ps-panel"></section>
+      <section id="psPanel-history" class="ps-panel">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-white/90">
+            <thead>
+              <tr>
+                <th class="px-3 py-2">When</th>
+                <th class="px-3 py-2">Drug</th>
+                <th class="px-3 py-2">Target</th>
+                <th class="px-3 py-2">Effectiveness</th>
+                <th class="px-3 py-2">Success</th>
+              </tr>
+            </thead>
+            <tbody id="psHistoryBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- LEFT: FORM (original IDs retained) -->
   <div>
     <h1 class="text-2xl font-bold text-indigo-600 mb-4">Simulate New Drug</h1>
     <form id="predictForm" class="space-y-2">
@@ -374,7 +391,7 @@ tbody tr:nth-child(even) { background: #f9fafb; }
         <input name="ingredients" placeholder="e.g. Paracetamol;Caffeine" required>
       </div>
       <div class="flex flex-wrap gap-2 mt-2">
-        <button type="submit" class="btn-main btn-login flex-1">Simulate</button>
+        <button type="submit" class="btn-main btn-login flex-1" id="simulateBtn">Simulate</button>
         <button type="button" id="clearBtn" class="btn-main btn-register">Clear</button>
       </div>
       <p id="runMessage" class="text-sm text-gray-200 mt-1"></p>
@@ -385,7 +402,7 @@ tbody tr:nth-child(even) { background: #f9fafb; }
   <div id="outputPanel" class="space-y-4">
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-semibold text-green-700">Simulation Result</h2>
-      <div id="badge" class="text-sm text-white font-medium"></div>
+      <div id="badge_dup" class="text-sm text-white font-medium"></div>
     </div>
 
     <div class="flex gap-4 flex-wrap">
@@ -440,7 +457,7 @@ tbody tr:nth-child(even) { background: #f9fafb; }
       <div id="matchedName" class="text-sm font-semibold text-white"></div>
     </div>
 
-    <!-- NEW: TABLE AND CHARTS SIDE BY SIDE -->
+    <!-- TABLE AND CHARTS SIDE BY SIDE -->
     <div class="table-charts-container">
       <!-- TABLE SECTION -->
       <div class="table-section">
@@ -490,12 +507,13 @@ tbody tr:nth-child(even) { background: #f9fafb; }
 </div>
 
 <script>
+// ---------------- EXISTING LOGIC (kept) ----------------
 let radarChartInstance = null;
 let ethnicityChartInstance = null;
 let rollerChartInstance = null;
 let rdkitModule = null;
 
-// Molecule SMILES database
+// Molecule SMILES database (subset, extend as needed)
 const moleculesDB = {
   "Paracetamol": "CC(=O)NC1=CC=C(O)C=C1",
   "Ibuprofen": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
@@ -522,48 +540,32 @@ const moleculesDB = {
 // Initialize RDKit when the page loads
 async function initRDKit() {
   try {
-    console.log('Initializing RDKit...');
     rdkitModule = await window.initRDKitModule();
-    console.log('RDKit initialized successfully');
   } catch (error) {
     console.error('Failed to initialize RDKit:', error);
   }
 }
+window.addEventListener('load', initRDKit);
 
 // Render molecule structure
 function renderMolecule(smiles, containerId, width = 250, height = 200) {
-  if (!rdkitModule) {
-    console.warn('RDKit not initialized');
-    return false;
-  }
-
+  if (!rdkitModule) return false;
   try {
     const mol = rdkitModule.get_mol(smiles);
-    if (!mol) {
-      console.warn('Invalid SMILES:', smiles);
-      return false;
-    }
-
+    if (!mol) return false;
     const svg = mol.get_svg(width, height);
     mol.delete();
-
     const container = document.getElementById(containerId);
-    if (container) {
-      container.innerHTML = svg;
-      return true;
-    }
+    if (container) { container.innerHTML = svg; return true; }
   } catch (error) {
     console.error('Error rendering molecule:', error);
-    return false;
   }
   return false;
 }
 
 // Create molecule viewer card
 function createMoleculeCard(moleculeName, smiles) {
-  const cardId = `mol-card-${moleculeName.replace(/\s+/g, '-').toLowerCase()}`;
-  const viewerId = `mol-viewer-${moleculeName.replace(/\s+/g, '-').toLowerCase()}`;
-  
+  const viewerId = `mol-viewer-${moleculeName.replace(/\\s+/g, '-').toLowerCase()}`;
   const card = document.createElement('div');
   card.className = 'molecule-card';
   card.innerHTML = `
@@ -571,20 +573,12 @@ function createMoleculeCard(moleculeName, smiles) {
     <div id="${viewerId}" class="molecule-viewer">Loading structure...</div>
     <div class="molecule-smiles">${smiles}</div>
   `;
-
-  // Render molecule after a short delay to ensure DOM is ready
   setTimeout(() => {
-    const success = renderMolecule(smiles, viewerId, 230, 180);
-    if (!success) {
-      document.getElementById(viewerId).innerHTML = `
-        <div class="text-center text-gray-500">
-          <div>Unable to render</div>
-          <div class="text-xs mt-1">Structure not available</div>
-        </div>
-      `;
+    const ok = renderMolecule(smiles, viewerId, 230, 180);
+    if (!ok) {
+      document.getElementById(viewerId).innerHTML = '<div class="text-center text-gray-500"><div>Unable to render</div><div class="text-xs mt-1">Structure not available</div></div>';
     }
-  }, 100);
-
+  }, 80);
   return card;
 }
 
@@ -593,132 +587,72 @@ function displayInputMolecules(ingredientsString) {
   const ingredients = ingredientsString.split(';').map(ing => ing.trim()).filter(ing => ing);
   const grid = document.getElementById('inputMoleculesGrid');
   const section = document.getElementById('inputMoleculesSection');
-  
-  if (ingredients.length === 0) {
-    section.style.display = 'none';
-    return;
-  }
-
+  if (!grid || !section) return;
+  if (ingredients.length === 0) { section.style.display = 'none'; return; }
   grid.innerHTML = '';
-  let hasValidMolecules = false;
-
+  let has = false;
   ingredients.forEach(ingredient => {
-    if (moleculesDB[ingredient]) {
-      const card = createMoleculeCard(ingredient, moleculesDB[ingredient]);
-      grid.appendChild(card);
-      hasValidMolecules = true;
-    } else {
-      // Create a card for unknown molecules
+    if (moleculesDB[ingredient]) { grid.appendChild(createMoleculeCard(ingredient, moleculesDB[ingredient])); has = true; }
+    else {
       const card = document.createElement('div');
       card.className = 'molecule-card';
       card.innerHTML = `
         <div class="molecule-name">${ingredient}</div>
-        <div class="molecule-viewer">
-          <div class="text-center text-gray-500">
-            <div>Structure not available</div>
-            <div class="text-xs mt-1">Not in database</div>
-          </div>
-        </div>
-        <div class="molecule-smiles">Unknown SMILES</div>
-      `;
+        <div class="molecule-viewer"><div class="text-center text-gray-500"><div>Structure not available</div><div class="text-xs mt-1">Not in database</div></div></div>
+        <div class="molecule-smiles">Unknown SMILES</div>`;
       grid.appendChild(card);
     }
   });
-
-  section.style.display = hasValidMolecules ? 'block' : 'none';
+  section.style.display = has ? 'block' : 'none';
 }
 
 // Display molecules for best match medicine
 function displayMatchMolecules(bestMatch) {
   const grid = document.getElementById('matchMoleculesGrid');
   const section = document.getElementById('matchMoleculesSection');
-  
-  if (!bestMatch || !bestMatch.medicine_name) {
-    section.style.display = 'none';
-    return;
-  }
-
+  if (!grid || !section) return;
+  if (!bestMatch || !bestMatch.medicine_name) { section.style.display = 'none'; return; }
   grid.innerHTML = '';
-  let hasValidMolecules = false;
-
-  // Get all ingredients for the matched medicine
+  let has = false;
   const ingredients = [];
-  
-  // Add active ingredients
-  if (bestMatch.ingredients_active && Array.isArray(bestMatch.ingredients_active)) {
-    ingredients.push(...bestMatch.ingredients_active);
-  }
-  
-  // If no active ingredients found, try to extract from medicine name
+  if (bestMatch.ingredients_active && Array.isArray(bestMatch.ingredients_active)) { ingredients.push(...bestMatch.ingredients_active); }
   if (ingredients.length === 0) {
     const medicineName = bestMatch.medicine_name;
-    if (moleculesDB[medicineName]) {
-      ingredients.push(medicineName);
-    }
+    if (moleculesDB[medicineName]) { ingredients.push(medicineName); }
   }
-
-  // Special handling for combination medicines
-  if (ingredients.length === 0) {
-    const medicineName = bestMatch.medicine_name;
-    // Try to extract individual components from combination names
-    if (medicineName.includes('+')) {
-      const components = medicineName.split('+').map(c => c.trim());
-      components.forEach(component => {
-        // Clean up component names (remove parentheses, extra text)
-        const cleanName = component.replace(/\([^)]*\)/g, '').trim();
-        if (moleculesDB[cleanName]) {
-          ingredients.push(cleanName);
-        }
-      });
-    }
+  if (ingredients.length === 0 && bestMatch.medicine_name.includes('+')) {
+    const components = bestMatch.medicine_name.split('+').map(c => c.trim());
+    components.forEach(component => {
+      const cleanName = component.replace(/\\([^)]*\\)/g, '').trim();
+      if (moleculesDB[cleanName]) ingredients.push(cleanName);
+    });
   }
-
-  if (ingredients.length === 0) {
-    section.style.display = 'none';
-    return;
-  }
-
-  ingredients.forEach(ingredient => {
-    if (moleculesDB[ingredient]) {
-      const card = createMoleculeCard(ingredient, moleculesDB[ingredient]);
-      grid.appendChild(card);
-      hasValidMolecules = true;
-    }
+  if (ingredients.length === 0) { section.style.display = 'none'; return; }
+  ingredients.forEach(ing => {
+    if (moleculesDB[ing]) { grid.appendChild(createMoleculeCard(ing, moleculesDB[ing])); has = true; }
   });
-
-  section.style.display = hasValidMolecules ? 'block' : 'none';
+  section.style.display = has ? 'block' : 'none';
 }
-
-// Initialize RDKit when page loads
-window.addEventListener('load', initRDKit);
 
 function formatSideEffects(text) {
   if (!text) return '-';
-  return '<ul class="list-disc list-inside">' +
-    text.split(';').map(s => `<li>${s.trim()}</li>`).join('') +
-    '</ul>';
+  return '<ul class="list-disc list-inside">' + text.split(';').map(s => `<li>${s.trim()}</li>`).join('') + '</ul>';
 }
 
+// Dosage auto-calc
 const concInput = document.getElementById("concentration");
 const mgInput = document.getElementById("dosageMg");
 const mlInput = document.getElementById("dosageMl");
-
 function updateFromMg() {
   const conc = parseFloat(concInput.value);
   const mg = parseFloat(mgInput.value);
-  if (!isNaN(conc) && conc > 0 && !isNaN(mg)) {
-    mlInput.value = (mg / conc).toFixed(2);
-  }
+  if (!isNaN(conc) && conc > 0 && !isNaN(mg)) { mlInput.value = (mg / conc).toFixed(2); }
 }
-
 function updateFromMl() {
   const conc = parseFloat(concInput.value);
   const ml = parseFloat(mlInput.value);
-  if (!isNaN(conc) && conc > 0 && !isNaN(ml)) {
-    mgInput.value = (ml * conc).toFixed(2);
-  }
+  if (!isNaN(conc) && conc > 0 && !isNaN(ml)) { mgInput.value = (ml * conc).toFixed(2); }
 }
-
 mgInput.addEventListener("input", updateFromMg);
 mlInput.addEventListener("input", updateFromMl);
 concInput.addEventListener("input", () => {
@@ -726,8 +660,7 @@ concInput.addEventListener("input", () => {
   else if (mlInput.value) updateFromMl();
 });
 
-// ------------------------- IMAGE MAP (added) -------------------------
-// Exact filename mapping for /static/images/*.png
+// ------------------------- IMAGE MAP (kept) -------------------------
 const imageMap = {
   // OTC
   "Paracetamol": "Paracetamol.png",
@@ -744,7 +677,7 @@ const imageMap = {
   "Loratadine": "Loratadine.png",
   "Mefenamic_Acid": "Mefenamic_Acid.png",
 
-  // Oncology (expanded)
+  // Oncology (sample)
   "5-FU + Leucovorin": "5FU_Leucovorin.png",
   "FOLFOX (Oxaliplatin + 5-FU + Leucovorin)": "FOLFOX.png",
   "FOLFIRI (Irinotecan + 5-FU + Leucovorin)": "FOLFIRI.png",
@@ -759,592 +692,286 @@ const imageMap = {
   "Trastuzumab": "Trastuzumab.png",
   "Bevacizumab": "Bevacizumab.png",
   "Nivolumab": "Nivolumab.png",
-  "Pembrolizumab": "Pembrolizumab.png",
-
-  // fallback
-  "Generic": "Generic.png"
+  "Pembrolizumab": "Pembrolizumab.png"
 };
 
-// Utility: build image path from medicine name
-function imagePathFor(medName) {
-  if (!medName) return "/static/images/Generic.png";
-
-  // 1) exact map (best)
-  if (imageMap[medName]) return `/static/images/${imageMap[medName]}`;
-
-  // 2) try with spaces -> underscores (e.g., "Panadol Extend" -> "Panadol_Extend.png")
-  const underscoreName = medName.replace(/\s+/g, "_");
-  return `/static/images/${underscoreName}.png`;
+function setMatchedImage(name){
+  const area = document.getElementById('matchedImageArea');
+  if (!area) return;
+  area.innerHTML='';
+  const file = imageMap[name];
+  if(file){
+    const img=document.createElement('img');
+    img.src=`/static/images/${file}`;
+    img.alt=name;
+    img.style.width='120px'; img.style.height='120px'; img.style.borderRadius='50%'; img.style.objectFit='cover';
+    area.appendChild(img);
+  }
+  const nm = document.getElementById('matchedName');
+  if (nm) nm.textContent = name || '';
 }
 
-// ------------------------- TYPEWRITER HEADER (kept) -------------------------
-const header = document.querySelector('.typewriter');
-if (header) { header.classList.add('typing'); }
+// ------------------------- SPOTIFY TABS LOGIC (non-destructive) -------------------------
+(function tabsScaffold(){
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-// ------------------------- FORM LOGIC (kept) -------------------------
+  function move(node, dest){ if(node && dest){ dest.appendChild(node); } }
+
+  function restructureIntoTabs(){
+    const panelDetails   = $('#psPanel-details');
+    const panelResults   = $('#psPanel-results');
+    const panelSim       = $('#psPanel-similarity');
+    const panelCharts    = $('#psPanel-charts');
+    const panelMolecules = $('#psPanel-molecules');
+
+    // Move the left column (form block) into Details
+    const formEl = document.getElementById('predictForm');
+    if (formEl) {
+      const wrap = formEl.closest('div');
+      if (wrap) move(wrap, panelDetails);
+    }
+
+    // Move the outputPanel into Results
+    const out = document.getElementById('outputPanel');
+    if (out) move(out, panelResults);
+
+    // Similarity: matches list + match info + matched image/name
+    const matchesList = document.getElementById('matchesList');
+    const matchInfo   = document.getElementById('matchInfo');
+    const matchImgBlk = document.getElementById('matchedImageArea') ? document.getElementById('matchedImageArea').parentElement : null;
+
+    const simGrid = document.createElement('div');
+    simGrid.style.display='grid'; simGrid.style.gridTemplateColumns='1fr'; simGrid.style.gap='1rem';
+    if (matchesList) move(matchesList.parentElement, simGrid);
+    if (matchInfo)   move(matchInfo, simGrid);
+    if (matchImgBlk) move(matchImgBlk, simGrid);
+    if (simGrid.childElementCount) move(simGrid, panelSim);
+
+    // Charts: both radar wrappers + roller
+    const drugWrap  = document.getElementById('radarChart')?.closest('.radar-wrap') || null;
+    const ethniWrap = document.getElementById('ethnicityRadarChart')?.closest('.radar-wrap') || null;
+    const rollerWrap= document.getElementById('rollerChart')?.closest('div') || null; // H2+canvas
+
+    const chartsGrid = document.createElement('div');
+    chartsGrid.style.display='grid'; chartsGrid.style.gridTemplateColumns='1fr'; chartsGrid.style.gap='1rem';
+    if (drugWrap)  move(drugWrap, chartsGrid);
+    if (ethniWrap) move(ethniWrap, chartsGrid);
+    if (rollerWrap)move(rollerWrap, chartsGrid);
+    if (chartsGrid.childElementCount) move(chartsGrid, panelCharts);
+
+    // Molecules: input & match molecule sections
+    const inputMol = document.getElementById('inputMoleculesSection');
+    const matchMol = document.getElementById('matchMoleculesSection');
+    const molGrid  = document.createElement('div');
+    molGrid.style.display='grid'; molGrid.style.gridTemplateColumns='1fr'; molGrid.style.gap='1rem';
+    if (inputMol) move(inputMol, molGrid);
+    if (matchMol) move(matchMol, molGrid);
+    if (molGrid.childElementCount) move(molGrid, panelMolecules);
+  }
+
+  function wireTabs(){
+    const nav = document.getElementById('psTabNav');
+    const panels = {
+      details:   document.getElementById('psPanel-details'),
+      results:   document.getElementById('psPanel-results'),
+      similarity:document.getElementById('psPanel-similarity'),
+      charts:    document.getElementById('psPanel-charts'),
+      molecules: document.getElementById('psPanel-molecules'),
+      history:   document.getElementById('psPanel-history')
+    };
+    function activate(name){
+      $$('.ps-tabbtn', nav).forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+      Object.entries(panels).forEach(([k,el])=> el.classList.toggle('active', k===name));
+      if(name==='charts'){
+        radarChartInstance?.resize?.(); ethnicityChartInstance?.resize?.(); rollerChartInstance?.resize?.();
+      }
+      if(name==='history'){ renderHistory(); }
+    }
+    nav.addEventListener('click', (e)=>{
+      const b = e.target.closest('.ps-tabbtn'); if(!b) return;
+      activate(b.dataset.tab); location.hash = b.dataset.tab;
+    });
+    const start = location.hash?.replace('#','') || 'details';
+    activate(panels[start] ? start : 'details');
+  }
+
+  // Minimal history (local only)
+  const HKEY = 'pharmasim_runs_v1';
+  window.pushHistory = function(input, result){
+    try {
+      const item = {
+        t: new Date().toISOString(),
+        drug: input?.drug_name || '-',
+        target: input?.target_symptom || '-',
+        eff: (result?.effectiveness ?? '-'),
+        suc: (result?.success_rate ?? '-')
+      };
+      const arr = JSON.parse(localStorage.getItem(HKEY) || '[]');
+      arr.unshift(item); if(arr.length>20) arr.pop();
+      localStorage.setItem(HKEY, JSON.stringify(arr));
+    } catch(e){ console.warn('history push failed', e); }
+  };
+  window.renderHistory = function(){
+    try {
+      const arr = JSON.parse(localStorage.getItem(HKEY) || '[]');
+      const body = document.getElementById('psHistoryBody'); if(!body) return;
+      body.innerHTML = arr.map(x=>`<tr>
+        <td class="px-3 py-2">${new Date(x.t).toLocaleString()}</td>
+        <td class="px-3 py-2">${x.drug}</td>
+        <td class="px-3 py-2">${x.target}</td>
+        <td class="px-3 py-2">${x.eff}</td>
+        <td class="px-3 py-2">${x.suc}</td>
+      </tr>`).join('');
+    } catch(e){}
+  };
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    restructureIntoTabs();
+    wireTabs();
+  });
+})();
+
+// ------------------------- Predict form wiring (kept IDs) -------------------------
 const form = document.getElementById('predictForm');
 const outputPanel = document.getElementById('outputPanel');
-const runMessage = document.getElementById('runMessage');
-const effectivenessEl = document.getElementById('effectiveness');
-const sideEffectEl = document.getElementById('sideEffect');
-const successRateEl = document.getElementById('successRate');
-const specificSideEffectsEl = document.getElementById('specificSideEffects');
-const matchesList = document.getElementById('matchesList');
-const matchMessage = document.getElementById('matchMessage');
-const matchedImageArea = document.getElementById('matchedImageArea');
-const matchedName = document.getElementById('matchedName');
-const comparisonTableBody = document.getElementById('comparisonTableBody');
-const badge = document.getElementById('badge');
-const clearBtn = document.getElementById('clearBtn');
-
-clearBtn.addEventListener('click', () => {
-    form.reset();
-    outputPanel.style.display = 'none';
-    runMessage.textContent = '';
-    matchesList.innerHTML = '';
-    matchMessage.textContent = '';
-    matchedImageArea.innerHTML = '';
-    matchedName.textContent = '';
-    comparisonTableBody.innerHTML = '';
-    
-    // Hide molecule sections
-    document.getElementById('inputMoleculesSection').style.display = 'none';
-    document.getElementById('matchMoleculesSection').style.display = 'none';
-    document.getElementById('inputMoleculesGrid').innerHTML = '';
-    document.getElementById('matchMoleculesGrid').innerHTML = '';
-    
-    if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
-    if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
-    if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  form.reset();
+  if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance=null; }
+  if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance=null; }
+  if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance=null; }
+  outputPanel.style.display='none';
+  document.getElementById('badge').textContent='Ready';
 });
 
-// Auto-set Line of Treatment based on disease
-const targetSymptomEl = document.getElementById('targetSymptom');
-const lineOfTreatmentEl = document.getElementById('lineOfTreatment');
-
-const autoTreatmentMap = {
-  // ---- Oncology ----
-  "Breast Cancer (HER2+)": "Targeted",   // HER2+ → Trastuzumab / targeted therapy
-  "Breast Cancer": "First-Line",         // first-line chemo (Anthracycline/Taxane)
-  "Colon Cancer": "First-Line",          // FOLFOX/FOLFIRI
-  "Lung Cancer": "First-Line",           // platinum doublet
-  "Leukemia": "Targeted",                // Imatinib, TKIs
-  "Lymphoma": "First-Line",              // R-CHOP (curative intent)
-  "Pancreatic Cancer": "Second-Line",    // gemcitabine → second-line FOLFIRINOX
-  "Melanoma": "Targeted",                // BRAF/MEK or PD-1 inhibitors
-
-  // ---- General Primary Care ----
-  "Fever": "General",
-  "Cough": "General",
-  "Headache": "General",
-  "Flu": "General",
-  "Sore Throat": "General"
-};
-
-targetSymptomEl.addEventListener('change', () => {
-  const selected = targetSymptomEl.value;
-  if (autoTreatmentMap[selected]) {
-    lineOfTreatmentEl.value = autoTreatmentMap[selected];
-  } else {
-    lineOfTreatmentEl.value = "General";
-  }
-});
-
-function generateSimulationCurve(drug) {
-  const months = [0, 1, 2, 3, 4, 5, 6];
-  const values = [];
-
-  const successRate = Number(drug.success_rate) || 0;     // ceiling
-  const effectiveness = Number(drug.effectiveness) || 0;  // curve steepness
-  const risk = (drug.side_effect_risk || "").toLowerCase();
-
-  months.forEach(m => {
-    let heal = successRate * (1 - Math.exp(-(effectiveness / 100) * m));
-
-    // risk adjustments
-    if (risk === "medium" && m === 3) heal -= 5;
-    if (risk === "high" && (m === 2 || m === 5)) heal -= 10;
-
-    values.push(Math.max(0, Math.min(100, Math.round(heal))));
-  });
-
-  return { months, values };
-}
-
-function generateHybridCurve(drug, aiAdjustments) {
-    const months = [0,1,2,3,4,5,6];
-    const values = [];
-    
-    const successRate = Number(drug.success_rate) || 0;
-    const effectiveness = Number(drug.effectiveness) || 0;
-    const risk = (drug.side_effect_risk || "").toLowerCase();
-
-    months.forEach((m, idx) => {
-        // Base math curve
-        let heal = successRate * (1 - Math.exp(-(effectiveness/100)*m));
-
-        // Risk adjustments
-        if(risk === "medium" && m===3) heal -= 5;
-        if(risk === "high" && (m===2 || m===5)) heal -= 10;
-
-        // AI adjustment multiplier
-        const aiFactor = aiAdjustments && aiAdjustments[idx] ? aiAdjustments[idx] : 1;
-        heal = heal * aiFactor;
-
-        values.push(Math.max(0, Math.min(100, Math.round(heal))));
-    });
-
-    return { months, values };
-}
-
-function addWiggle(values, magnitude=3) {
-    // magnitude = max % fluctuation per point
-    return values.map(v => {
-        const delta = (Math.random() * 2 - 1) * magnitude; // random between -m and +m
-        return Math.max(0, Math.min(100, Math.round(v + delta)));
-    });
-}
-
-form.addEventListener('submit', async (e) => {
+form.addEventListener('submit', async (e)=>{
   e.preventDefault();
-  runMessage.textContent = 'Sending to server...';
-  outputPanel.style.display = 'none';
-  matchesList.innerHTML = '';
-  matchMessage.textContent = '';
-  matchedImageArea.innerHTML = '';
-  matchedName.textContent = '';
-  comparisonTableBody.innerHTML = '';
-  
-  // Hide molecule sections during loading
-  document.getElementById('inputMoleculesSection').style.display = 'none';
-  document.getElementById('matchMoleculesSection').style.display = 'none';
-  
-  if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
+  const btn=document.getElementById('simulateBtn'); btn.disabled=true;
+  document.getElementById('runMessage').textContent='Running…';
+  document.getElementById('badge').textContent='Processing…';
 
-  // Collect form data
-  const formData = new FormData(form);
-  const data = Object.fromEntries(formData.entries());
+  const data = Object.fromEntries(new FormData(form).entries());
+  const payload = {
+    drug_name: (data.drug_name||'NewDrug').trim(),
+    race: data.race, gender: data.gender, age: Number(data.age||0),
+    target_symptom: data.target_symptom, line_of_treatment: data.line_of_treatment,
+    ingredients: (data.ingredients||'').split(';').map(s=>s.trim()).filter(Boolean).join(';'),
+    health_conditions: (data.health_condition && data.health_condition!=='none') ? [data.health_condition] : [],
+    concentration: Number(data.concentration||0), dosage_mg: Number(data.dosage_mg||0), dosage_ml: Number(data.dosage_ml||0)
+  };
 
-  // new
-  const selectedCondition = formData.get("health_condition");
-  data.health_conditions = selectedCondition && selectedCondition !== "none" 
-      ? [selectedCondition] 
-      : [];
+  try {
+    const res = await fetch('/predict', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Prediction failed');
+    populateResults(json, payload);
+    // history
+    pushHistory(payload, json);
+    // jump to results tab
+    const btnResults = document.querySelector('.ps-tabbtn[data-tab="results"]');
+    btnResults?.click();
+  } catch(err){
+    alert(err.message||'Server error');
+  } finally {
+    btn.disabled=false;
+    document.getElementById('runMessage').textContent='';
+    document.getElementById('badge').textContent='Ready';
+  }
+});
 
-try {
-  const res = await fetch('/predict', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
+function populateResults(resp, input){
+  // show panel
+  outputPanel.style.display='block';
+
+  // Headline metrics
+  document.getElementById('effectiveness').textContent = (Math.round((resp.effectiveness??0)*100)/100);
+  document.getElementById('sideEffect').textContent = resp.side_effect_label || '—';
+  document.getElementById('successRate').textContent = (Math.round((resp.success_rate??0)*100)/100);
+
+  // Best match + image
+  const best = resp.best_match || {};
+  const simPct = Math.round(best.similarity||0);
+  document.getElementById('bestMatchBox').innerHTML = best.medicine_name ? `Best match: <b>${best.medicine_name}</b> • Score: <b>${simPct}%</b>` : 'No close match found';
+  setMatchedImage(best.medicine_name);
+
+  // Explanations
+  const reasons = resp.explanations || {};
+  const reasonList = Object.values(reasons).filter(Boolean);
+  const expl = document.getElementById('explanationText');
+  const explWrap = document.getElementById('explanationSection');
+  if (reasonList.length) {
+    expl.innerHTML = '<ul class="list-disc list-inside space-y-0.5">'+reasonList.map(r=>`<li>${r}</li>`).join('')+'</ul>';
+    explWrap.classList.remove('hidden');
+  } else {
+    expl.innerHTML=''; explWrap.classList.add('hidden');
+  }
+
+  // Side effects list if provided
+  const se = document.getElementById('specificSideEffects');
+  if (se) se.innerHTML = formatSideEffects(resp.likely_side_effects);
+
+  // Comparison table
+  const tbody = document.getElementById('comparisonTableBody');
+  const rows = [
+    ['Target Symptom', input.target_symptom || '—', best.target_symptom || '—'],
+    ['Line of Treatment', input.line_of_treatment || '—', best.line_of_treatment || best.row_line || '—'],
+    ['Dosage (mg)', input.dosage_mg || '—', Math.round((best.row_dosage||0)*100)/100 || '—'],
+    ['Active Overlap', (resp.match_meta?.overlap_active||0)+'', (best.ingredients_active||[]).length? (best.ingredients_active||[]).join(', '): '—'],
+    ['Inactive Overlap', (resp.match_meta?.overlap_inactive||0)+'', '—']
+  ];
+  tbody.innerHTML = rows.map(r=>`<tr><td class='px-3 py-2'>${r[0]}</td><td class='px-3 py-2'>${r[1]}</td><td class='px-3 py-2'>${r[2]}</td></tr>`).join('');
+
+  // Molecules
+  displayInputMolecules(input.ingredients);
+  displayMatchMolecules(best);
+
+  // Charts rebuild
+  if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance=null; }
+  if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance=null; }
+  if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance=null; }
+
+  const drugLabels=['Effectiveness','Side Effect Risk','Success Rate'];
+  const rc = document.getElementById('radarChart').getContext('2d');
+  radarChartInstance = new Chart(rc, {
+    type:'radar',
+    data:{ labels: drugLabels, datasets:[
+      { label:'New Drug', data:[resp.effectiveness||0, (resp.side_effect_val||0)*100, resp.success_rate||0], fill:true },
+      { label:'Known Medicine', data:[best.effectiveness||0, (best.side_effect_val||0)*100, best.success_rate||0], fill:true }
+    ]},
+    options:{ responsive:true, plugins:{legend:{position:'bottom'}}, scales:{ r:{ angleLines:{ color:'rgba(255,255,255,0.08)' }, grid:{ color:'rgba(255,255,255,0.08)' }, pointLabels:{ color:'#cbd5e1' } } } }
   });
-  
-  const result = await res.json();
-  if (res.status !== 200) { 
-    runMessage.textContent = result.error || 'Server returned an error'; 
-    return; 
-  }
-  runMessage.textContent = '';
-  outputPanel.style.display = 'block';
 
-  // Display input molecules first
-  displayInputMolecules(data.ingredients);
+  const ec = document.getElementById('ethnicityRadarChart').getContext('2d');
+  ethnicityChartInstance = new Chart(ec, {
+    type:'radar',
+    data:{ labels:['Malay','Chinese','Indian','Indigenous'], datasets:[
+      { label:'New Drug', data:(resp.ethnicity_scores||[0,0,0,0]) },
+      { label:'Known Medicine', data:(best.ethnicity_scores||[0,0,0,0]) }
+    ]},
+    options:{ responsive:true, plugins:{legend:{position:'bottom'}}, scales:{ r:{ grid:{ color:'rgba(255,255,255,0.08)' }, pointLabels:{ color:'#cbd5e1' } } } }
+  });
 
-  // Always show numbers in the top section
-  effectivenessEl.textContent = (result.predicted_effectiveness ?? '-') + '%';
-  sideEffectEl.textContent = result.predicted_side_effect_risk ?? '-';
-  successRateEl.textContent = (result.predicted_success_rate ?? '-') + '%';
-
-  // --- Show explanations in the reasons box ---
-  const reasonsBox = document.getElementById("newDrugReasons");
-  reasonsBox.innerHTML = "";
-
-  if (result.new_drug_note) {
-    const warn = document.createElement("div");
-    warn.className = "bg-red-100 text-red-800 rounded px-2 py-1 text-sm";
-    warn.textContent = result.new_drug_note;
-    reasonsBox.appendChild(warn);
-  }
-
-  if (result.new_drug_explanations) {
-  result.new_drug_explanations.forEach(msg => {
-    if (msg && msg.trim() !== "") {
-      const div = document.createElement("div");
-      div.textContent = "• " + msg;
-      reasonsBox.appendChild(div);
-    }
+  const lc = document.getElementById('rollerChart').getContext('2d');
+  rollerChartInstance = new Chart(lc, {
+    type:'line',
+    data:{ labels:['M1','M2','M3','M4','M5','M6'], datasets:[
+      { label:'New Drug', data:(resp.recovery_curve||[10,25,40,55,70,82]), tension:0.35 },
+      { label:'Known Medicine', data:(best.recovery_curve||[8,18,30,45,63,75]), tension:0.35 }
+    ]},
+    options:{ responsive:true, plugins:{legend:{position:'bottom'}}, scales:{ x:{ grid:{ color:'rgba(255,255,255,0.08)' } }, y:{ grid:{ color:'rgba(255,255,255,0.08)' } } } }
   });
 }
 
-    // If backend gives detailed explanations (effectiveness, side effects, success rate)
-  if (result.explanations) {
-    const exp = result.explanations;
-    const html = `
-      <p><b>Effectiveness:</b> ${exp.effectiveness || '-'}</p>
-      <p><b>Side Effects:</b> ${exp.side_effects || '-'}</p>
-      <p><b>Success Rate:</b> ${exp.success_rate || '-'}</p>
-    `;
-    reasonsBox.innerHTML += html;
-  }
-
-  // ---- 🔥 Show best match & escalation note ----
-const matchBox = document.getElementById("bestMatchBox");
-if (matchBox) {
-  matchBox.innerHTML = `
-    <h3 class="text-lg font-semibold mb-1">Best Match</h3>
-    <p><b>Medicine:</b> ${result.best_match?.medicine_name || "No match found"}</p>
-    <p><b>Similarity Score:</b> ${result.best_match?.percent ?? 0}%</p>
-    ${result.escalation_applied ? `<p class="text-yellow-600"><b>Note:</b> Escalated to ${result.input_summary.line_of_treatment}</p>` : ""}
-  `;
-}
-
-// Also update the badge and matchMessage:
-if (result.strong_match && result.best_match) {
-  badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent ?? 0}%)`;
-  matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent ?? 0}% similarity.`;
-} else {
-  badge.textContent = 'No strong match';
-  matchMessage.textContent = result.message || 'No strong match found.';
-}
-
-    specificSideEffectsEl.textContent = result.predicted_specific_side_effects ?? '-';
-
-    if (result.strong_match && result.best_match) {
-      badge.textContent = `Strong match: ${result.best_match.medicine_name} (${result.best_match.percent}%)`;
-      matchMessage.textContent = `Best match: ${result.best_match.medicine_name} — ${result.best_match.percent}% similarity.`;
-    } else {
-      badge.textContent = 'No strong match';
-      matchMessage.textContent = result.message || 'No strong match found.';
-    }
-
-    // ---- Top matches list ----
-    (result.top_matches || []).forEach(m => {
-      const card = document.createElement('div');
-      card.innerHTML = `
-        <div class="text-sm font-semibold">
-          ${m.medicine_name} <span class="text-xs text-gray-500">(${m.target_symptom})</span>
-        </div>
-        <div class="text-xs text-gray-600">Match: <strong>${m.percent}%</strong></div>
-        <div class="text-xs text-gray-600"><strong>Active:</strong> ${(m.ingredients_active || []).join(', ') || '-'}</div>
-        <div class="text-xs text-gray-600"><strong>Inactive:</strong> ${(m.ingredients_inactive || []).join(', ') || '-'}</div>
-        <div class="text-xs text-gray-600"><strong>Known side effects:</strong> ${formatSideEffects(m.known_side_effects)}</div>
-      `;
-      matchesList.appendChild(card);
-    });
-
-    // ---- Matched Image + Name ----
-    const best = result.best_match || (result.top_matches && result.top_matches[0]);
-    if (best) {
-      const img = document.createElement('img');
-      img.alt = best.medicine_name;
-      img.src = imagePathFor(best.medicine_name);
-      img.onerror = () => img.src = '/static/images/Generic.png';
-      matchedImageArea.appendChild(img);
-      matchedName.textContent = best.medicine_name;
-
-      // Display match molecules
-      displayMatchMolecules(best);
-
-    // ---- Comparison Table ----
-    const newDrug = {
-        drug_name: data.drug_name,
-        ingredients: data.ingredients,
-        dosage_mg: data.dosage_mg || data.dosageMg || '-',  
-        line_of_treatment: data.line_of_treatment || data.lineOfTreatment || '-', 
-        target_symptom: data.target_symptom,
-        health_condition: data.health_conditions || [],
-        effectiveness: result.predicted_effectiveness,
-        success_rate: result.predicted_success_rate,
-        side_effect_risk: result.predicted_side_effect_risk,
-        predicted_specific_side_effects: result.predicted_specific_side_effects || []
-      };
-
-      const formatSideEffects = (effects) => {
-        if (!effects || effects === '-') return '-';
-        if (Array.isArray(effects)) return effects.join(', ');
-        return effects.split(/[,;]+/).map(e => e.trim()).filter(Boolean).join(', ');
-      };
-
-      comparisonTableBody.innerHTML = ''; // clear previous rows
-
-      const rows = [
-        ['Drug Name', newDrug.drug_name || '-', best.medicine_name || '-'],
-        ['Target Symptom', newDrug.target_symptom || '-', best.target_symptom || '-'],
-        ['Line of Treatment', newDrug.line_of_treatment || '-', best.line_of_treatment || '-'],
-        ['Health Condition', (newDrug.health_condition || []).join(', ') || '-', best.health_condition || '-'],
-        ['Ingredients',
-          newDrug.ingredients || '-',
-          (((best.ingredients_active || []).join(', ')) +
-          (best.ingredients_inactive?.length ? ' (inactive: ' + best.ingredients_inactive.join(', ') + ')' : '')
-          ) || '-'
-        ],
-        ['Dosage (mg)', newDrug.dosage_mg || '-', best.dosage_mg || '-'],
-        ['Effectiveness', `${newDrug.effectiveness}%`, best.effectiveness ? best.effectiveness + '%' : '-'],
-        ['Success Rate', `${newDrug.success_rate}%`, best.success_rate ? best.success_rate + '%' : '-'],
-        ['Side Effect Risk', newDrug.side_effect_risk || '-', best.side_effect_risk || '-'],
-        ['Likely Side Effects',
-          formatSideEffects(newDrug.predicted_specific_side_effects),
-          formatSideEffects(best?.known_side_effects || '-')
-        ]
-      ];
-
-      rows.forEach(([label, a, b]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-3 py-2 font-semibold">${label}</td>
-          <td class="px-3 py-2">${a}</td>
-          <td class="px-3 py-2">${b}</td>
-        `;
-        comparisonTableBody.appendChild(tr);
-      });
-
-  
-
-      // ---- Radar Chart ----
-      const safetyMap = { 'Low': 100, 'Medium': 50, 'High': 10 };
-      const ndEffect = Number(newDrug.effectiveness) || 0;
-      const ndSuccess = Number(newDrug.success_rate) || 0;
-      const ndSafety = safetyMap[newDrug.side_effect_risk] ?? 0;
-      const ndDosageScaled = Math.min(100, Number(newDrug.dosage_mg) || 0) / 10;
-      const ndIngCount = (newDrug.ingredients || '').split(';').filter(x => x.trim()).length * 10;
-
-      const knEffect = Number(best.effectiveness) || 0;
-      const knSuccess = Number(best.success_rate) || 0;
-      const knSafety = safetyMap[best.side_effect_risk] ?? 0;
-      const knDosageScaled = Math.min(100, Number(best.dosage_mg) || 0) / 10;
-      const knIngCount = (best.ingredients_active || []).length * 10;
-
-      const ctx = document.getElementById('radarChart').getContext('2d');
-      if (radarChartInstance) radarChartInstance.destroy();
-      radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: ['Effectiveness', 'Success', 'Safety', 'Dosage', '#Ingredients'],
-          datasets: [
-            {
-              label: 'New Drug',
-              data: [ndEffect, ndSuccess, ndSafety, ndDosageScaled, ndIngCount],
-              backgroundColor: 'rgba(79,70,229,0.2)',
-              borderColor: '#4f46e5',
-              pointBackgroundColor: '#4f46e5',
-              fill: true,
-              borderWidth: 2
-            },
-            {
-              label: 'Known Medicine',
-              data: [knEffect, knSuccess, knSafety, knDosageScaled, knIngCount],
-              backgroundColor: 'rgba(16,185,129,0.2)',
-              borderColor: '#10b981',
-              pointBackgroundColor: '#10b981',
-              fill: true,
-              borderWidth: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'top', labels: { color: 'white' } } },
-          scales: {
-            r: {
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: { stepSize: 20, color: '#6b7280', backdropColor: 'transparent' },
-              angleLines: { color: '#d1d5db' },
-              grid: { color: '#e5e7eb' },
-              pointLabels: { color: 'white', font: { size: 12 } }
-            }
-          }
-        }
-      });
-
-      
-
-      const ctx2 = document.getElementById('ethnicityRadarChart').getContext('2d');
-
-      const labels = ["Malay", "Chinese", "Indian", "Indigenous"];
-
-      // Replace dummy data with backend data
-      const newDrugData = labels.map(l => result.ethnicity_scores?.new_drug?.[l] ?? 0);
-      const knownMedData = labels.map(l => result.ethnicity_scores?.known_medicine?.[l] ?? 0);
-
-      // Optional: highlight user's selected ethnicity
-      const selectedEthnicity = data.race || '';
-
-      if (ethnicityChartInstance) ethnicityChartInstance.destroy();
-
-      ethnicityChartInstance = new Chart(ctx2, {
-          type: 'radar',
-          data: {
-              labels: labels,
-              datasets: [
-                  {
-                      label: "New Drug",
-                      data: newDrugData,
-                      borderColor: "#4f46e5",
-                      backgroundColor: "rgba(79,70,229,0.2)",
-                      pointBackgroundColor: newDrugData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
-                      ),
-                      pointBorderColor: newDrugData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#4f46e5'
-                      )
-                  },
-                  {
-                      label: "Known Medicine",
-                      data: knownMedData,
-                      borderColor: "#10b981",
-                      backgroundColor: "rgba(16,185,129,0.2)",
-                      pointBackgroundColor: knownMedData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
-                      ),
-                      pointBorderColor: knownMedData.map((_, i) =>
-                          labels[i] === selectedEthnicity ? 'yellow' : '#10b981'
-                      )
-                  }
-              ]
-          },
-          options: {
-              responsive: true,
-              plugins: {
-                  legend: { labels: { color: 'white' } },
-                  title: { display: true, text: 'Drug Performance by Ethnicity', color: 'white' }
-              },
-              scales: {
-                  r: {
-                      suggestedMin: 0,
-                      suggestedMax: 100,
-                      ticks: { stepSize: 20, color: 'white' },
-                      angleLines: { color: 'rgba(255,255,255,0.2)' },
-                      grid: { color: 'rgba(255,255,255,0.1)' },
-                      pointLabels: { color: 'white', font: { size: 12 } }
-                  }
-              }
-          }
-      });
-
-    // --- Roller Coaster Area Chart ---
-        // Example: new drug vs best match over 6 months
-
-        // Use backend AI adjustments if available
-        const ndAiAdjustments = result.ai_curve_new_drug || [1,1,1,1,1,1,1];
-        const bmAiAdjustments = result.ai_curve_best_match || [1,1,1,1,1,1,1];
-
-        const ndCurve = generateHybridCurve(newDrug, ndAiAdjustments);
-        const bmCurve = generateHybridCurve(best, bmAiAdjustments);
-
-        // Add roller-coaster wiggle
-        ndCurve.values = addWiggle(ndCurve.values, 3);
-        bmCurve.values = addWiggle(bmCurve.values, 3);
-
-        const ctxRoller = document.getElementById('rollerChart').getContext('2d');
-
-        // ✅ Destroy old chart if it exists
-        if (rollerChartInstance) {
-          rollerChartInstance.destroy();
-        }
-
-        rollerChartInstance = new Chart(ctxRoller, {
-          type: 'line',
-          data: {
-            labels: ndCurve.months.map(m => `Month ${m}`),
-            datasets: [
-              {
-                label: newDrug.drug_name || "New Drug",
-                data: ndCurve.values,
-                borderColor: "rgba(75,192,192,1)",
-                backgroundColor: "rgba(75,192,192,0.3)",
-                tension: 0.4,
-                fill: true
-              },
-              {
-                label: best.medicine_name || "Best Match",
-                data: bmCurve.values,
-                borderColor: "rgba(255,99,132,1)",
-                backgroundColor: "rgba(255,99,132,0.3)",
-                tension: 0.4,
-                fill: true
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              title: {
-                display: true,
-                text: "Predicted Patient Healing Over 6 Months",
-                color: 'white',
-                font: { size: 16 }
-              },
-              legend: {
-                labels: { color: 'white' }
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false,
-              }
-            },
-            interaction: {
-              mode: 'nearest',
-              axis: 'x',
-              intersect: false
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                max: 100,
-                title: {
-                  display: true,
-                  text: 'Patient Cure/Healing (%)',
-                  color: 'white'
-                },
-                ticks: { color: 'white' },
-                grid: { color: 'rgba(255,255,255,0.1)' }
-              },
-              x: {
-                title: {
-                  display: true,
-                  text: 'Months',
-                  color: 'white'
-                },
-                ticks: { color: 'white' },
-                grid: { color: 'rgba(255,255,255,0.1)' }
-              }
-            }
-          }
-        });  
-    }
-
-      } catch (err) {
-        console.error(err);
-        runMessage.textContent = 'Server Error';
-      }
-    });
-
-// ------------------------- PDF DOWNLOAD (kept) -------------------------
-document.getElementById('downloadPDF').addEventListener('click', async () => {
-  const { jsPDF } = window.jspdf;
-  const section = document.getElementById('outputPanel');
-  const btn = document.getElementById('downloadPDF');
-  btn.style.display = 'none';
-  const canvas = await html2canvas(section, { scale: 2 });
-  const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('p', 'mm', 'a4');
+// PDF download (screenshot of results panel)
+document.getElementById('downloadPDF').addEventListener('click', async()=>{
+  if(outputPanel.style.display==='none'){ alert('Run a simulation first'); return; }
+  const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit:'px', format:'a4' });
+  const canvas = await html2canvas(outputPanel, { scale:2, backgroundColor:null });
+  const img = canvas.toDataURL('image/png');
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth - 20;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-  let heightLeft = imgHeight;
-  let position = 10;
-  pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight - 20;
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight + 10;
-    pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight - 20;
-  }
-  pdf.save(`simulation_result_${Date.now()}.pdf`);
-  btn.style.display = 'block';
+  const ratio = pageWidth / canvas.width; const h = canvas.height * ratio;
+  pdf.addImage(img, 'PNG', 0, 0, pageWidth, h);
+  pdf.save('pharmasim_result.pdf');
 });
 </script>
 </body>
