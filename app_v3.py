@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
 import joblib
 import numpy as np
@@ -318,7 +318,7 @@ def api_login():
     save_json(SESS_FILE, sessions)
     return jsonify({"token": token, "name": user["name"]})
 
-# Just an example protected route, if you ever use it on FE
+# Example protected route (if you ever use it on FE)
 @app.route("/api/me", methods=["GET"])
 @auth_required
 def api_me():
@@ -327,13 +327,29 @@ def api_me():
     sess = sessions.get(token)
     return jsonify({"email": sess["email"]})
 
-# ---------- Root ----------
+# ---------- HTML ROUTES (welcome / login / register / app) ----------
+
 @app.route("/")
-def index():
-    # If you deploy FE separately you can just return JSON here
-    if os.path.exists(os.path.join(BASE_DIR, "templates", "index.html")):
-        return render_template("index.html")
-    return jsonify({"status": "PharmaSim backend alive"})
+def home():
+    """Root: redirect to the welcome page."""
+    return redirect(url_for("welcome"))
+
+@app.route("/welcome")
+def welcome():
+    return render_template("welcome.html")
+
+@app.route("/login")
+def login_page():
+    return render_template("login.html")
+
+@app.route("/register")
+def register_page():
+    return render_template("register.html")
+
+@app.route("/app")
+def app_page():
+    """PharmaSim main UI page."""
+    return render_template("app.html")
 
 # =========================
 #  Core prediction logic
@@ -522,7 +538,7 @@ def predict():
                     "Short treatment duration; outcomes mainly reflect acute response."
                 )
 
-        # --- Health condition penalties (existing spirit) ---
+        # --- Health condition penalties ---
         health_penalty_map = {
             "liver_disease": {"note": "Effectiveness and success adjusted due to liver disease.", "weight": 0.08},
             "kidney_disease": {"note": "Adjusted for kidney disease.", "weight": 0.10},
@@ -635,9 +651,11 @@ def predict():
 
         matches_sorted = sorted(
             filtered_matches,
-            key=lambda x: (x["percent"], -int(x["risky"])),
+            key=lambda x: (x["percent"], -int(x["r risky"])) if "r risky" in x else (x["percent"], 0),
             reverse=True,
         )
+        # ^^^ NOTE: keep as in your file or change to simple `-int(x["risky"])` if you prefer
+
         top_matches = matches_sorted[:3] if matches_sorted else []
 
         MATCH_THRESHOLD = 55.0
