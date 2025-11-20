@@ -13,6 +13,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+  <!-- RDKit for molecule structures -->
+  <script src="https://unpkg.com/@rdkit/rdkit@2022.3.5/dist/RDKit_minimal.js"></script>
+
   <style>
     :root{
       --bg:#050816;
@@ -163,6 +166,14 @@
     .orb--cyan{
       background:radial-gradient(circle,#0f766e,#020617);
       bottom:-120px;right:-80px;
+    }
+    @keyframes subtle-float{
+      0%{transform:translateY(0);}
+      50%{transform:translateY(-3px);}
+      100%{transform:translateY(0);}
+    }
+    .float-soft{
+      animation:subtle-float 4s ease-in-out infinite;
     }
   </style>
 </head>
@@ -692,7 +703,7 @@
                 </div>
               </div>
 
-              <!-- Comparison + charts -->
+              <!-- Comparison table -->
               <div class="rounded-2xl bg-slate-950/90 border border-slate-800/80 p-3.5">
                 <p class="text-[11px] font-semibold text-slate-200 mb-1.5">
                   Side-by-side comparison
@@ -729,6 +740,22 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Molecule viewers -->
+          <div class="grid md:grid-cols-2 gap-3">
+            <div id="inputMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-800/80 p-3.5 space-y-1.5" style="display:none;">
+              <p class="text-[11px] font-semibold text-slate-200">
+                New drug ingredient structures
+              </p>
+              <div id="inputMoleculesContainer" class="grid grid-cols-2 gap-2"></div>
+            </div>
+            <div id="matchMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-800/80 p-3.5 space-y-1.5" style="display:none;">
+              <p class="text-[11px] font-semibold text-slate-200">
+                Closest known medicine structures
+              </p>
+              <div id="matchMoleculesContainer" class="grid grid-cols-2 gap-2"></div>
             </div>
           </div>
 
@@ -774,10 +801,89 @@
       document.getElementById("mainSection")?.scrollIntoView({behavior:"smooth"});
     });
 
+    // RDKit init (safe even if CDN fails)
+    let RDKitModuleReady = null;
+
+    function initRdkitSafely() {
+      if (typeof window.initRDKitModule !== "function") {
+        console.warn("RDKit script not loaded – skipping molecule rendering.");
+        return;
+      }
+      window.initRDKitModule()
+        .then(module => {
+          RDKitModuleReady = module;
+          console.log("RDKit ready");
+        })
+        .catch(err => {
+          console.warn("RDKit failed to initialise:", err);
+        });
+    }
+
+// Try once after page load
+window.addEventListener("load", initRdkitSafely);
+
+    function drawMolecule(containerId, smiles, title){
+      if (!RDKitModuleReady || !smiles) return;
+      try{
+        const mol = RDKitModuleReady.get_mol(smiles);
+        const svg = mol.get_svg();
+        const card = document.createElement("div");
+        card.className = "rounded-xl bg-slate-900/90 border border-slate-700/80 p-2 flex flex-col gap-1";
+        card.innerHTML = `
+          <div class="w-full h-24 overflow-hidden bg-slate-950/80 flex items-center justify-center">
+            ${svg}
+          </div>
+          <p class="text-[11px] text-slate-200 mt-1">${title || "Structure"}</p>
+        `;
+        document.getElementById(containerId)?.appendChild(card);
+        mol.delete();
+      }catch(e){
+        console.warn("RDKit draw fail", e);
+      }
+    }
+
+    // Very small SMILES "DB" for demo
+    const moleculesDB = {
+      "paracetamol":"CC(=O)NC1=CC=C(O)C=C1",
+      "acetaminophen":"CC(=O)NC1=CC=C(O)C=C1",
+      "ibuprofen":"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+      "aspirin":"CC(=O)OC1=CC=CC=C1C(=O)O",
+      "naproxen":"COC1=CC=CC2=C1C=CC(C(C)CC(=O)O)=C2",
+      "caffeine":"CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+      "cetirizine":"O=C(O)COCCN1CCC(CC1)CN(CCO)CCO",
+      "diphenhydramine":"CN(C)CCOC(C1=CC=CC=C1)OC2=CC=CC=C2",
+      "metformin":"CNC(=N)NC(=N)N",
+      "omeprazole":"COC1=CC=C2N=CC(=NC2=C1OC)S(=O)C3=CC=CC=C3",
+      "amoxicillin":"CC1(C)SCC(N2C1C(C(=O)O2)NC(=O)C3=CC=CC=C3)C(=O)O"
+    };
+
     // Chart instances
     let radarChartInstance = null;
     let ethnicityChartInstance = null;
     let rollerChartInstance = null;
+
+    function generateHybridCurve(drug, adj){
+      const months = [0,1,2,3,4,5,6];
+      const vals = [];
+      const s = Number(drug.success_rate) || 0;
+      const e = Number(drug.effectiveness) || 0;
+      const risk = (drug.side_effect_risk || "").toLowerCase();
+      months.forEach((m, i) => {
+        let v = s * (1 - Math.exp(-(e / 100) * m));
+        if (risk === "medium" && m === 3) v -= 5;
+        if (risk === "high" && (m === 2 || m === 5)) v -= 10;
+        const factor = (adj && adj[i] ? adj[i] : 1);
+        v *= factor;
+        vals.push(Math.max(0, Math.min(100, Math.round(v))));
+      });
+      return { months, values: vals };
+    }
+
+    function addWiggle(vals, mag = 3){
+      return vals.map(v =>
+        Math.max(0, Math.min(100, Math.round(v + ((Math.random() * 2 - 1) * mag))))
+      );
+    }
 
     const imageMap = {
       "Paracetamol":"Paracetamol.png","Panadol":"Panadol.png","Panadol ActiFast":"Panadol_ActiFast.png","Panadol Extend":"Panadol_Extend.png","Ibuprofen":"Ibuprofen.png",
@@ -818,6 +924,10 @@
     const matchedName = document.getElementById("matchedName");
     const comparisonTableBody = document.getElementById("comparisonTableBody");
     const badge = document.getElementById("badge");
+
+    const inputMoleculesSection = document.getElementById("inputMoleculesSection");
+    const matchMoleculesSection = document.getElementById("matchMoleculesSection");
+
     const explanationSection = document.getElementById("explanationSection");
     const explanationText = document.getElementById("explanationText");
 
@@ -854,6 +964,8 @@
       bestMatchBox.innerHTML = "";
       explanationText.innerHTML = "";
       explanationSection.style.display = "none";
+      inputMoleculesSection.style.display = "none";
+      matchMoleculesSection.style.display = "none";
 
       if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
       if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
@@ -934,6 +1046,9 @@
       explanationText.innerHTML = "";
       explanationSection.style.display = "none";
 
+      inputMoleculesSection.style.display = "none";
+      matchMoleculesSection.style.display = "none";
+
       if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
       if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
       if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
@@ -958,6 +1073,7 @@
         }
 
         const result = await res.json();
+        console.log("Result:", result);
 
         // ================== Update KPIs ==================
         effectivenessEl.textContent = (result.predicted_effectiveness ?? "—") + "%";
@@ -1334,6 +1450,7 @@
           explanationText.appendChild(ul2);
         }
 
+        // Mention ethnicity narrative if available
         if (result.ethnicity_scores){
           const p = document.createElement("p");
           p.className = "text-[11px] text-slate-400 mt-2";
@@ -1341,6 +1458,38 @@
             "Ethnicity radar is generated heuristically from the same model outputs, " +
             "to illustrate how a one-size-fits-all drug can over- or under-perform across groups.";
           explanationText.appendChild(p);
+        }
+
+        // ================== Molecules ==================
+        const inputContainer = document.getElementById("inputMoleculesContainer");
+        const matchContainer = document.getElementById("matchMoleculesContainer");
+        inputContainer.innerHTML = "";
+        matchContainer.innerHTML = "";
+
+        const ingredientTokens = (data.ingredients || "")
+          .split(/[;]+/)
+          .map(t => t.trim())
+          .filter(Boolean);
+
+        if (ingredientTokens.length && RDKitModuleReady){
+          inputMoleculesSection.style.display = "block";
+          ingredientTokens.forEach(name => {
+            const smiles = moleculesDB[name.toLowerCase()];
+            if (smiles){
+              drawMolecule("inputMoleculesContainer", smiles, name);
+            }
+          });
+        }
+
+        if (best && RDKitModuleReady){
+          matchMoleculesSection.style.display = "block";
+          const active = best.ingredients_active || [];
+          (active.length ? active : [best.medicine_name]).forEach(name => {
+            const smiles = moleculesDB[String(name).toLowerCase()];
+            if (smiles){
+              drawMolecule("matchMoleculesContainer", smiles, String(name));
+            }
+          });
         }
 
         runMessage.textContent = "Simulation complete.";
