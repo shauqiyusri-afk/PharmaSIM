@@ -613,7 +613,7 @@
               <p id="recoveryTitle" class="text-[11px] font-semibold text-slate-200">
                 Patient recovery simulation
               </p>
-              <!-- NEW: Recovery horizon selector (graph only) -->
+              <!-- Recovery horizon selector (graph only) -->
               <select id="recoveryHorizon" class="text-[10px] px-2 py-1 rounded-full bg-slate-900 border border-slate-600">
                 <option value="7">1 week</option>
                 <option value="14">2 weeks</option>
@@ -854,7 +854,7 @@
       } else {
         pregnancyRow.style.display = "none";
         pregnancyStatus.value = "none";
-        pregnancyStatus.disabled = false; // backend will still sanitize
+        pregnancyStatus.disabled = true; // hide + disable when not female
       }
     }
     genderSelect.addEventListener("change", updatePregnancyVisibility);
@@ -865,6 +865,12 @@
     let radarChartInstance = null;
     let ethnicityChartInstance = null;
     let rollerChartInstance = null;
+
+    // store last metrics so horizon dropdown can update graph live
+    let lastEffPctNum = null;
+    let lastSuccPctNum = null;
+    let lastSideRiskLabel = null;
+    let lastBestEffPct = null;
 
     const imageMap = {
       "Paracetamol":"Paracetamol.png","Panadol":"Panadol.png","Panadol Extend":"Panadol_Extend.png","Ibuprofen":"Ibuprofen.png",
@@ -927,6 +933,11 @@
       recoveryHorizonSelect.addEventListener("change", () => {
         const d = horizonToDaysMap[recoveryHorizonSelect.value] || 180;
         treatmentDurationInput.value = d;
+
+        // if we already have results, also re-draw recovery curve when user changes horizon
+        if (lastEffPctNum !== null) {
+          updateRecoveryChart(lastEffPctNum, lastSuccPctNum, lastSideRiskLabel, lastBestEffPct);
+        }
       });
       // initialise once
       const initD = horizonToDaysMap[recoveryHorizonSelect.value] || 30;
@@ -962,6 +973,11 @@
       if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
       if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
       if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
+
+      lastEffPctNum = null;
+      lastSuccPctNum = null;
+      lastSideRiskLabel = null;
+      lastBestEffPct = null;
     });
 
     // Utility: build recovery curve from horizon + outputs (new logic)
@@ -1144,7 +1160,7 @@
         // === Input molecules ===
         displayInputMolecules(data.ingredients || "");
 
-        // === KPIs (0–1 from backend -> 0–100 here) ===
+        // === KPIs (assuming backend returns 0–1 fractions) ===
         const effFrac = Number(result.predicted_effectiveness || 0);
         const succFrac = Number(result.predicted_success_rate || 0);
         const effPctNum = Math.max(0, Math.min(100, effFrac * 100));
@@ -1230,7 +1246,7 @@
           img.className = "w-16 h-16 rounded-full border border-slate-700/80 object-cover";
           img.onerror = () => { img.src = "/static/images/Generic.png"; };
           matchedImageArea.appendChild(img);
-          matchedName.textContent = best.micine_name || best.medicine_name;
+          matchedName.textContent = best.medicine_name;
           displayMatchMolecules(best);
         }
 
@@ -1408,9 +1424,15 @@
           }
         });
 
-        // === Recovery curve – now FE-generated with horizon ===
+        // === Recovery curve – FE-generated with horizon ===
         const bestEffPct = Number(best?.effectiveness) || effPctNum;
         updateRecoveryChart(effPctNum, succPctNum, result.predicted_side_effect_risk, bestEffPct);
+
+        // store last values for future horizon changes
+        lastEffPctNum = effPctNum;
+        lastSuccPctNum = succPctNum;
+        lastSideRiskLabel = result.predicted_side_effect_risk || "";
+        lastBestEffPct = bestEffPct;
 
         // === Explanation section ===
         const exp = result.explanations || {};
