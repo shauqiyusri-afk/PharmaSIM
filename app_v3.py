@@ -14,42 +14,188 @@ from functools import wraps
 # -----------------------------
 effectiveness_model = joblib.load('effectiveness_model.pkl')
 side_effect_model   = joblib.load('side_effect_model.pkl')
-success_rate_model  = joblib.load('success_model.pkl')
+success_rate_model  = joblib.load('success_rate_model.pkl')
 
 race_enc    = joblib.load('race_encoder.pkl')
 gender_enc  = joblib.load('gender_encoder.pkl')
 symptom_enc = joblib.load('symptom_encoder.pkl')
 
 # -----------------------------
-# Known medicines + ingredients
+# Known medicines dataset
 # -----------------------------
-known_meds = pd.read_csv("known_medicines.csv")
+known_meds = pd.read_csv('known_medicines_dataset.csv')
 
-with open("ingredient_map.json", "r", encoding="utf-8") as f:
-    ingredient_map = json.load(f)
+# -----------------------------
+# Ingredients mapping
+# -----------------------------
+def load_json(filename, default):
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            return json.load(f)
+    return default
+
+ingredient_map = load_json('ingredient_map.json', {})
+active_ingredient_map = load_json('active_ingredient_map.json', {})
+
+# -----------------------------
+# Flask App
+# -----------------------------
+app = Flask(__name__)
+CORS(app)
+
+# Simple in-memory user store (for demo)
+USERS_DB = {}
+
+# Token store
+TOKENS = set()
+
+def create_token():
+    return secrets.token_hex(16)
+
+# -----------------------------
+# Auth decorators
+# -----------------------------
+def auth_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return jsonify({"error": "Missing authorization header"}), 401
+
+        token = auth_header.replace("Bearer ", "").strip()
+        if not token or token not in TOKENS:
+            return jsonify({"error": "Invalid or expired token"}), 401
+
+        return f(*args, **kwargs)
+    return wrapper
+
+# -----------------------------
+# Helper functions
+# -----------------------------
+def safe_transform(encoder, value, default=0):
+    try:
+        return encoder.transform([value])[0]
+    except Exception:
+        return default
 
 def get_ingredients_for(med_name):
     entry = ingredient_map.get(med_name)
-    if entry:
-        return (
-            set([a.strip().lower() for a in entry.get("active", [])]),
-            set([i.strip().lower() for i in entry.get("inactive", [])])
-        )
-    return set(), set()
+    if isinstance(entry, dict):
+        a = entry.get("active", [])
+        i = entry.get("inactive", [])
+        if isinstance(a, str):
+            a = [x.strip().lower() for x in a.split(';') if x.strip()]
+        if isinstance(i, str):
+            i = [x.strip().lower() for x in i.split(';') if x.strip()]
+        return set(a), set(i)
+    elif isinstance(entry, list):
+        # treat entire list as "active"
+        a = [x.strip().lower() for x in entry if isinstance(x, str) and x.strip()]
+        return set(a), set()
+    elif isinstance(entry, str):
+        tokens = [x.strip().lower() for x in entry.split(';') if x.strip()]
+        return set(tokens), set()
+    else:
+        # fallback empty sets
+        return set(), set()
 
-# ----------------- Indication ontology / hints -----------------
-def _norm(s):
-    return (s or "").strip().lower()
+def score_similarity(symptom, line, input_active, input_inactive, dosage_mg, row):
+    symptom_score = 0
+    line_score    = 0
+    ingredient_score = 0
+    dosage_score = 0
+
+    row_symptom = str(row.get('target_symptom', '')).lower()
+    if row_symptom == symptom.lower():
+        symptom_score = 40
+    elif symptom.lower() in row_symptom or row_symptom in symptom.lower():
+        symptom_score = 25
+
+    row_line = str(row.get('line_of_treatment', 'general')).lower()
+    if row_line == line:
+        line_score = 20
+    elif ("first" in line and "second" in row_line) or ("second" in line and "first" in row_line):
+        line_score = 10
+    else:
+        line_score = 5
+
+    # ingredients
+    a, i = get_ingredients_for(row['medicine_name'])
+    if input_active and a:
+        intersect = input_active.intersection(a)
+        if intersect:
+            ingredient_score = 30 * (len(intersect) / max(1, len(a)))
+    # We do not penalize for inactive mismatch; just a small boost if any match
+    if input_inactive and i:
+        if input_inactive.intersection(i):
+            ingredient_score += 5
+
+    # dosage
+    row_dose = float(row.get('dosage_mg', 0))
+    if dosage_mg and row_dose:
+        ratio = dosage_mg / row_dose
+        if 0.8 <= ratio <= 1.2:
+            dosage_score = 10
+        elif 0.5 <= ratio < 0.8 or 1.2 < ratio <= 1.5:
+            dosage_score = 5
+        else:
+            dosage_score = 2
+
+    total = symptom_score + line_score + ingredient_score + dosage_score
+    total = min(100, total)
+    return total, {
+        "symptom_score": symptom_score,
+        "line_score": line_score,
+        "ingredient_score": ingredient_score,
+        "dosage_score": dosage_score,
+    }
+
+# -----------------------------
+# Cancer indication helpers
+# -----------------------------
+def _norm(s: str) -> str:
+    return str(s).strip().lower()
+
+CANCER_ALIASES = {
+    "breast cancer": "breast cancer",
+    "breast ca": "breast cancer",
+    "ca breast": "breast cancer",
+    "her2+ breast cancer": "breast cancer (her2+)",
+    "her2 positive breast cancer": "breast cancer (her2+)",
+    "her2+": "breast cancer (her2+)",
+    "lung ca": "lung cancer",
+    "ca lung": "lung cancer",
+    "nsclc": "lung cancer",
+    "cml": "leukemia",
+    "aml": "leukemia",
+    "all": "leukemia",
+    "hodgkin lymphoma": "lymphoma",
+    "non-hodgkin lymphoma": "lymphoma",
+    "pancreatic ca": "pancreatic cancer",
+    "melanoma": "melanoma",
+}
+
+def normalize_cancer_type(name: str) -> str:
+    n = _norm(name)
+    return CANCER_ALIASES.get(n, n)
 
 INDICATION_ALIASES = {
-    "her2+": "her2+",
+    "fever": "fever",
+    "pyrexia": "fever",
+    "headache": "headache",
+    "migraine": "headache",
+    "muscle pain": "muscle pain",
+    "myalgia": "muscle pain",
+    "tooth pain": "toothache",
+    "toothache": "toothache",
     "sore throat": "sore throat",
     "flu": "flu",
-    "headache": "headache",
-    "fever": "fever",
-    "cough": "cough",
-    "colon cancer": "colon cancer",
+    "influenza": "flu",
+    "covid": "flu",
+    "covid-19": "flu",
     "breast cancer": "breast cancer",
+    "breast ca": "breast cancer",
+    "ca breast": "breast cancer",
     "breast cancer (her2+)": "breast cancer (her2+)",
     "lung cancer": "lung cancer",
     "leukemia": "leukemia",
@@ -64,304 +210,185 @@ def normalize_indication(name: str) -> str:
 
 INDICATION_GROUPS = {
     "analgesic_antipyretic": {
-        "headache", "fever", "toothache", "muscle pain", "sore throat"
+        "headache", "fever", "toothache", "muscle pain", "sore throat", "flu"
     },
-    "allergy_upper_respiratory": {
-        "flu", "cough", "allergic rhinitis", "nasal congestion", "sore throat"
+    "oncology": {
+        "breast cancer", "breast cancer (her2+)", "lung cancer", "leukemia",
+        "lymphoma", "pancreatic cancer", "melanoma"
     },
-    "onc_colon": {"colon cancer"},
-    "onc_breast": {"breast cancer", "breast cancer (her2+)"},
-    "onc_lung": {"lung cancer"},
-    "onc_leukemia": {"leukemia"},
-    "onc_lymphoma": {"lymphoma"},
-    "onc_pancreas": {"pancreatic cancer"},
-    "onc_melanoma": {"melanoma"},
 }
 
-INDICATION_TO_GROUP = {}
-for g, vals in INDICATION_GROUPS.items():
-    for v in vals:
-        INDICATION_TO_GROUP[_norm(v)] = g
+def condition_matches(user_cond: str, risk_factor: str) -> bool:
+    """
+    Very simple helper to say if a given user condition
+    (e.g. 'liver_disease') should be considered matched
+    to a row-level risk factor string.
+    """
+    uc = user_cond.lower()
+    rf = risk_factor.lower()
+    if uc == "liver_disease":
+        return "liver" in rf or "hepat" in rf
+    if uc == "kidney_disease":
+        return "kidney" in rf or "renal" in rf
+    if uc == "asthma":
+        return "asthma" in rf or "bronchospasm" in rf
+    if uc == "heart_disease":
+        return "heart" in rf or "cardio" in rf
+    if uc == "hypertension":
+        return "hypertension" in rf or "high blood pressure" in rf
+    if uc == "pregnancy":
+        return "pregnan" in rf or "fetal" in rf
+    if uc == "glaucoma":
+        return "glaucoma" in rf or "intraocular pressure" in rf
+    if uc == "elderly":
+        return "elderly" in rf or "geriatric" in rf
+    if uc == "diabetes":
+        return "diabetes" in rf or "hyperglycemia" in rf
+    return uc in rf
 
-def indication_group(name: str) -> str:
-    return INDICATION_TO_GROUP.get(normalize_indication(name), "")
+def normalize_condition(cond: str) -> str:
+    c = cond.lower().strip()
+    mapping = {
+        "liver disease": "liver_disease",
+        "kidney disease": "kidney_disease",
+        "heart disease": "heart_disease",
+        "high blood pressure": "hypertension",
+        "pregnant": "pregnancy",
+        "pregnancy": "pregnancy",
+        "glaucoma": "glaucoma",
+        "elderly": "elderly",
+        "diabetic": "diabetes",
+        "diabetes": "diabetes"
+    }
+    return mapping.get(c, c)
 
-def is_oncology_group(g: str) -> bool:
-    return g.startswith("onc_")
+# -----------------------------
+# Ethnicity scoring
+# -----------------------------
+def generate_ethnicity_scores(effectiveness, success_rate, side_effect_val, race):
+    """
+    Generate a simple ethnicity performance profile.
+    Values are heuristic but anchored on your base predictions.
+    """
+    base_eff = effectiveness / 100.0
+    base_succ = success_rate / 100.0
 
-INGREDIENT_TO_HINT_GROUPS = {
-    "paracetamol": {"analgesic_antipyretic"},
-    "acetaminophen": {"analgesic_antipyretic"},
-    "ibuprofen": {"analgesic_antipyretic"},
-    "naproxen": {"analgesic_antipyretic"},
-    "aspirin": {"analgesic_antipyretic"},
-    "caffeine": {"analgesic_antipyretic"},
-    "cetirizine": {"allergy_upper_respiratory"},
-    "loratadine": {"allergy_upper_respiratory"},
-    "diphenhydramine": {"allergy_upper_respiratory"},
-    "pseudoephedrine": {"allergy_upper_respiratory"},
-    "dextromethorphan": {"allergy_upper_respiratory"},
-    "guaifenesin": {"allergy_upper_respiratory"},
-    "cisplatin": set(),
-    "carboplatin": set(),
-    "paclitaxel": set(),
-    "doxorubicin": set(),
-    "cyclophosphamide": set(),
-    "methotrexate": set(),
-    "gemcitabine": set(),
-    "imatinib": set(),
-    "trastuzumab": set(),
-    "bevacizumab": set(),
-    "nivolumab": set(),
-    "pembrolizumab": set(),
-}
+    # Start around baseline; different race slightly up/down
+    scores_new = {
+        "Malay": {
+            "effectiveness": round(60 + 25 * base_eff, 1),
+            "success": round(58 + 25 * base_succ, 1),
+            "safety": round(70 - 30 * side_effect_val, 1)
+        },
+        "Chinese": {
+            "effectiveness": round(62 + 23 * base_eff, 1),
+            "success": round(60 + 23 * base_succ, 1),
+            "safety": round(68 - 28 * side_effect_val, 1)
+        },
+        "Indian": {
+            "effectiveness": round(58 + 27 * base_eff, 1),
+            "success": round(56 + 27 * base_succ, 1),
+            "safety": round(66 - 32 * side_effect_val, 1)
+        },
+        "Indigenous": {
+            "effectiveness": round(55 + 30 * base_eff, 1),
+            "success": round(54 + 30 * base_succ, 1),
+            "safety": round(64 - 35 * side_effect_val, 1)
+        }
+    }
 
-def score_similarity(input_symptom,
-                     input_line,
-                     input_ingredients_active,
-                     input_ingredients_inactive,
-                     input_dosage,
-                     row):
+    # Known medicine baseline: slightly less tailored, more "average"
+    scores_known = {
+        "Malay": {
+            "effectiveness": scores_new["Malay"]["effectiveness"] - 3,
+            "success": scores_new["Malay"]["success"] - 3,
+            "safety": scores_new["Malay"]["safety"]
+        },
+        "Chinese": {
+            "effectiveness": scores_new["Chinese"]["effectiveness"] - 2,
+            "success": scores_new["Chinese"]["success"] - 2,
+            "safety": scores_new["Chinese"]["safety"]
+        },
+        "Indian": {
+            "effectiveness": scores_new["Indian"]["effectiveness"] - 2,
+            "success": scores_new["Indian"]["success"] - 2,
+            "safety": scores_new["Indian"]["safety"] - 1
+        },
+        "Indigenous": {
+            "effectiveness": scores_new["Indigenous"]["effectiveness"] - 1,
+            "success": scores_new["Indigenous"]["success"] - 1,
+            "safety": scores_new["Indigenous"]["safety"] - 1
+        }
+    }
 
-    W_SYMPTOM_EXACT        = 52.0
-    W_SYMPTOM_SAME_GROUP   = 26.0
-    W_LINE_EXACT           = 12.0
-    W_ACTIVE_PER_MATCH     = 4.0
-    W_ACTIVE_CAP           = 12.0
-    W_INACTIVE_PER_MATCH   = 0.5
-    W_INACTIVE_CAP         = 2.0
-    W_DOSAGE_CLOSE         = 3.0
-
-    PENALTY_CROSS_DOMAIN   = 40.0
-    PENALTY_DIFF_DISEASE   = 18.0
-    PENALTY_OPPOSITE_LINE  = 5.0
-
-    W_ING_COMPAT_PER_HIT   = 3.0
-    W_ING_COMPAT_CAP       = 9.0
-
-    inp_symptom = normalize_indication(input_symptom)
-    inp_line    = _norm(input_line or "general")
-    inp_group   = indication_group(inp_symptom)
-    inp_is_onc  = is_oncology_group(inp_group)
-
-    row_symptom = normalize_indication(row.get('target_symptom', ''))
-    row_line    = _norm(row.get('line_of_treatment', 'general'))
-    row_group   = indication_group(row_symptom)
-    row_is_onc  = is_oncology_group(row_group)
-
-    row_dosage  = float(row.get('dosage_mg', 0))
-    row_active, row_inactive = get_ingredients_for(row['medicine_name'])
-
-    total = 0.0
-    max_score = 0.0
-
-    if row_symptom == inp_symptom and inp_symptom:
-        total += W_SYMPTOM_EXACT
-        max_score += W_SYMPTOM_EXACT
-    else:
-        if inp_group and row_group and inp_group == row_group and not inp_is_onc:
-            total += W_SYMPTOM_SAME_GROUP
-            max_score += W_SYMPTOM_SAME_GROUP
-        else:
-            penalty = PENALTY_CROSS_DOMAIN if (inp_is_onc != row_is_onc) else PENALTY_DIFF_DISEASE
-            total -= penalty
-            max_score += max(W_SYMPTOM_EXACT, W_SYMPTOM_SAME_GROUP)
-
-    max_score += W_LINE_EXACT
-    if inp_line and row_line and inp_line != "general" and row_line != "general":
-        if row_line == inp_line:
-            total += W_LINE_EXACT
-        else:
-            total -= PENALTY_OPPOSITE_LINE
-
-    overlap_active = len((input_ingredients_active or set()) & (row_active or set()))
-    active_score = min(W_ACTIVE_CAP, overlap_active * W_ACTIVE_PER_MATCH)
-    total += active_score
-    max_score += W_ACTIVE_CAP
-
-    overlap_inactive = len((input_ingredients_inactive or set()) & (row_inactive or set()))
-    inactive_score = min(W_INACTIVE_CAP, overlap_inactive * W_INACTIVE_PER_MATCH)
-    total += inactive_score
-    max_score += W_INACTIVE_CAP
-
-    compat_hits = 0
-    for ing in (input_ingredients_active or set()):
-        hint_groups = INGREDIENT_TO_HINT_GROUPS.get(_norm(ing), set())
-        if inp_group and inp_group in hint_groups:
-            compat_hits += 1
-    compat_score = min(W_ING_COMPAT_CAP, compat_hits * W_ING_COMPAT_PER_HIT)
-    total += compat_score
-    max_score += W_ING_COMPAT_CAP
-
-    max_score += W_DOSAGE_CLOSE
-    if row_dosage > 0:
-        diff = abs(row_dosage - (input_dosage or 0.0))
-        if diff <= 0.10 * (row_dosage + 1):
-            total += W_DOSAGE_CLOSE
-        elif diff <= 0.25 * (row_dosage + 1):
-            total += W_DOSAGE_CLOSE * 0.5
-
-    max_score = max(1e-6, max_score)
-    percent = (total / max_score) * 100.0
-    percent = max(0.0, min(100.0, percent))
-
-    return percent, {
-        "overlap_active": overlap_active,
-        "overlap_inactive": overlap_inactive,
-        "row_dosage": row_dosage,
-        "row_line": row_line,
-        "row_group": row_group,
-        "input_group": inp_group
+    return {
+        "new_drug": scores_new,
+        "known_medicine": scores_known
     }
 
 # -----------------------------
-# User auth storage
+# Routes
 # -----------------------------
-USERS_FILE = "users.json"
-SESS_FILE  = "sessions.json"
+@app.route('/')
+def home():
+    return render_template('welcome.html')
 
-def load_json(path, default):
-    if not os.path.exists(path):
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(default, f, indent=2)
-        return default
-    with open(path, "r", encoding="utf-8") as f:
-        try:
-            return json.load(f)
-        except Exception:
-            return default
+@app.route('/app')
+def app_page():
+    return render_template('app.html')
 
-def save_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
 
-users = load_json(USERS_FILE, {})
-sessions = load_json(SESS_FILE, {})
-
-def auth_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        auth = request.headers.get("Authorization", "")
-        token = auth.replace("Bearer ", "").strip()
-        if not token or token not in sessions:
-            return jsonify({"error": "Unauthorized"}), 401
-        return f(*args, **kwargs)
-    return wrapper
+@app.route('/register')
+def register_page():
+    return render_template('register.html')
 
 # -----------------------------
-# Flask app setup
+# Auth endpoints
 # -----------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-app = Flask(
-    __name__,
-    template_folder=os.path.join(BASE_DIR, 'templates'),
-    static_folder=os.path.join(BASE_DIR, 'static')
-)
-
-# ---------- Auth API ----------
-@app.route("/api/register", methods=["POST"])
+@app.route('/api/register', methods=['POST'])
 def api_register():
-    data = request.get_json(force=True)
-    email = (data.get("email") or "").strip().lower()
-    name  = (data.get("name")  or "").strip()
-    password = data.get("password") or ""
+    data = request.get_json() or {}
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
 
-    if not email or not password:
-        return jsonify({"error": "Email and password required"}), 400
-    if email in users:
-        return jsonify({"error": "Email already registered"}), 400
+    if not name or not email or not password:
+        return jsonify({"error": "Name, email and password are required."}), 400
+    if email in USERS_DB:
+        return jsonify({"error": "Email already registered."}), 400
 
-    users[email] = {
-        "name": name or email.split("@")[0],
+    USERS_DB[email] = {
+        "name": name,
+        "email": email,
         "password_hash": generate_password_hash(password)
     }
-    save_json(USERS_FILE, users)
-    return jsonify({"message": "Registered", "email": email})
+    return jsonify({"message": "User registered successfully."}), 201
 
-@app.route("/api/login", methods=["POST"])
+@app.route('/api/login', methods=['POST'])
 def api_login():
-    data = request.get_json(force=True)
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
+    data = request.get_json() or {}
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
 
-    user = users.get(email)
+    user = USERS_DB.get(email)
     if not user or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({"error": "Invalid email or password."}), 401
 
-    token = secrets.token_urlsafe(32)
-    sessions[token] = {"email": email}
-    save_json(SESS_FILE, sessions)
+    token = create_token()
+    TOKENS.add(token)
+    return jsonify({
+        "message": "Login successful.",
+        "token": token,
+        "user": {"name": user["name"], "email": user["email"]}
+    })
 
-    return jsonify({"token": token, "user": {"email": email, "name": user["name"]}})
-
-@app.route("/api/logout", methods=["POST"])
-@auth_required
-def api_logout():
-    auth = request.headers.get("Authorization", "")
-    token = auth.replace("Bearer ", "").strip()
-    if token in sessions:
-        sessions.pop(token)
-        save_json(SESS_FILE, sessions)
-    return jsonify({"message": "Logged out"})
-
-# ---------- Page routes ----------
-@app.route("/", methods=["GET"])
-def welcome_page():
-    return render_template("welcome.html")
-
-@app.route("/login", methods=["GET"])
-def login_page():
-    return render_template("login.html")
-
-@app.route("/register", methods=["GET"])
-def register_page():
-    return render_template("register.html")
-
-@app.route("/app", methods=["GET"])
-def app_page():
-    return render_template("app.html")
-
-# ---------- Prediction ----------
-# Synonym map and normalization helpers
-synonym_map = {
-    "heart_disease": ["heart disease", "heart failure"],
-    "liver_disease": ["liver disease", "poor liver function", "liver dysfunction"],
-    "kidney_disease": ["kidney disease", "kidney dysfunction"],
-    "elderly": ["elderly", "elderly (sedation risk)", "elderly (falls risk)"],
-    "pregnancy": ["pregnancy"],
-    "hypertension": ["hypertension", "uncontrolled hypertension"],
-    "asthma": ["asthma"],
-    "glaucoma": ["glaucoma"]
-}
-
-def normalize_condition(cond):
-    if not cond:
-        return ""
-    cond = cond.lower().strip()
-    cond = cond.split("(")[0].strip()
-    return cond
-
-def condition_matches(user_cond, med_risk):
-    med_risk_norm = normalize_condition(med_risk)
-    for frontend_cond, synonyms in synonym_map.items():
-        if user_cond == frontend_cond:
-            if med_risk_norm in synonyms or med_risk_norm == frontend_cond.replace("_", " "):
-                return True
-    return False
-
-# --- Encode categorical inputs with fallback ---
-def safe_transform(enc, value):
-    try:
-        return enc.transform([value])[0]
-    except Exception:
-        if "unknown" in enc.classes_:
-            return enc.transform(["unknown"])[0]
-        return 0
 # -----------------------------
-# Flask route: Predict
+# Predict endpoint
 # -----------------------------
-@app.route("/predict", methods=["POST"])
+@app.route('/predict', methods=['POST'])
 def predict():
     try:
         data = request.get_json()
@@ -376,6 +403,11 @@ def predict():
         health_conditions = [c.lower() for c in data.get("health_conditions", [])]
         input_line = str(data.get('line_of_treatment', 'general')).lower().strip()
 
+        # Optional extra clinical context (safe if frontend does not send these yet)
+        route = str(data.get("route_of_administration", "") or data.get("route", "")).lower().strip()
+        treatment_duration = str(data.get("treatment_duration", "")).lower().strip()
+        weight_band = str(data.get("weight_band", "")).lower().strip()
+
         # --- Cancer auto-suggest ---
         cancer_type = data.get("cancer_type")
         cancer_line = data.get("cancer_line_of_treatment")
@@ -383,6 +415,15 @@ def predict():
 
         # --- Normalize conditions ---
         user_conditions = [normalize_condition(c) for c in health_conditions if c]
+
+        # --- Logical constraint: male profile cannot be pregnant ---
+        if gender.lower() == "male" and "pregnancy" in user_conditions:
+            # Strip pregnancy from both normalized + raw lists so model never treats male as pregnant
+            user_conditions = [c for c in user_conditions if c != "pregnancy"]
+            health_conditions = [
+                c for c in health_conditions
+                if normalize_condition(c) != "pregnancy"
+            ]
 
         # --- Dosage handling ---
         concentration = float(data.get("concentration", 0))
@@ -404,14 +445,17 @@ def predict():
         symptom_e = safe_transform(symptom_enc, symptom)
 
         ingredient_count = len(tokens)
-        input_vector = np.array([[race_e, gender_e, age, symptom_e, ingredient_count, dosage_mg]])
 
-        # --- ML predictions ---
+        # --- Input vector ---
+        input_vector = np.array([[race_e, gender_e, age, symptom_e,
+                                  ingredient_count, dosage_mg]])
+
+        # --- Base model predictions ---
         effectiveness = float(effectiveness_model.predict(input_vector)[0])
         side_effect_val = float(side_effect_model.predict(input_vector)[0])
         success_rate = float(success_rate_model.predict(input_vector)[0])
 
-        # --- Side effect label ---
+        # --- Side effect label (initial, may be updated later) ---
         if side_effect_val < 0.33:
             side_effect_label = "Low"
         elif side_effect_val < 0.66:
@@ -424,7 +468,7 @@ def predict():
         if age > 60:
             explanations["success_rate"] = "Success rate slightly lower due to age factor."
         elif age < 18:
-            explanations["success_rate"] = "Success rate adjusted for pediatric patient."
+            explanations["success_rate"] = "Adjusted for pediatric patient."
         else:
             explanations["success_rate"] = "Success rate remains stable."
 
@@ -470,6 +514,74 @@ def predict():
         else:
             explanations.setdefault("effectiveness", "Effectiveness remains stable.")
 
+        # --- Route / duration / weight adjustments (rule-based) ---
+        route_risk_note = ""
+        duration_risk_note = ""
+        weight_risk_note = ""
+
+        # Route: IV / parenteral plus serious comorbidities -> more toxicity
+        high_risk_routes = {"iv", "intravenous"}
+        serious_conditions = {"heart_disease", "kidney_disease", "liver_disease"}
+        if route in high_risk_routes and any(c in user_conditions for c in serious_conditions):
+            side_effect_val = min(0.99, side_effect_val + 0.08)
+            route_risk_note = "IV route in a patient with cardiovascular / renal / hepatic risk — higher systemic toxicity expected."
+
+        # Treatment duration: chronic use -> cumulative toxicity; short acute course may improve success
+        long_term_labels = {"chronic", "long-term", "long term", "maintenance"}
+        short_course_labels = {"short", "short-course", "acute"}
+        if treatment_duration in long_term_labels:
+            side_effect_val = min(0.99, side_effect_val + 0.05)
+            duration_risk_note = "Long-term / maintenance use — cumulative side effects may increase."
+        elif treatment_duration in short_course_labels:
+            success_rate = min(100.0, success_rate + 3)
+
+        # Weight band: approximate exposure; high fixed dose in low body weight
+        try:
+            dose_mg = float(dosage_mg)
+        except Exception:
+            dose_mg = 0.0
+
+        high_exposure = False
+        if dose_mg > 0:
+            if weight_band in {"<50kg", "<50", "underweight"}:
+                high_exposure = dose_mg >= 500
+            elif weight_band in {">80kg", ">80", "high"}:
+                high_exposure = dose_mg >= 1000
+
+        if high_exposure:
+            side_effect_val = min(0.99, side_effect_val + 0.05)
+            success_rate = min(100.0, success_rate + 2)
+            weight_risk_note = "High fixed dose relative to patient weight — higher exposure per kilogram."
+
+        for note in (route_risk_note, duration_risk_note, weight_risk_note):
+            if note:
+                explanations_new.append(note)
+
+        # Re-evaluate side effect label after these adjustments
+        if side_effect_val < 0.33:
+            side_effect_label = "Low"
+        elif side_effect_val < 0.66:
+            side_effect_label = "Medium"
+        else:
+            side_effect_label = "High"
+
+        # Align qualitative explanation with updated side effect label if not already more specific
+        if side_effect_label == "High":
+            explanations.setdefault(
+                "side_effects",
+                "High predicted side effect risk given route, duration, dosage and patient profile."
+            )
+        elif side_effect_label == "Medium":
+            explanations.setdefault(
+                "side_effects",
+                "Moderate predicted side effect risk given route, duration, dosage and patient profile."
+            )
+        else:
+            explanations.setdefault(
+                "side_effects",
+                "Side effect risk remains low for this regimen and patient profile."
+            )
+
         # --- Similarity matching ---
         matches = []
         for _, row in known_meds.iterrows():
@@ -499,13 +611,13 @@ def predict():
                 "target_symptom": row.get('target_symptom', ''),
                 "line_of_treatment": str(row.get('line_of_treatment', 'general')).lower(),
                 "dosage_mg": row.get('dosage_mg', ''),
-                "percent": round(percent_adjusted, 2),
-                "details": details,
-                "ingredients_active": list(a),
-                "ingredients_inactive": list(i),
+                "concentration": row.get('concentration', ''),
+                "similarity_percent": round(percent_adjusted, 1),
+                "raw_similarity_percent": round(percent, 1),
+                "similarity_breakdown": details,
                 "effectiveness": display_effectiveness,
                 "success_rate": display_success_rate,
-                "side_effect_risk": row.get('side_effect_risk'),
+                "side_effect_risk": row.get('side_effect_risk', ''),
                 "known_side_effects": row.get('known_side_effects'),
                 "risk_factors": row.get('risk_factors', ''),
                 "risky": risky,
@@ -528,66 +640,72 @@ def predict():
                 filtered_matches = filter_by_line(next_line)
                 if filtered_matches:
                     escalation_applied = True
-                    input_line = next_line
                     break
 
-        matches_sorted = sorted(filtered_matches, key=lambda x: (x['percent'], -int(x['risky'])), reverse=True)
-        top_matches = matches_sorted[:3] if matches_sorted else []
+        if filtered_matches:
+            filtered_matches.sort(key=lambda x: x["similarity_percent"], reverse=True)
+        top_matches = filtered_matches[:3] if filtered_matches else []
 
-        MATCH_THRESHOLD = 55.0
-        best = next((m for m in top_matches if not m['risky']), top_matches[0] if top_matches else None)
-        strong_match = bool(best and best['percent'] >= MATCH_THRESHOLD and not best['risky'])
+        strong_match = False
+        best = None
+        if top_matches:
+            best = top_matches[0]
+            if best["similarity_percent"] >= 60 and not best["risky"]:
+                strong_match = True
 
-        # --- Cancer suggestions ---
+        # --- Cancer suggestions (very simple triage) ---
         cancer_suggestions = []
-        if cancer_type:
+        if cancer_type and cancer_line:
+            cancer_type_norm = normalize_cancer_type(cancer_type)
+            cancer_line_norm = str(cancer_line).lower().strip()
             for _, row in known_meds.iterrows():
-                if str(row.get("cancer_type", "")).lower() == cancer_type.lower():
-                    if not cancer_line or str(row.get("line_of_treatment", "")).lower() == cancer_line.lower():
-                        cancer_suggestions.append({
-                            "medicine_name": row["medicine_name"],
-                            "cancer_type": row.get("cancer_type"),
-                            "line_of_treatment": row.get("line_of_treatment"),
-                            "effectiveness": row.get("effectiveness"),
-                            "success_rate": row.get("success_rate"),
-                            "risk_factors": row.get("risk_factors", "")
-                        })
+                row_ind = normalize_indication(row.get('target_symptom', ''))
+                row_line = str(row.get('line_of_treatment', 'general')).lower()
+                if row_ind == cancer_type_norm and row_line == cancer_line_norm:
+                    cancer_suggestions.append({
+                        "medicine_name": row['medicine_name'],
+                        "line_of_treatment": row_line,
+                        "dosage_mg": row.get('dosage_mg', ''),
+                        "notes": row.get('notes', '')
+                    })
+            if not cancer_suggestions:
+                cancer_suggestions.append({
+                    "medicine_name": "No direct matched regimen found.",
+                    "line_of_treatment": cancer_line_norm,
+                    "dosage_mg": "",
+                    "notes": "Dataset may not contain this exact indication+line combo yet."
+                })
 
-        # --- Predict specific side effects for NEW drugs ---
+        # --- Specific side effect suggestions (very simple heuristic) ---
         predicted_side_effects = []
+        # Very simplified; in reality, this comes from pharmacology DB
+        if "liver_disease" in user_conditions:
+            predicted_side_effects.append("Hepatotoxicity & liver enzyme elevation")
+        if "kidney_disease" in user_conditions:
+            predicted_side_effects.append("Renal impairment / worsening kidney function")
+        if "heart_disease" in user_conditions:
+            predicted_side_effects.append("Arrhythmia / cardiovascular events")
+        if "pregnancy" in user_conditions:
+            predicted_side_effects.append("Potential fetal toxicity / teratogenicity")
+        if not predicted_side_effects and side_effect_label != "Low":
+            predicted_side_effects.append("General systemic side effects (e.g. nausea, fatigue)")
 
-        if best and best.get("known_side_effects"):
-            predicted_side_effects.extend(best["known_side_effects"].split(";"))
+        # --- Ethnicity scores ---
+        ethnicity_scores = generate_ethnicity_scores(effectiveness, success_rate, side_effect_val, race)
 
-        if race.lower() == "malay":
-            predicted_side_effects.append("Skin rash (higher risk in Malays with sulfa drugs)")
-        elif race.lower() == "chinese":
-            predicted_side_effects.append("Flushing or liver enzyme interaction")
-        elif race.lower() == "indian":
-            predicted_side_effects.append("Liver toxicity risk with paracetamol")
-        elif race.lower() == "indigenous":
-            predicted_side_effects.append("Hypersensitivity / dizziness")
+        # --- AI recovery curves (dummy shaped curves based on success & risk) ---
+        def build_curve(base_success, side_val):
+            # Create 6-month curve; faster rise with higher success, flatter with more side effects
+            months = [0, 1, 2, 3, 4, 5, 6]
+            curve = []
+            for m in months:
+                fraction = m / 6.0
+                val = base_success * (0.4 * fraction + 0.6 * (1 - side_val) * (1 - (1 - fraction) ** 2))
+                curve.append(round(val, 1))
+            return curve
 
-        if dosage_mg > 500:
-            predicted_side_effects.append("Nausea (dose-related)")
-            predicted_side_effects.append("Dizziness (dose-related)")
-
-        if any("liver" in c.lower() for c in user_conditions):
-            predicted_side_effects.append("Liver toxicity")
-        if any("pregnancy" in c.lower() for c in user_conditions):
-            predicted_side_effects.append("Unsafe in pregnancy / fetal risk")
-        if any("kidney" in c.lower() for c in user_conditions):
-            predicted_side_effects.append("Renal impairment risk")
-
-        predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
-
-        # --- Ethnicity scores (new addition) ---
-        ethnicities = ["Malay", "Chinese", "Indian", "Indigenous"]
-        ethnicity_scores = {"new_drug": {}, "known_medicine": {}}
-        for eth in ethnicities:
-            ethnicity_scores["new_drug"][eth] = round(effectiveness * (0.95 + 0.05 * np.random.rand()), 1)
-            known_scores = [m["effectiveness"] for m in top_matches if m]
-            ethnicity_scores["known_medicine"][eth] = round(np.mean(known_scores) * (0.95 + 0.05 * np.random.rand()), 1) if known_scores else 0
+        ai_curve_new = build_curve(success_rate, side_effect_val)
+        ai_curve_best = build_curve(best["success_rate"], side_effect_val) if best else build_curve(success_rate * 0.9, side_effect_val)
 
         # --- Response JSON ---
         response = {
@@ -605,78 +723,35 @@ def predict():
             "cancer_suggestions": cancer_suggestions,
             "input_summary": {
                 "drug_name": drug_name,
-                "ingredients_provided": tokens,
+                "race": race,
+                "gender": gender,
+                "age": age,
+                "target_symptom": symptom,
+                "health_conditions": health_conditions,
+                "line_of_treatment": input_line,
+                "ingredients": ingredients_raw,
                 "dosage_mg": dosage_mg,
                 "dosage_ml": dosage_ml,
                 "concentration": concentration,
-                "symptom": symptom,
-                "line_of_treatment": input_line,
-                "age": age,
-                "race": race,
-                "gender": gender,
-                "health_conditions": health_conditions,
-                "cancer_type": cancer_type,
-                "cancer_line_of_treatment": cancer_line,
-                "cancer_risk_factors": cancer_risks
+                "route_of_administration": route,
+                "treatment_duration": treatment_duration,
+                "weight_band": weight_band,
             },
             "ethnicity_scores": ethnicity_scores,
-            "escalation_applied": escalation_applied,
-            "debug": {
-                "input_vector": input_vector.tolist(),
-                "raw_predictions": [effectiveness, side_effect_val, success_rate],
-                "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches]
-            }
+            "ai_curve_new_drug": ai_curve_new,
+            "ai_curve_best_match": ai_curve_best,
+            "escalation_applied": escalation_applied
         }
-
-        if not strong_match:
-            response["message"] = "No strong safe match found — showing closest alternatives."
-        if escalation_applied:
-            response["message"] = f"No suitable {data.get('line_of_treatment')} medicine found. Escalated to {input_line}."
 
         return jsonify(response)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-      
-@app.route("/ethnicity-data", methods=["GET"])
-def ethnicity_data():
-    # 🔥 For now, return mock numbers (later we can link to CSV or DB)
-    data = {
-        "labels": ["Effectiveness", "Success Rate", "Side Effect Risk"],
-        "datasets": [
-            {
-                "label": "Malay",
-                "data": [70, 68, 75]
-            },
-            {
-                "label": "Chinese",
-                "data": [72, 69, 78]
-            },
-            {
-                "label": "Indian",
-                "data": [68, 65, 80]
-            },
-            {
-                "label": "Indigenous",
-                "data": [73, 71, 77]
-            }
-        ]
-    }
-    return jsonify(data)
+
 # -----------------------------
-# Run Flask
+# Run
 # -----------------------------
 if __name__ == "__main__":
-    for fn in ["ingredient_map.json", "known_medicines.csv", "users.json", "sessions.json"]:
-        if not os.path.exists(fn):
-            print(f"WARNING: missing file: {fn}")
-
-    for folder in ["templates", "static"]:
-        path = os.path.join(BASE_DIR, folder)
-        if not os.path.exists(path):
-            print(f"WARNING: {folder} folder not found at {path}")
-
     port = int(os.environ.get("PORT", 5000))
-    print(f"Starting Flask app on port {port}")
+    print(f"Running on port {port}")
     app.run(host="0.0.0.0", port=port, debug=True)
-
