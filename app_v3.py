@@ -546,6 +546,7 @@ def predict():
                 "line_of_treatment": str(row.get('line_of_treatment', 'general')).lower(),
                 "dosage_mg": row.get('dosage_mg', ''),
                 "percent": round(percent_adjusted, 2),
+                "similarity_percent": round(percent_adjusted, 2),  # 🔹 added alias for frontend
                 "details": details,
                 "ingredients_active": list(a),
                 "ingredients_inactive": list(i),
@@ -559,6 +560,7 @@ def predict():
                 "note": warning_note,
                 "explanations": row_explanations
             })
+
 
         # --- Line escalation logic ---
         line_order = ["first-line", "second-line", "third-line", "general"]
