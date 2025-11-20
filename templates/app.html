@@ -280,7 +280,7 @@
                   <label class="block mb-1 text-[11px] text-slate-300">
                     Weight (kg)
                   </label>
-                  <input type="number" step="any" min="0" name="weight_kg" placeholder="e.g. 70" />
+                  <input type="number" step="any" min="0" name="weight_kg" placeholder="e.g. 65.0" />
                 </div>
                 <div>
                   <label class="block mb-1 text-[11px] text-slate-300">
@@ -305,7 +305,7 @@
                   <label class="block mb-1 text-[11px] text-slate-300">
                     Treatment Duration (days)
                   </label>
-                  <input type="number" min="0" name="treatment_duration_days" placeholder="e.g. 14" />
+                  <input type="number" min="0" name="treatment_duration_days" placeholder="e.g. 30" />
                 </div>
                 <div>
                   <label class="block mb-1 text-[11px] text-slate-300">
@@ -1035,37 +1035,46 @@
         const reasonsBox = document.getElementById("newDrugReasons");
         reasonsBox.innerHTML = "";
 
-        // Build a short narrative based on input + outputs
+        // 1) MAIN MODEL NARRATIVE (prefer backend string)
         if (explanationSection && explanationText) {
-          const drugName = data.drug_name ? `"${data.drug_name}"` : "This candidate drug";
-          const symptom  = data.target_symptom || "the selected symptom";
-
-          const patientBits = [];
-          if (data.age)   patientBits.push(`${data.age}-year-old`);
-          if (data.race)  patientBits.push(String(data.race).toLowerCase());
-          if (data.gender)patientBits.push(String(data.gender).toLowerCase());
-
-          const patientStr = patientBits.join(" ");
-          let firstSentence = `${drugName} is designed to treat ${symptom}`;
-          if (patientStr) {
-            firstSentence += ` in a ${patientStr} patient.`;
+          if (result.model_narrative) {
+            // ✅ Use backend narrative like:
+            // "Drug 2" is designed to treat Sore Throat in a 22-year-old malay male
+            // patient weighing 65.0 kg, given orally once daily for about 1 month...
+            explanationSection.style.display = "block";
+            explanationText.innerHTML = `<p>${result.model_narrative}</p>`;
           } else {
-            firstSentence += ".";
+            // Fallback: build a simple local narrative if backend didn't send one
+            const drugName = data.drug_name ? `"${data.drug_name}"` : "This candidate drug";
+            const symptom  = data.target_symptom || "the selected symptom";
+
+            const patientBits = [];
+            if (data.age)   patientBits.push(`${data.age}-year-old`);
+            if (data.race)  patientBits.push(String(data.race).toLowerCase());
+            if (data.gender)patientBits.push(String(data.gender).toLowerCase());
+
+            const patientStr = patientBits.join(" ");
+            let firstSentence = `${drugName} is designed to treat ${symptom}`;
+            if (patientStr) {
+              firstSentence += ` in a ${patientStr} patient.`;
+            } else {
+              firstSentence += ".";
+            }
+
+            const effText  = formatPercent(result.predicted_effectiveness);
+            const succText = formatPercent(result.predicted_success_rate);
+            const sideRisk = (result.predicted_side_effect_risk || "unknown").toLowerCase();
+
+            const secondSentence =
+              `The model predicts approximately ${effText} effectiveness ` +
+              `and ${succText} overall success rate, with ${sideRisk} side-effect risk.`;
+
+            explanationSection.style.display = "block";
+            explanationText.innerHTML = `
+              <p>${firstSentence}</p>
+              <p class="mt-1.5">${secondSentence}</p>
+            `;
           }
-
-          const effText  = formatPercent(result.predicted_effectiveness);
-          const succText = formatPercent(result.predicted_success_rate);
-          const sideRisk = (result.predicted_side_effect_risk || "unknown").toLowerCase();
-
-          const secondSentence =
-            `The model predicts approximately ${effText} effectiveness ` +
-            `and ${succText} overall success rate, with ${sideRisk} side-effect risk.`;
-
-          explanationSection.style.display = "block";
-          explanationText.innerHTML = `
-            <p>${firstSentence}</p>
-            <p class="mt-1.5">${secondSentence}</p>
-          `;
         }
         if (result.new_drug_note) {
           const warn = document.createElement("div");
@@ -1364,16 +1373,20 @@
           }
         });
 
-        // === Explanation section ===
+        // === Extra model explanation (append, not overwrite narrative) ===
         const exp = result.explanations || {};
         const explanationParts = [];
         if (exp.effectiveness) explanationParts.push(`<b>Effectiveness:</b> ${exp.effectiveness}`);
         if (exp.side_effects) explanationParts.push(`<b>Side effects:</b> ${exp.side_effects}`);
         if (exp.success_rate) explanationParts.push(`<b>Success rate:</b> ${exp.success_rate}`);
-        if (explanationParts.length > 0) {
-          explanationText.innerHTML = explanationParts.join("<br/>");
+        if (explanationParts.length > 0 && explanationText) {
+          const extra = document.createElement("div");
+          extra.className = "mt-2";
+          extra.innerHTML = explanationParts.join("<br/>");
+          explanationText.appendChild(extra);
           explanationSection.style.display = "block";
         }
+
 
       } catch (err) {
         console.error(err);
