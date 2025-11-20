@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" contenat="width=device-width, initial-scale=1.0" />
   <title>PharmaSim AI — Population-Aware Drug Simulator</title>
 
   <!-- Tailwind (CDN) -->
@@ -274,55 +274,6 @@
                 </div>
               </div>
 
-              <!-- NEW: Weight + Route -->
-              <div class="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Weight (kg)
-                  </label>
-                  <input type="number" step="any" min="0" name="weight_kg" placeholder="e.g. 70" />
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Route
-                  </label>
-                  <select name="route">
-                    <option value="">Select...</option>
-                    <option value="oral">Oral</option>
-                    <option value="iv">Intravenous (IV)</option>
-                    <option value="sc">Subcutaneous (SC)</option>
-                    <option value="im">Intramuscular (IM)</option>
-                    <option value="topical">Topical</option>
-                    <option value="inhalation">Inhalation</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- NEW: Treatment Duration + Dosing Frequency -->
-              <div class="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Treatment Duration (days)
-                  </label>
-                  <input type="number" min="0" name="treatment_duration_days" placeholder="e.g. 14" />
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Dosing Frequency
-                  </label>
-                  <select name="dosing_frequency">
-                    <option value="">Select...</option>
-                    <option value="once_daily">Once daily (OD)</option>
-                    <option value="twice_daily">Twice daily (BD)</option>
-                    <option value="three_times_daily">Three times daily (TDS)</option>
-                    <option value="once_weekly">Once weekly</option>
-                    <option value="prn">When needed (PRN)</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-
               <div class="grid grid-cols-3 gap-2.5">
                 <div>
                   <label class="block mb-1 text-[11px] text-slate-300">
@@ -395,36 +346,6 @@
                   <option value="glaucoma">Glaucoma</option>
                   <option value="elderly">Elderly (Sedation Risk)</option>
                 </select>
-              </div>
-
-              <!-- NEW: Organ Function -->
-              <div class="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Liver Function
-                  </label>
-                  <select name="liver_function">
-                    <option value="">Select...</option>
-                    <option value="normal">Normal</option>
-                    <option value="mild_impairment">Mild impairment</option>
-                    <option value="moderate_impairment">Moderate impairment</option>
-                    <option value="severe_impairment">Severe impairment</option>
-                    <option value="failure_dialysis">Failure / on dialysis</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Kidney Function
-                  </label>
-                  <select name="kidney_function">
-                    <option value="">Select...</option>
-                    <option value="normal">Normal</option>
-                    <option value="mild_impairment">Mild impairment</option>
-                    <option value="moderate_impairment">Moderate impairment</option>
-                    <option value="severe_impairment">Severe impairment</option>
-                    <option value="failure_dialysis">Failure / on dialysis</option>
-                  </select>
-                </div>
               </div>
 
               <div>
@@ -905,46 +826,6 @@
     const explanationSection = document.getElementById("explanationSection");
     const explanationText = document.getElementById("explanationText");
 
-    // ================ Helper: format percent safely ==================
-    function formatPercent(value) {
-      if (value === null || value === undefined || value === "-" || value === "") {
-        return "—";
-      }
-      const num = Number(value);
-      if (isNaN(num)) return String(value);
-      return num.toFixed(2) + "%";   // e.g. 76.52%
-    }
-
-    // ================ Helper: gender / pregnancy constraint ==========
-    const genderSelect = form.querySelector('select[name="gender"]');
-    const healthConditionSelect = form.querySelector('select[name="health_condition"]');
-
-    let pregnancyOption = null;
-    if (healthConditionSelect) {
-      pregnancyOption = Array.from(healthConditionSelect.options).find(
-        (opt) => opt.value === "pregnancy"
-      );
-    }
-
-    function updatePregnancyOption() {
-      if (!pregnancyOption) return;
-      const gender = (genderSelect?.value || "").toLowerCase();
-      const isMale = gender === "male";
-
-      pregnancyOption.disabled = isMale;
-
-      // If male and currently pregnancy, clear it
-      if (isMale && healthConditionSelect.value === "pregnancy") {
-        healthConditionSelect.value = "";
-      }
-    }
-
-    if (genderSelect && healthConditionSelect && pregnancyOption) {
-      genderSelect.addEventListener("change", updatePregnancyOption);
-      // run once on load
-      updatePregnancyOption();
-    }
-
     // ================ Clear form ==================
     clearBtn.addEventListener("click", () => {
       form.reset();
@@ -1025,48 +906,15 @@
         // === Input molecules ===
         displayInputMolecules(data.ingredients || "");
 
-        // === KPIs (nice formatted) ===
-        effectivenessEl.textContent = formatPercent(result.predicted_effectiveness);
-        successRateEl.textContent   = formatPercent(result.predicted_success_rate);
-        sideEffectEl.textContent    = result.predicted_side_effect_risk ?? "—";
+        // === KPIs ===
+        effectivenessEl.textContent = (result.predicted_effectiveness ?? "-") + "%";
+        sideEffectEl.textContent = result.predicted_side_effect_risk ?? "-";
+        successRateEl.textContent = (result.predicted_success_rate ?? "-") + "%";
         specificSideEffectsEl.textContent = result.predicted_specific_side_effects || "—";
 
-        // === Narrative + new drug explanations ===
+        // === New drug explanations ===
         const reasonsBox = document.getElementById("newDrugReasons");
         reasonsBox.innerHTML = "";
-
-        // Build a short narrative based on input + outputs
-        if (explanationSection && explanationText) {
-          const drugName = data.drug_name ? `"${data.drug_name}"` : "This candidate drug";
-          const symptom  = data.target_symptom || "the selected symptom";
-
-          const patientBits = [];
-          if (data.age)   patientBits.push(`${data.age}-year-old`);
-          if (data.race)  patientBits.push(String(data.race).toLowerCase());
-          if (data.gender)patientBits.push(String(data.gender).toLowerCase());
-
-          const patientStr = patientBits.join(" ");
-          let firstSentence = `${drugName} is designed to treat ${symptom}`;
-          if (patientStr) {
-            firstSentence += ` in a ${patientStr} patient.`;
-          } else {
-            firstSentence += ".";
-          }
-
-          const effText  = formatPercent(result.predicted_effectiveness);
-          const succText = formatPercent(result.predicted_success_rate);
-          const sideRisk = (result.predicted_side_effect_risk || "unknown").toLowerCase();
-
-          const secondSentence =
-            `The model predicts approximately ${effText} effectiveness ` +
-            `and ${succText} overall success rate, with ${sideRisk} side-effect risk.`;
-
-          explanationSection.style.display = "block";
-          explanationText.innerHTML = `
-            <p>${firstSentence}</p>
-            <p class="mt-1.5">${secondSentence}</p>
-          `;
-        }
         if (result.new_drug_note) {
           const warn = document.createElement("div");
           warn.className = "rounded-lg bg-red-100 text-red-800 px-2 py-1 text-[11px]";
