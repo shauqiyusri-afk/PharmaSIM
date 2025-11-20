@@ -247,7 +247,7 @@
                 </div>
                 <div>
                   <label class="block mb-1 text-[11px] text-slate-300">Gender</label>
-                  <select name="gender" required>
+                  <select name="gender" id="genderSelect" required>
                     <option value="">Select...</option>
                     <option>Male</option>
                     <option>Female</option>
@@ -281,7 +281,7 @@
                   </label>
                   <input type="number" step="any" min="0" name="dosage_ml" id="dosageMl" placeholder="auto-calculated" />
                 </div>
-                <div class="col-span-2">
+                <div>
                   <label class="block mb-1 text-[11px] text-slate-300">
                     Line of Treatment
                   </label>
@@ -290,6 +290,69 @@
                     <option value="First-Line">First-Line</option>
                     <option value="Second-Line">Second-Line</option>
                     <option value="Targeted">Targeted</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block mb-1 text-[11px] text-slate-300">
+                    Weight (kg)
+                  </label>
+                  <input type="number" step="any" min="0" name="weight_kg" id="weightKg" placeholder="e.g. 65" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label class="block mb-1 text-[11px] text-slate-300">
+                    Route
+                  </label>
+                  <select name="route" id="routeSelect">
+                    <option value="oral">Oral</option>
+                    <option value="iv">IV (Intravenous)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block mb-1 text-[11px] text-slate-300">
+                    Treatment Duration (days)
+                  </label>
+                  <input type="number" name="treatment_duration_days" min="1" placeholder="e.g. 28" />
+                </div>
+                <div>
+                  <label class="block mb-1 text-[11px] text-slate-300">
+                    Dosing Frequency
+                  </label>
+                  <select name="dosing_frequency" id="dosingFrequency">
+                    <option value="">Select...</option>
+                    <option value="od">OD (once daily)</option>
+                    <option value="bd">BD (twice daily)</option>
+                    <option value="tds">TDS (three times daily)</option>
+                    <option value="qid">QID (four times daily)</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block mb-1 text-[11px] text-slate-300">
+                    Liver Function
+                  </label>
+                  <select name="liver_status" id="liverStatus">
+                    <option value="0">Normal</option>
+                    <option value="1">Mild impairment</option>
+                    <option value="2">Moderate impairment</option>
+                    <option value="3">Severe impairment</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block mb-1 text-[11px] text-slate-300">
+                    Kidney Function
+                  </label>
+                  <select name="kidney_status" id="kidneyStatus">
+                    <option value="0">Normal</option>
+                    <option value="1">Mild impairment</option>
+                    <option value="2">Moderate impairment</option>
+                    <option value="3">Severe impairment</option>
                   </select>
                 </div>
               </div>
@@ -345,6 +408,18 @@
                   <option value="pregnancy">Pregnancy</option>
                   <option value="glaucoma">Glaucoma</option>
                   <option value="elderly">Elderly (Sedation Risk)</option>
+                </select>
+              </div>
+
+              <div id="pregnancyRow">
+                <label class="block mb-1 text-[11px] text-slate-300">
+                  Pregnancy Status (for female patients)
+                </label>
+                <select name="pregnancy_status" id="pregnancyStatus">
+                  <option value="none">Not pregnant / Not applicable</option>
+                  <option value="first_trimester">Pregnant — 1st trimester</option>
+                  <option value="second_trimester">Pregnant — 2nd trimester</option>
+                  <option value="third_trimester">Pregnant — 3rd trimester</option>
                 </select>
               </div>
 
@@ -532,7 +607,7 @@
 
           <!-- Recovery curve -->
           <div class="mt-5 rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
-            <p class="text-[11px] font-semibold text-slate-200 text-center mb-1.5">
+            <p id="recoveryTitle" class="text-[11px] font-semibold text-slate-200 text-center mb-1.5">
               Patient recovery simulation (6-month horizon)
             </p>
             <div class="h-56">
@@ -729,7 +804,7 @@
     mgInput.addEventListener("input", updateFromMg);
     mlInput.addEventListener("input", updateFromMl);
 
-    // ================ Auto line-of-treatment for symptoms ==================
+    // ================ Line-of-treatment auto for symptoms ==================
     const targetSymptomEl = document.getElementById("targetSymptom");
     const lineOfTreatmentEl = document.getElementById("lineOfTreatment");
 
@@ -754,33 +829,29 @@
       lineOfTreatmentEl.value = autoTreatmentMap[s] || "General";
     });
 
+    // ================ Pregnancy visibility based on gender ==================
+    const genderSelect = document.getElementById("genderSelect");
+    const pregnancyRow = document.getElementById("pregnancyRow");
+    const pregnancyStatus = document.getElementById("pregnancyStatus");
+
+    function updatePregnancyVisibility() {
+      if (genderSelect.value === "Female") {
+        pregnancyRow.style.display = "block";
+        pregnancyStatus.disabled = false;
+      } else {
+        pregnancyRow.style.display = "none";
+        pregnancyStatus.value = "none";
+        pregnancyStatus.disabled = false; // backend will still sanitize
+      }
+    }
+    genderSelect.addEventListener("change", updatePregnancyVisibility);
+    // initialise on load
+    updatePregnancyVisibility();
+
     // ================ Chart helpers ==================
     let radarChartInstance = null;
     let ethnicityChartInstance = null;
     let rollerChartInstance = null;
-
-    function generateHybridCurve(drug, adj){
-      const months = [0,1,2,3,4,5,6];
-      const vals = [];
-      const s = Number(drug.success_rate) || 0;
-      const e = Number(drug.effectiveness) || 0;
-      const risk = (drug.side_effect_risk || "").toLowerCase();
-      months.forEach((m, i) => {
-        let v = s * (1 - Math.exp(-(e / 100) * m));
-        if (risk === "medium" && m === 3) v -= 5;
-        if (risk === "high" && (m === 2 || m === 5)) v -= 10;
-        const factor = (adj && adj[i] ? adj[i] : 1);
-        v *= factor;
-        vals.push(Math.max(0, Math.min(100, Math.round(v))));
-      });
-      return { months, values: vals };
-    }
-
-    function addWiggle(vals, mag = 3){
-      return vals.map(v =>
-        Math.max(0, Math.min(100, Math.round(v + ((Math.random() * 2 - 1) * mag))))
-      );
-    }
 
     const imageMap = {
       "Paracetamol":"Paracetamol.png","Panadol":"Panadol.png","Panadol Extend":"Panadol_Extend.png","Ibuprofen":"Ibuprofen.png",
@@ -825,10 +896,12 @@
 
     const explanationSection = document.getElementById("explanationSection");
     const explanationText = document.getElementById("explanationText");
+    const recoveryTitle = document.getElementById("recoveryTitle");
 
     // ================ Clear form ==================
     clearBtn.addEventListener("click", () => {
       form.reset();
+      updatePregnancyVisibility();
       runMessage.textContent = "";
       outputPanel.style.display = "none";
       emptyState.style.display = "block";
@@ -966,10 +1039,14 @@
         // === Badge + match message ===
         if (result.strong_match && best) {
           badge.textContent = `Strong safe match · ${best.medicine_name}`;
-          matchMessage.textContent = `Best match: ${best.medicine_name} — ${best.percent ?? 0}% similarity.`;
+          matchMessage.textContent = `Best match: ${best.micine_name} — ${best.percent ?? 0}% similarity.`; // typo fixed below
         } else {
           badge.textContent = "No strong safe match";
           matchMessage.textContent = result.message || "No strong safe match found — closest alternatives shown.";
+        }
+        // fix typo if best exists
+        if (result.strong_match && best) {
+          matchMessage.textContent = `Best match: ${best.medicine_name} — ${best.percent ?? 0}% similarity.`;
         }
 
         // === Closest medicine image ===
@@ -1157,24 +1234,51 @@
           }
         });
 
-        // === Recovery curve ===
-        const ndAdj = result.ai_curve_new_drug || [1,1,1,1,1,1,1];
-        const bmAdj = result.ai_curve_best_match || [1,1,1,1,1,1,1];
-        const ndCurve = generateHybridCurve(newDrug, ndAdj);
-        const bmCurve = generateHybridCurve(best || {}, bmAdj);
+        // === Recovery curve (from backend) ===
+        const rcNew = result.recovery_curve_new;
+        const rcBest = result.recovery_curve_best;
 
-        ndCurve.values = addWiggle(ndCurve.values, 3);
-        bmCurve.values = addWiggle(bmCurve.values, 3);
+        let labelsRC = [];
+        let newVals = [];
+        let bestVals = [];
+
+        if (rcNew && Array.isArray(rcNew.points)) {
+          const unit = (rcNew.time_unit || "month").toLowerCase();
+          labelsRC = rcNew.points.map(p => {
+            if (unit === "day") return "Day " + p.t;
+            if (unit === "week") return "Week " + p.t;
+            return "Month " + p.t;
+          });
+          newVals = rcNew.points.map(p => p.value);
+          const last = rcNew.points[rcNew.points.length - 1];
+          const horizon = last ? last.t : null;
+          let unitLabel = unit === "day" ? "days" : unit === "week" ? "weeks" : "months";
+          if (horizon !== null) {
+            recoveryTitle.textContent = `Patient recovery simulation (${horizon} ${unitLabel} horizon)`;
+          } else {
+            recoveryTitle.textContent = "Patient recovery simulation";
+          }
+        } else {
+          labelsRC = ["Month 0","Month 1","Month 2","Month 3","Month 4","Month 5","Month 6"];
+          newVals = [0,0,0,0,0,0,0];
+          recoveryTitle.textContent = "Patient recovery simulation";
+        }
+
+        if (rcBest && Array.isArray(rcBest.points)) {
+          bestVals = rcBest.points.map(p => p.value);
+        } else {
+          bestVals = newVals.slice();
+        }
 
         const rollCtx = document.getElementById("rollerChart").getContext("2d");
         rollerChartInstance = new Chart(rollCtx, {
           type: "line",
           data: {
-            labels: ndCurve.months.map(m => "Month " + m),
+            labels: labelsRC,
             datasets: [
               {
                 label: newDrug.drug_name || "New Drug",
-                data: ndCurve.values,
+                data: newVals,
                 borderWidth: 2,
                 borderColor: "rgba(129,140,248,1)",
                 backgroundColor: "rgba(129,140,248,0.35)",
@@ -1183,7 +1287,7 @@
               },
               {
                 label: best?.medicine_name || "Known Medicine",
-                data: bmCurve.values,
+                data: bestVals,
                 borderWidth: 2,
                 borderColor: "rgba(45,212,191,1)",
                 backgroundColor: "rgba(45,212,191,0.2)",
