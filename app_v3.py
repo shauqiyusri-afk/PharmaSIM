@@ -50,7 +50,7 @@ gender_enc  = joblib.load(os.path.join(BASE_DIR, "gender_encoder.pkl"))
 symptom_enc = joblib.load(os.path.join(BASE_DIR, "symptom_encoder.pkl"))
 
 # =========================
-#  Known medicines + ingredients
+#  Known medicines + ingredient map
 # =========================
 known_meds = pd.read_csv(os.path.join(BASE_DIR, "known_medicines.csv"))
 
@@ -71,9 +71,9 @@ def get_ingredients_for(med_name: str):
 def _norm(s: str) -> str:
     return (s or "").strip().lower()
 
+# simple condition normalisation
 def normalize_condition(name: str) -> str:
     s = _norm(name)
-    # simple mapping – you can extend
     mapping = {
         "htn": "hypertension",
         "high blood pressure": "hypertension",
@@ -102,7 +102,6 @@ def condition_matches(user_cond: str, risk_str: str) -> bool:
         return False
     if u in r:
         return True
-    # simple keyword logic
     if u == "pregnancy" and "pregnant" in r:
         return True
     if u == "kidney_disease" and ("renal" in r or "kidney" in r):
@@ -125,7 +124,7 @@ INDICATION_GROUPS = {
         "flu", "cough", "sore throat", "cold", "upper respiratory infection"
     },
     "general_pain_fever": {
-        "headache", "migraine", "fever", "body ache"
+        "headache", "migraine", "fever", "body ache", "toothache"
     },
     "onc_breast": {"breast cancer", "breast cancer (her2+)"},
     "onc_colon": {"colon cancer"},
@@ -318,7 +317,6 @@ def api_login():
     save_json(SESS_FILE, sessions)
     return jsonify({"token": token, "name": user["name"]})
 
-# Example protected route (if you ever use it on FE)
 @app.route("/api/me", methods=["GET"])
 @auth_required
 def api_me():
@@ -327,8 +325,7 @@ def api_me():
     sess = sessions.get(token)
     return jsonify({"email": sess["email"]})
 
-# ---------- HTML ROUTES (welcome / login / register / app) ----------
-
+# ---------- HTML ROUTES ----------
 @app.route("/")
 def home():
     """Root: redirect to the welcome page."""
@@ -352,6 +349,79 @@ def app_page():
     return render_template("app.html")
 
 # =========================
+#  Narrative builder
+# =========================
+def build_narrative(input_summary, effectiveness, success_rate, side_effect_label):
+    s = input_summary or {}
+    # patient description
+    age = s.get("age")
+    race = (s.get("race") or "").lower()
+    gender = (s.get("gender") or "").lower()
+    weight = s.get("weight_kg")
+
+    age_part = f"{age}-year-old " if age else ""
+    race_part = f"{race} " if race else ""
+    gender_part = f"{gender} " if gender else "patient"
+    weight_part = f" weighing {weight} kg" if weight else ""
+
+    patient_part = f"{age_part}{race_part}{gender_part}patient{weight_part}".strip()
+
+    # route, frequency, duration
+    route = (s.get("route") or "oral").lower()
+    if route == "iv":
+        route_txt = "intravenously"
+    elif route in ("po", "oral"):
+        route_txt = "orally"
+    else:
+        route_txt = route
+
+    freq_map = {
+        "od": "once daily",
+        "bd": "twice daily",
+        "tds": "three times daily",
+        "tid": "three times daily",
+        "qid": "four times daily",
+        "q8h": "every 8 hours",
+        "q6h": "every 6 hours",
+        "weekly": "once weekly",
+        "monthly": "once monthly",
+    }
+    freq_raw = (s.get("dosing_frequency") or "").lower()
+    freq_txt = freq_map.get(freq_raw, freq_raw)
+
+    duration_txt = ""
+    dur_days = s.get("treatment_duration_days")
+    if isinstance(dur_days, int) and dur_days > 0:
+        if dur_days % 30 == 0 and dur_days >= 30:
+            months = dur_days // 30
+            duration_txt = f" for about {months} month{'s' if months > 1 else ''}"
+        else:
+            duration_txt = f" for {dur_days} days"
+
+    dosing_part = ""
+    if freq_txt:
+        dosing_part = f", given {route_txt} {freq_txt}{duration_txt}"
+    else:
+        dosing_part = f", given {route_txt}{duration_txt}"
+
+    drug_name = s.get("drug_name") or "this candidate drug"
+    symptom = s.get("symptom") or "the selected symptom"
+
+    sentence1 = (
+        f"Drug {drug_name} is designed to treat {symptom} in a {patient_part}{dosing_part}."
+    )
+
+    eff_pct = int(round(effectiveness * 100))
+    succ_pct = int(round(success_rate * 100))
+
+    sentence2 = (
+        f" The model predicts approximately {eff_pct}% effectiveness and "
+        f"{succ_pct}% overall success rate, with {side_effect_label.lower()} side-effect risk."
+    )
+
+    return sentence1 + sentence2
+
+# =========================
 #  Core prediction logic
 # =========================
 @app.route("/predict", methods=["POST"])
@@ -359,7 +429,7 @@ def predict():
     try:
         data = request.get_json()
 
-        # --- User inputs ---
+        # --- Basic user inputs ---
         drug_name = data.get("drug_name", "NewDrug")
         race      = data.get("race", "")
         gender    = data.get("gender", "")
@@ -369,7 +439,7 @@ def predict():
         health_conditions_raw = [c.lower() for c in data.get("health_conditions", [])]
         input_line = str(data.get("line_of_treatment", "general")).lower().strip()
 
-        # --- Extended clinical inputs (new) ---
+        # --- Helper converters ---
         def _to_float(val, default=0.0):
             try:
                 return float(val)
@@ -382,6 +452,7 @@ def predict():
             except (TypeError, ValueError):
                 return default
 
+        # --- Extended clinical inputs ---
         weight_kg = _to_float(data.get("weight_kg"), 0.0)
         if weight_kg <= 0:
             weight_kg = None
@@ -398,15 +469,14 @@ def predict():
         if gender.lower() != "female":
             pregnancy_status = "none"
 
-        # --- Cancer auto-suggest ---
+        # --- Cancer auto-suggest fields (optional) ---
         cancer_type = data.get("cancer_type")
         cancer_line = data.get("cancer_line_of_treatment")
         cancer_risks = [r.lower() for r in data.get("cancer_risk_factors", [])]
 
-        # --- Normalize conditions ---
+        # --- Normalise health conditions ---
         user_conditions = [normalize_condition(c) for c in health_conditions_raw if c]
 
-        # If pregnancy_status is not none for female, include as condition
         if pregnancy_status != "none" and "pregnancy" not in user_conditions:
             user_conditions.append("pregnancy")
 
@@ -433,12 +503,11 @@ def predict():
         ingredient_count = len(tokens)
         input_vector = np.array([[race_e, gender_e, age, symptom_e, ingredient_count, dosage_mg]])
 
-        # --- ML predictions ---
+        # --- Raw ML predictions (0–1 space) ---
         eff_val  = float(effectiveness_model.predict(input_vector)[0])
         se_val   = float(side_effect_model.predict(input_vector)[0])
         succ_val = float(success_rate_model.predict(input_vector)[0])
 
-        # Keep originals for debug but we will adjust copies
         effectiveness = eff_val
         side_effect_val = se_val
         success_rate = succ_val
@@ -451,8 +520,9 @@ def predict():
         else:
             side_effect_label = "High"
 
-        # --- Basic explanations ---
         explanations = {}
+
+        # Basic explanation scaffold
         if age > 60:
             explanations["success_rate"] = "Success rate slightly lower due to age factor."
         elif age < 18:
@@ -470,7 +540,7 @@ def predict():
             explanations["side_effects"] = "Side effect risk is low."
 
         # ================================
-        # New clinical heuristics
+        #  New clinical heuristics
         # ================================
 
         # 1) Dose per kg (if weight known)
@@ -503,7 +573,7 @@ def predict():
                 "Oral route is assumed; systemic exposure is moderate for most drugs."
             )
 
-        # 3) Organ function severity (simple penalty scaling)
+        # 3) Organ function severity
         organ_penalty_factor = 1.0
         if liver_status > 0:
             organ_penalty_factor -= 0.03 * liver_status
@@ -538,6 +608,29 @@ def predict():
                     "Short treatment duration; outcomes mainly reflect acute response."
                 )
 
+        # 6) Dosing frequency heuristics (simple)
+        freq = dosing_frequency.lower()
+        if freq in ("bd", "twice daily", "q12h"):
+            effectiveness = min(1.0, effectiveness * 1.03)
+            side_effect_val = min(1.0, side_effect_val + 0.02)
+            explanations["dosing_frequency"] = (
+                "Twice-daily dosing slightly boosts effect but also increases side-effect risk."
+            )
+        elif freq in ("tds", "tid", "three times daily", "q8h", "qid", "four times daily"):
+            effectiveness = min(1.0, effectiveness * 1.05)
+            side_effect_val = min(1.0, side_effect_val + 0.04)
+            explanations["dosing_frequency"] = (
+                "High-frequency dosing increases both effectiveness and side-effect risk."
+            )
+
+        # Recompute side_effect_label after adjustments
+        if side_effect_val < 0.33:
+            side_effect_label = "Low"
+        elif side_effect_val < 0.66:
+            side_effect_label = "Medium"
+        else:
+            side_effect_label = "High"
+
         # --- Health condition penalties ---
         health_penalty_map = {
             "liver_disease": {"note": "Effectiveness and success adjusted due to liver disease.", "weight": 0.08},
@@ -562,7 +655,7 @@ def predict():
                 explanations_new.append(info["note"])
 
         if penalty_pct > 0:
-            penalty_pct = min(penalty_pct, 0.7)  # clamp
+            penalty_pct = min(penalty_pct, 0.7)
             effectiveness = max(0.0, effectiveness * (1 - penalty_pct))
             success_rate  = max(0.0, success_rate * (1 - penalty_pct))
             new_drug_warning = (
@@ -633,12 +726,14 @@ def predict():
 
         # --- Line escalation ---
         line_order = ["first-line", "second-line", "third-line", "general"]
-        escalation_applied = False
 
         def filter_by_line(line_name):
             return [m for m in matches if m["line_of_treatment"] == line_name]
 
         filtered_matches = filter_by_line(input_line)
+        escalation_applied = False
+        original_line = input_line
+
         if not filtered_matches:
             for next_line in line_order:
                 if next_line == input_line:
@@ -651,11 +746,9 @@ def predict():
 
         matches_sorted = sorted(
             filtered_matches,
-            key=lambda x: (x["percent"], -int(x["r risky"])) if "r risky" in x else (x["percent"], 0),
+            key=lambda x: (x["percent"], -int(x["risky"])),
             reverse=True,
         )
-        # ^^^ NOTE: keep as in your file or change to simple `-int(x["risky"])` if you prefer
-
         top_matches = matches_sorted[:3] if matches_sorted else []
 
         MATCH_THRESHOLD = 55.0
@@ -665,7 +758,7 @@ def predict():
         )
         strong_match = bool(best and best["percent"] >= MATCH_THRESHOLD and not best["risky"])
 
-        # --- Cancer suggestions ---
+        # --- Cancer suggestions (optional usage) ---
         cancer_suggestions = []
         if cancer_type:
             for _, row in known_meds.iterrows():
@@ -710,12 +803,12 @@ def predict():
 
         predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
 
-        # --- Ethnicity scores (heuristic for radar) ---
+        # --- Ethnicity scores (heuristic) ---
         ethnicities = ["Malay", "Chinese", "Indian", "Indigenous"]
         ethnicity_scores = {"new_drug": {}, "known_medicine": {}}
         for eth in ethnicities:
             ethnicity_scores["new_drug"][eth] = round(
-                effectiveness * (0.95 + 0.05 * np.random.rand()),
+                effectiveness * 100 * (0.95 + 0.05 * np.random.rand()),
                 1,
             )
             known_scores = [m["effectiveness"] for m in top_matches if m]
@@ -727,6 +820,33 @@ def predict():
                 if known_scores
                 else 0
             )
+
+        # --- Build input summary for narrative ---
+        input_summary = {
+            "drug_name": drug_name,
+            "ingredients_provided": tokens,
+            "dosage_mg": dosage_mg,
+            "dosage_ml": dosage_ml,
+            "concentration": concentration,
+            "symptom": symptom,
+            "line_of_treatment": input_line,
+            "age": age,
+            "race": race,
+            "gender": gender,
+            "health_conditions": health_conditions_raw,
+            "cancer_type": cancer_type,
+            "cancer_line_of_treatment": cancer_line,
+            "cancer_risk_factors": cancer_risks,
+            "weight_kg": weight_kg,
+            "route": route,
+            "dosing_frequency": dosing_frequency,
+            "treatment_duration_days": treatment_duration_days,
+            "liver_status": liver_status,
+            "kidney_status": kidney_status,
+            "pregnancy_status": pregnancy_status,
+        }
+
+        narrative_summary = build_narrative(input_summary, effectiveness, success_rate, side_effect_label)
 
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
@@ -741,35 +861,15 @@ def predict():
             "best_match": best if strong_match else None,
             "strong_match": strong_match,
             "cancer_suggestions": cancer_suggestions,
-            "input_summary": {
-                "drug_name": drug_name,
-                "ingredients_provided": tokens,
-                "dosage_mg": dosage_mg,
-                "dosage_ml": dosage_ml,
-                "concentration": concentration,
-                "symptom": symptom,
-                "line_of_treatment": input_line,
-                "age": age,
-                "race": race,
-                "gender": gender,
-                "health_conditions": health_conditions_raw,
-                "cancer_type": cancer_type,
-                "cancer_line_of_treatment": cancer_line,
-                "cancer_risk_factors": cancer_risks,
-                "weight_kg": weight_kg,
-                "route": route,
-                "dosing_frequency": dosing_frequency,
-                "treatment_duration_days": treatment_duration_days,
-                "liver_status": liver_status,
-                "kidney_status": kidney_status,
-                "pregnancy_status": pregnancy_status,
-            },
+            "input_summary": input_summary,
             "ethnicity_scores": ethnicity_scores,
             "escalation_applied": escalation_applied,
+            "narrative_summary": narrative_summary,
             "debug": {
                 "input_vector": input_vector.tolist(),
                 "raw_predictions": [eff_val, se_val, succ_val],
                 "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches],
+                "original_line": original_line,
             },
         }
 
@@ -777,18 +877,19 @@ def predict():
             response["message"] = "No strong safe match found — showing closest alternatives."
         if escalation_applied:
             response["message"] = (
-                f"No suitable {data.get('line_of_treatment')} medicine found. Escalated to {input_line}."
-            )
+                response.get("message", "") + " " +
+                f"No suitable {original_line} medicine found. Escalated to {input_line}."
+            ).strip()
 
         return jsonify(response)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# (Optional) ethnicity data endpoint if you want FE to call it separately later
+# Optional stub for future ethnicity-data endpoint
 @app.route("/ethnicity-data", methods=["GET"])
 def ethnicity_data():
-    return jsonify({"status": "ok"})  # can be expanded if needed
+    return jsonify({"status": "ok"})
 
 # =========================
 #  Entrypoint
