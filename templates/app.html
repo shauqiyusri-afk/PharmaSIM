@@ -247,7 +247,7 @@
                 </div>
                 <div>
                   <label class="block mb-1 text-[11px] text-slate-300">Gender</label>
-                  <select name="gender" id="genderSelect" required>
+                  <select name="gender" required>
                     <option value="">Select...</option>
                     <option>Male</option>
                     <option>Female</option>
@@ -281,7 +281,7 @@
                   </label>
                   <input type="number" step="any" min="0" name="dosage_ml" id="dosageMl" placeholder="auto-calculated" />
                 </div>
-                <div>
+                <div class="col-span-2">
                   <label class="block mb-1 text-[11px] text-slate-300">
                     Line of Treatment
                   </label>
@@ -290,69 +290,6 @@
                     <option value="First-Line">First-Line</option>
                     <option value="Second-Line">Second-Line</option>
                     <option value="Targeted">Targeted</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Weight (kg)
-                  </label>
-                  <input type="number" step="any" min="0" name="weight_kg" id="weightKg" placeholder="e.g. 65" />
-                </div>
-              </div>
-
-              <div class="grid grid-cols-3 gap-2.5">
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Route
-                  </label>
-                  <select name="route" id="routeSelect">
-                    <option value="oral">Oral</option>
-                    <option value="iv">IV (Intravenous)</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Treatment Duration (days)
-                  </label>
-                  <input type="number" name="treatment_duration_days" min="1" placeholder="e.g. 28" />
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Dosing Frequency
-                  </label>
-                  <select name="dosing_frequency" id="dosingFrequency">
-                    <option value="">Select...</option>
-                    <option value="od">OD (once daily)</option>
-                    <option value="bd">BD (twice daily)</option>
-                    <option value="tds">TDS (three times daily)</option>
-                    <option value="qid">QID (four times daily)</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Liver Function
-                  </label>
-                  <select name="liver_status" id="liverStatus">
-                    <option value="0">Normal</option>
-                    <option value="1">Mild impairment</option>
-                    <option value="2">Moderate impairment</option>
-                    <option value="3">Severe impairment</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Kidney Function
-                  </label>
-                  <select name="kidney_status" id="kidneyStatus">
-                    <option value="0">Normal</option>
-                    <option value="1">Mild impairment</option>
-                    <option value="2">Moderate impairment</option>
-                    <option value="3">Severe impairment</option>
                   </select>
                 </div>
               </div>
@@ -411,18 +348,6 @@
                 </select>
               </div>
 
-              <div id="pregnancyRow">
-                <label class="block mb-1 text-[11px] text-slate-300">
-                  Pregnancy Status (for female patients)
-                </label>
-                <select name="pregnancy_status" id="pregnancyStatus">
-                  <option value="none">Not pregnant / Not applicable</option>
-                  <option value="first_trimester">Pregnant — 1st trimester</option>
-                  <option value="second_trimester">Pregnant — 2nd trimester</option>
-                  <option value="third_trimester">Pregnant — 3rd trimester</option>
-                </select>
-              </div>
-
               <div>
                 <label class="block mb-1 text-[11px] text-slate-300">
                   Ingredients
@@ -473,8 +398,6 @@
               <p class="text-[11px] text-slate-400 max-w-md">
                 Model-predicted performance for this candidate vs the closest known medicine in our dataset.
               </p>
-              <!-- NEW: Narrative summary line -->
-              <p id="narrativeSummary" class="text-[11px] text-slate-200 mt-1"></p>
             </div>
             <div id="badge" class="badge-gradient px-3 py-1 text-[11px] text-slate-50">
               Analysing match...
@@ -609,20 +532,9 @@
 
           <!-- Recovery curve -->
           <div class="mt-5 rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
-            <div class="flex items-center justify-between mb-1.5">
-              <p id="recoveryTitle" class="text-[11px] font-semibold text-slate-200">
-                Patient recovery simulation
-              </p>
-              <!-- Recovery horizon selector (graph only) -->
-              <select id="recoveryHorizon" class="text-[10px] px-2 py-1 rounded-full bg-slate-900 border border-slate-600">
-                <option value="7">1 week</option>
-                <option value="14">2 weeks</option>
-                <option value="30" selected>1 month</option>
-                <option value="90">3 months</option>
-                <option value="180">6 months</option>
-                <option value="365">1 year</option>
-              </select>
-            </div>
+            <p class="text-[11px] font-semibold text-slate-200 text-center mb-1.5">
+              Patient recovery simulation (6-month horizon)
+            </p>
             <div class="h-56">
               <canvas id="rollerChart"></canvas>
             </div>
@@ -817,7 +729,7 @@
     mgInput.addEventListener("input", updateFromMg);
     mlInput.addEventListener("input", updateFromMl);
 
-    // ================ Line-of-treatment auto for symptoms ==================
+    // ================ Auto line-of-treatment for symptoms ==================
     const targetSymptomEl = document.getElementById("targetSymptom");
     const lineOfTreatmentEl = document.getElementById("lineOfTreatment");
 
@@ -842,35 +754,33 @@
       lineOfTreatmentEl.value = autoTreatmentMap[s] || "General";
     });
 
-    // ================ Pregnancy visibility based on gender ==================
-    const genderSelect = document.getElementById("genderSelect");
-    const pregnancyRow = document.getElementById("pregnancyRow");
-    const pregnancyStatus = document.getElementById("pregnancyStatus");
-
-    function updatePregnancyVisibility() {
-      if (genderSelect.value === "Female") {
-        pregnancyRow.style.display = "block";
-        pregnancyStatus.disabled = false;
-      } else {
-        pregnancyRow.style.display = "none";
-        pregnancyStatus.value = "none";
-        pregnancyStatus.disabled = true; // hide + disable when not female
-      }
-    }
-    genderSelect.addEventListener("change", updatePregnancyVisibility);
-    // initialise on load
-    updatePregnancyVisibility();
-
     // ================ Chart helpers ==================
     let radarChartInstance = null;
     let ethnicityChartInstance = null;
     let rollerChartInstance = null;
 
-    // store last metrics so horizon dropdown can update graph live
-    let lastEffPctNum = null;
-    let lastSuccPctNum = null;
-    let lastSideRiskLabel = null;
-    let lastBestEffPct = null;
+    function generateHybridCurve(drug, adj){
+      const months = [0,1,2,3,4,5,6];
+      const vals = [];
+      const s = Number(drug.success_rate) || 0;
+      const e = Number(drug.effectiveness) || 0;
+      const risk = (drug.side_effect_risk || "").toLowerCase();
+      months.forEach((m, i) => {
+        let v = s * (1 - Math.exp(-(e / 100) * m));
+        if (risk === "medium" && m === 3) v -= 5;
+        if (risk === "high" && (m === 2 || m === 5)) v -= 10;
+        const factor = (adj && adj[i] ? adj[i] : 1);
+        v *= factor;
+        vals.push(Math.max(0, Math.min(100, Math.round(v))));
+      });
+      return { months, values: vals };
+    }
+
+    function addWiggle(vals, mag = 3){
+      return vals.map(v =>
+        Math.max(0, Math.min(100, Math.round(v + ((Math.random() * 2 - 1) * mag))))
+      );
+    }
 
     const imageMap = {
       "Paracetamol":"Paracetamol.png","Panadol":"Panadol.png","Panadol Extend":"Panadol_Extend.png","Ibuprofen":"Ibuprofen.png",
@@ -901,7 +811,6 @@
     const sideEffectEl = document.getElementById("sideEffect");
     const successRateEl = document.getElementById("successRate");
     const specificSideEffectsEl = document.getElementById("specificSideEffects");
-    const narrativeSummaryEl = document.getElementById("narrativeSummary");
 
     const bestMatchBox = document.getElementById("bestMatchBox");
     const matchesList = document.getElementById("matchesList");
@@ -916,40 +825,51 @@
 
     const explanationSection = document.getElementById("explanationSection");
     const explanationText = document.getElementById("explanationText");
-    const recoveryTitle = document.getElementById("recoveryTitle");
-    const recoveryHorizonSelect = document.getElementById("recoveryHorizon");
-    const treatmentDurationInput = document.querySelector('input[name="treatment_duration_days"]');
 
-    // sync recovery horizon -> treatment_duration_days so backend gets logical days
-    const horizonToDaysMap = {
-      "7": 7,
-      "14": 14,
-      "30": 30,
-      "90": 90,
-      "180": 180,
-      "365": 365
-    };
-    if (recoveryHorizonSelect && treatmentDurationInput) {
-      recoveryHorizonSelect.addEventListener("change", () => {
-        const d = horizonToDaysMap[recoveryHorizonSelect.value] || 180;
-        treatmentDurationInput.value = d;
+        // ================ Helper: format percent safely ==================
+    function formatPercent(value) {
+      if (value === null || value === undefined || value === "-" || value === "") {
+        return "—";
+      }
+      const num = Number(value);
+      if (isNaN(num)) return String(value);
+      return num.toFixed(2) + "%";   // e.g. 76.52%
+    }
 
-        // if we already have results, also re-draw recovery curve when user changes horizon
-        if (lastEffPctNum !== null) {
-          updateRecoveryChart(lastEffPctNum, lastSuccPctNum, lastSideRiskLabel, lastBestEffPct);
-        }
-      });
-      // initialise once
-      const initD = horizonToDaysMap[recoveryHorizonSelect.value] || 30;
-      if (!treatmentDurationInput.value) {
-        treatmentDurationInput.value = initD;
+    // ================ Helper: gender / pregnancy constraint ==========
+    const genderSelect = form.querySelector('select[name="gender"]');
+    const healthConditionSelect = form.querySelector('select[name="health_condition"]');
+
+    let pregnancyOption = null;
+    if (healthConditionSelect) {
+      pregnancyOption = Array.from(healthConditionSelect.options).find(
+        (opt) => opt.value === "pregnancy"
+      );
+    }
+
+    function updatePregnancyOption() {
+      if (!pregnancyOption) return;
+      const gender = (genderSelect?.value || "").toLowerCase();
+      const isMale = gender === "male";
+
+      pregnancyOption.disabled = isMale;
+
+      // If male and currently pregnancy, clear it
+      if (isMale && healthConditionSelect.value === "pregnancy") {
+        healthConditionSelect.value = "";
       }
     }
+
+    if (genderSelect && healthConditionSelect && pregnancyOption) {
+      genderSelect.addEventListener("change", updatePregnancyOption);
+      // run once on load
+      updatePregnancyOption();
+    }
+
 
     // ================ Clear form ==================
     clearBtn.addEventListener("click", () => {
       form.reset();
-      updatePregnancyVisibility();
       runMessage.textContent = "";
       outputPanel.style.display = "none";
       emptyState.style.display = "block";
@@ -965,7 +885,6 @@
       successRateEl.textContent = "—";
       bestMatchBox.innerHTML = "";
       explanationText.innerHTML = "";
-      narrativeSummaryEl.textContent = "";
       explanationSection.style.display = "none";
       inputMoleculesSection.style.display = "none";
       matchMoleculesSection.style.display = "none";
@@ -973,138 +892,7 @@
       if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
       if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
       if (rollerChartInstance) { rollerChartInstance.destroy(); rollerChartInstance = null; }
-
-      lastEffPctNum = null;
-      lastSuccPctNum = null;
-      lastSideRiskLabel = null;
-      lastBestEffPct = null;
     });
-
-    // Utility: build recovery curve from horizon + outputs (new logic)
-    function getHorizonConfig(daysStr) {
-      const d = parseInt(daysStr || "180", 10);
-      if (d <= 7) {
-        return { labelUnit: "Day", totalUnits: 7, title: "1-week horizon" };
-      } else if (d <= 14) {
-        return { labelUnit: "Day", totalUnits: 14, title: "2-week horizon" };
-      } else if (d <= 45) {
-        return { labelUnit: "Day", totalUnits: 30, title: "1-month horizon" };
-      } else if (d <= 120) {
-        return { labelUnit: "Week", totalUnits: 12, title: "3-month horizon" };
-      } else if (d <= 240) {
-        return { labelUnit: "Month", totalUnits: 6, title: "6-month horizon" };
-      } else {
-        return { labelUnit: "Month", totalUnits: 12, title: "1-year horizon" };
-      }
-    }
-
-    function buildCurvePoints(effectivenessPct, successPct, sideRiskLabel, daysStr) {
-      const cfg = getHorizonConfig(daysStr);
-      const n = 7; // 7 points always
-      const labels = [];
-      const values = [];
-
-      const eff = effectivenessPct || 0;
-      const succ = successPct || 0;
-      const succFactor = succ > 0 ? succ / 100 : 0.9;
-
-      const risk = (sideRiskLabel || "").toLowerCase();
-
-      for (let i = 0; i < n; i++) {
-        const p = i / (n - 1); // 0..1
-
-        // Non-linear growth curve: fast early rise then plateau, modulated by success rate
-        let v = eff * (1 - Math.exp(-3 * p)) * (0.7 + 0.3 * succFactor);
-
-        // small dips if side effect risk is high
-        if (risk === "medium" && Math.abs(p - 0.5) < 0.17) {
-          v -= 5;
-        }
-        if (risk === "high" && (Math.abs(p - 0.3) < 0.17 || Math.abs(p - 0.8) < 0.17)) {
-          v -= 10;
-        }
-
-        v = Math.max(0, Math.min(100, Math.round(v)));
-
-        // x-axis label
-        let tLabel;
-        if (cfg.labelUnit === "Day") {
-          const t = Math.round(p * cfg.totalUnits);
-          tLabel = `Day ${t}`;
-        } else if (cfg.labelUnit === "Week") {
-          const t = Math.round(p * cfg.totalUnits);
-          tLabel = `Week ${t}`;
-        } else {
-          const t = Math.round(p * cfg.totalUnits);
-          tLabel = `Month ${t}`;
-        }
-
-        labels.push(tLabel);
-        values.push(v);
-      }
-
-      return { labels, values, title: cfg.title };
-    }
-
-    function updateRecoveryChart(newDrugEffPct, newDrugSuccPct, sideRiskLabel, bestEffPct) {
-      if (rollerChartInstance) {
-        rollerChartInstance.destroy();
-        rollerChartInstance = null;
-      }
-
-      const daysStr = recoveryHorizonSelect ? recoveryHorizonSelect.value : "180";
-
-      const curveNew = buildCurvePoints(newDrugEffPct, newDrugSuccPct, sideRiskLabel, daysStr);
-      const curveBest = buildCurvePoints(bestEffPct || newDrugEffPct, bestEffPct || newDrugEffPct, sideRiskLabel, daysStr);
-
-      recoveryTitle.textContent = `Patient recovery simulation (${curveNew.title})`;
-
-      const rollCtx = document.getElementById("rollerChart").getContext("2d");
-      rollerChartInstance = new Chart(rollCtx, {
-        type: "line",
-        data: {
-          labels: curveNew.labels,
-          datasets: [
-            {
-              label: "New Drug",
-              data: curveNew.values,
-              borderWidth: 2,
-              borderColor: "rgba(129,140,248,1)",
-              backgroundColor: "rgba(129,140,248,0.35)",
-              tension: 0.35,
-              pointRadius: 2
-            },
-            {
-              label: "Known Medicine",
-              data: curveBest.values,
-              borderWidth: 2,
-              borderColor: "rgba(45,212,191,1)",
-              backgroundColor: "rgba(45,212,191,0.2)",
-              tension: 0.35,
-              pointRadius: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { color: "#e5e7eb", font: { size: 10 } } }
-          },
-          scales: {
-            x: {
-              ticks: { color: "#9ca3af", font: { size: 10 } },
-              grid: { color: "rgba(31,41,55,0.9)" }
-            },
-            y: {
-              min: 0,
-              max: 100,
-              ticks: { color: "#9ca3af", font: { size: 10 } },
-              grid: { color: "rgba(31,41,55,0.9)" }
-            }
-          }
-        }
-      });
-    }
 
     // ================ Submit handler ==================
     form.addEventListener("submit", async (e) => {
@@ -1122,7 +910,6 @@
       bestMatchBox.innerHTML = "";
       explanationText.innerHTML = "";
       explanationSection.style.display = "none";
-      narrativeSummaryEl.textContent = "";
 
       inputMoleculesSection.style.display = "none";
       matchMoleculesSection.style.display = "none";
@@ -1157,30 +944,51 @@
         runMessage.textContent = "";
         outputPanel.style.display = "block";
 
-        // === Input molecules ===
+                // === Input molecules ===
         displayInputMolecules(data.ingredients || "");
 
-        // === KPIs (assuming backend returns 0–1 fractions) ===
-        const effFrac = Number(result.predicted_effectiveness || 0);
-        const succFrac = Number(result.predicted_success_rate || 0);
-        const effPctNum = Math.max(0, Math.min(100, effFrac * 100));
-        const succPctNum = Math.max(0, Math.min(100, succFrac * 100));
-
-        effectivenessEl.textContent = effPctNum.toFixed(1) + "%";
-        sideEffectEl.textContent = result.predicted_side_effect_risk ?? "-";
-        successRateEl.textContent = succPctNum.toFixed(1) + "%";
+        // === KPIs (nice formatted) ===
+        effectivenessEl.textContent = formatPercent(result.predicted_effectiveness);
+        successRateEl.textContent   = formatPercent(result.predicted_success_rate);
+        sideEffectEl.textContent    = result.predicted_side_effect_risk ?? "—";
         specificSideEffectsEl.textContent = result.predicted_specific_side_effects || "—";
 
-        // narrative summary
-        if (result.narrative_summary) {
-          narrativeSummaryEl.textContent = result.narrative_summary;
-        } else {
-          narrativeSummaryEl.textContent = "";
-        }
-
-        // === New drug explanations ===
+        // === Narrative + new drug explanations ===
         const reasonsBox = document.getElementById("newDrugReasons");
         reasonsBox.innerHTML = "";
+
+        // Build a short narrative based on input + outputs
+        if (explanationSection && explanationText) {
+          const drugName = data.drug_name ? `"${data.drug_name}"` : "This candidate drug";
+          const symptom  = data.target_symptom || "the selected symptom";
+
+          const patientBits = [];
+          if (data.age)   patientBits.push(`${data.age}-year-old`);
+          if (data.race)  patientBits.push(String(data.race).toLowerCase());
+          if (data.gender)patientBits.push(String(data.gender).toLowerCase());
+
+          const patientStr = patientBits.join(" ");
+          let firstSentence = `${drugName} is designed to treat ${symptom}`;
+          if (patientStr) {
+            firstSentence += ` in a ${patientStr} patient.`;
+          } else {
+            firstSentence += ".";
+          }
+
+          const effText  = formatPercent(result.predicted_effectiveness);
+          const succText = formatPercent(result.predicted_success_rate);
+          const sideRisk = (result.predicted_side_effect_risk || "unknown").toLowerCase();
+
+          const secondSentence =
+            `The model predicts approximately ${effText} effectiveness ` +
+            `and ${succText} overall success rate, with ${sideRisk} side-effect risk.`;
+
+          explanationSection.style.display = "block";
+          explanationText.innerHTML = `
+            <p>${firstSentence}</p>
+            <p class="mt-1.5">${secondSentence}</p>
+          `;
+        }
         if (result.new_drug_note) {
           const warn = document.createElement("div");
           warn.className = "rounded-lg bg-red-100 text-red-800 px-2 py-1 text-[11px]";
@@ -1274,7 +1082,7 @@
           });
         }
 
-        // === New drug object for tables/charts ===
+        // === Comparison table ===
         const newDrug = {
           drug_name: data.drug_name,
           ingredients: data.ingredients,
@@ -1282,13 +1090,12 @@
           line_of_treatment: data.line_of_treatment || "-",
           target_symptom: data.target_symptom,
           health_condition: data.health_conditions || [],
-          effectiveness: effPctNum,
-          success_rate: succPctNum,
+          effectiveness: result.predicted_effectiveness,
+          success_rate: result.predicted_success_rate,
           side_effect_risk: result.predicted_side_effect_risk,
           predicted_specific_side_effects: (result.predicted_specific_side_effects || "").split(";")
         };
 
-        // === Comparison table ===
         const fmtEffects = (val) => {
           if (!val || val === "-") return "-";
           if (Array.isArray(val)) return val.join(", ");
@@ -1303,8 +1110,8 @@
           ["Health Condition", (newDrug.health_condition || []).join(", ") || "-", best?.health_condition || "-"],
           ["Ingredients", newDrug.ingredients || "-", (best?.ingredients_active || []).join(", ") || "-"],
           ["Dosage (mg)", newDrug.dosage_mg || "-", best?.dosage_mg || "-"],
-          ["Effectiveness", effPctNum.toFixed(1) + "%", best?.effectiveness ? best.effectiveness + "%" : "-"],
-          ["Success Rate", succPctNum.toFixed(1) + "%", best?.success_rate ? best.success_rate + "%" : "-"],
+          ["Effectiveness", (newDrug.effectiveness ?? "-") + "%", best?.effectiveness ? best.effectiveness + "%" : "-"],
+          ["Success Rate", (newDrug.success_rate ?? "-") + "%", best?.success_rate ? best.success_rate + "%" : "-"],
           ["Side Effect Risk", newDrug.side_effect_risk || "-", best?.side_effect_risk || "-"],
           ["Likely Side Effects", fmtEffects(newDrug.predicted_specific_side_effects), fmtEffects(best?.known_side_effects)]
         ];
@@ -1321,8 +1128,8 @@
 
         // === Radar charts ===
         const safetyMap = { "Low": 100, "Medium": 50, "High": 10 };
-        const ndEffect = effPctNum;
-        const ndSuccess = succPctNum;
+        const ndEffect = Number(newDrug.effectiveness) || 0;
+        const ndSuccess = Number(newDrug.success_rate) || 0;
         const ndSafety = safetyMap[newDrug.side_effect_risk] ?? 0;
         const ndDosage = Math.min(100, Number(newDrug.dosage_mg) || 0) / 10;
         const ndIngCount = (newDrug.ingredients || "").split(";").filter(x => x.trim()).length * 10;
@@ -1424,27 +1231,69 @@
           }
         });
 
-        // === Recovery curve – FE-generated with horizon ===
-        const bestEffPct = Number(best?.effectiveness) || effPctNum;
-        updateRecoveryChart(effPctNum, succPctNum, result.predicted_side_effect_risk, bestEffPct);
+        // === Recovery curve ===
+        const ndAdj = result.ai_curve_new_drug || [1,1,1,1,1,1,1];
+        const bmAdj = result.ai_curve_best_match || [1,1,1,1,1,1,1];
+        const ndCurve = generateHybridCurve(newDrug, ndAdj);
+        const bmCurve = generateHybridCurve(best || {}, bmAdj);
 
-        // store last values for future horizon changes
-        lastEffPctNum = effPctNum;
-        lastSuccPctNum = succPctNum;
-        lastSideRiskLabel = result.predicted_side_effect_risk || "";
-        lastBestEffPct = bestEffPct;
+        ndCurve.values = addWiggle(ndCurve.values, 3);
+        bmCurve.values = addWiggle(bmCurve.values, 3);
+
+        const rollCtx = document.getElementById("rollerChart").getContext("2d");
+        rollerChartInstance = new Chart(rollCtx, {
+          type: "line",
+          data: {
+            labels: ndCurve.months.map(m => "Month " + m),
+            datasets: [
+              {
+                label: newDrug.drug_name || "New Drug",
+                data: ndCurve.values,
+                borderWidth: 2,
+                borderColor: "rgba(129,140,248,1)",
+                backgroundColor: "rgba(129,140,248,0.35)",
+                tension: 0.35,
+                pointRadius: 2
+              },
+              {
+                label: best?.medicine_name || "Known Medicine",
+                data: bmCurve.values,
+                borderWidth: 2,
+                borderColor: "rgba(45,212,191,1)",
+                backgroundColor: "rgba(45,212,191,0.2)",
+                tension: 0.35,
+                pointRadius: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { labels: { color: "#e5e7eb", font: { size: 10 } } }
+            },
+            scales: {
+              x: {
+                ticks: { color: "#9ca3af", font: { size: 10 } },
+                grid: { color: "rgba(31,41,55,0.9)" }
+              },
+              y: {
+                min: 0,
+                max: 100,
+                ticks: { color: "#9ca3af", font: { size: 10 } },
+                grid: { color: "rgba(31,41,55,0.9)" }
+              }
+            }
+          }
+        });
 
         // === Explanation section ===
         const exp = result.explanations || {};
         const explanationParts = [];
-        if (result.narrative_summary) {
-          explanationParts.push(result.narrative_summary);
-        }
         if (exp.effectiveness) explanationParts.push(`<b>Effectiveness:</b> ${exp.effectiveness}`);
         if (exp.side_effects) explanationParts.push(`<b>Side effects:</b> ${exp.side_effects}`);
         if (exp.success_rate) explanationParts.push(`<b>Success rate:</b> ${exp.success_rate}`);
         if (explanationParts.length > 0) {
-          explanationText.innerHTML = explanationParts.join("<br/><br/>");
+          explanationText.innerHTML = explanationParts.join("<br/>");
           explanationSection.style.display = "block";
         }
 
