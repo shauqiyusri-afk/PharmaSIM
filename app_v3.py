@@ -14,7 +14,6 @@ from functools import wraps
 # -----------------------------
 effectiveness_model = joblib.load('effectiveness_model.pkl')
 side_effect_model   = joblib.load('side_effect_model.pkl')
-# IMPORTANT: use the file that exists in your repo
 success_rate_model  = joblib.load('success_model.pkl')
 
 race_enc    = joblib.load('race_encoder.pkl')
@@ -29,7 +28,6 @@ known_meds = pd.read_csv("known_medicines.csv")
 with open("ingredient_map.json", "r", encoding="utf-8") as f:
     ingredient_map = json.load(f)
 
-
 def get_ingredients_for(med_name):
     entry = ingredient_map.get(med_name)
     if entry:
@@ -39,11 +37,9 @@ def get_ingredients_for(med_name):
         )
     return set(), set()
 
-
 # ----------------- Indication ontology / hints -----------------
 def _norm(s):
     return (s or "").strip().lower()
-
 
 INDICATION_ALIASES = {
     "her2+": "her2+",
@@ -62,11 +58,9 @@ INDICATION_ALIASES = {
     "melanoma": "melanoma",
 }
 
-
 def normalize_indication(name: str) -> str:
     n = _norm(name)
     return INDICATION_ALIASES.get(n, n)
-
 
 INDICATION_GROUPS = {
     "analgesic_antipyretic": {
@@ -89,14 +83,11 @@ for g, vals in INDICATION_GROUPS.items():
     for v in vals:
         INDICATION_TO_GROUP[_norm(v)] = g
 
-
 def indication_group(name: str) -> str:
     return INDICATION_TO_GROUP.get(normalize_indication(name), "")
 
-
 def is_oncology_group(g: str) -> bool:
     return g.startswith("onc_")
-
 
 INGREDIENT_TO_HINT_GROUPS = {
     "paracetamol": {"analgesic_antipyretic"},
@@ -111,7 +102,6 @@ INGREDIENT_TO_HINT_GROUPS = {
     "pseudoephedrine": {"allergy_upper_respiratory"},
     "dextromethorphan": {"allergy_upper_respiratory"},
     "guaifenesin": {"allergy_upper_respiratory"},
-    # oncology agents (left mostly neutral, used in matching)
     "cisplatin": set(),
     "carboplatin": set(),
     "paclitaxel": set(),
@@ -126,16 +116,13 @@ INGREDIENT_TO_HINT_GROUPS = {
     "pembrolizumab": set(),
 }
 
+def score_similarity(input_symptom,
+                     input_line,
+                     input_ingredients_active,
+                     input_ingredients_inactive,
+                     input_dosage,
+                     row):
 
-def score_similarity(
-    input_symptom,
-    input_line,
-    input_ingredients_active,
-    input_ingredients_inactive,
-    input_dosage,
-    row,
-):
-    # Weights
     W_SYMPTOM_EXACT        = 52.0
     W_SYMPTOM_SAME_GROUP   = 26.0
     W_LINE_EXACT           = 12.0
@@ -168,12 +155,11 @@ def score_similarity(
     total = 0.0
     max_score = 0.0
 
-    # Symptom / disease
     if row_symptom == inp_symptom and inp_symptom:
         total += W_SYMPTOM_EXACT
         max_score += W_SYMPTOM_EXACT
     else:
-        if inp_group and row_group and inp_group == row_group and not inp_is_onc:
+        if inp_group and row_group and inp_group == row_group  and not inp_is_onc:
             total += W_SYMPTOM_SAME_GROUP
             max_score += W_SYMPTOM_SAME_GROUP
         else:
@@ -181,7 +167,6 @@ def score_similarity(
             total -= penalty
             max_score += max(W_SYMPTOM_EXACT, W_SYMPTOM_SAME_GROUP)
 
-    # Line of treatment
     max_score += W_LINE_EXACT
     if inp_line and row_line and inp_line != "general" and row_line != "general":
         if row_line == inp_line:
@@ -189,19 +174,16 @@ def score_similarity(
         else:
             total -= PENALTY_OPPOSITE_LINE
 
-    # Active ingredient overlap
     overlap_active = len((input_ingredients_active or set()) & (row_active or set()))
     active_score = min(W_ACTIVE_CAP, overlap_active * W_ACTIVE_PER_MATCH)
     total += active_score
     max_score += W_ACTIVE_CAP
 
-    # Inactive ingredient overlap
     overlap_inactive = len((input_ingredients_inactive or set()) & (row_inactive or set()))
     inactive_score = min(W_INACTIVE_CAP, overlap_inactive * W_INACTIVE_PER_MATCH)
     total += inactive_score
     max_score += W_INACTIVE_CAP
 
-    # Ingredient compatibility hints
     compat_hits = 0
     for ing in (input_ingredients_active or set()):
         hint_groups = INGREDIENT_TO_HINT_GROUPS.get(_norm(ing), set())
@@ -211,7 +193,6 @@ def score_similarity(
     total += compat_score
     max_score += W_ING_COMPAT_CAP
 
-    # Dosage closeness
     max_score += W_DOSAGE_CLOSE
     if row_dosage > 0:
         diff = abs(row_dosage - (input_dosage or 0.0))
@@ -233,13 +214,11 @@ def score_similarity(
         "input_group": inp_group
     }
 
-
 # -----------------------------
 # User auth storage
 # -----------------------------
 USERS_FILE = "users.json"
 SESS_FILE  = "sessions.json"
-
 
 def load_json(path, default):
     if not os.path.exists(path):
@@ -252,15 +231,12 @@ def load_json(path, default):
         except Exception:
             return default
 
-
 def save_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-
 users = load_json(USERS_FILE, {})
 sessions = load_json(SESS_FILE, {})
-
 
 def auth_required(f):
     @wraps(f)
@@ -272,7 +248,6 @@ def auth_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-
 # -----------------------------
 # Flask app setup
 # -----------------------------
@@ -283,9 +258,6 @@ app = Flask(
     template_folder=os.path.join(BASE_DIR, 'templates'),
     static_folder=os.path.join(BASE_DIR, 'static')
 )
-
-# Enable CORS (safe even if FE is same origin)
-CORS(app)
 
 # ---------- Auth API ----------
 @app.route("/api/register", methods=["POST"])
@@ -307,7 +279,6 @@ def api_register():
     save_json(USERS_FILE, users)
     return jsonify({"message": "Registered", "email": email})
 
-
 @app.route("/api/login", methods=["POST"])
 def api_login():
     data = request.get_json(force=True)
@@ -324,7 +295,6 @@ def api_login():
 
     return jsonify({"token": token, "user": {"email": email, "name": user["name"]}})
 
-
 @app.route("/api/logout", methods=["POST"])
 @auth_required
 def api_logout():
@@ -335,29 +305,25 @@ def api_logout():
         save_json(SESS_FILE, sessions)
     return jsonify({"message": "Logged out"})
 
-
 # ---------- Page routes ----------
 @app.route("/", methods=["GET"])
 def welcome_page():
     return render_template("welcome.html")
 
-
 @app.route("/login", methods=["GET"])
 def login_page():
     return render_template("login.html")
-
 
 @app.route("/register", methods=["GET"])
 def register_page():
     return render_template("register.html")
 
-
 @app.route("/app", methods=["GET"])
 def app_page():
     return render_template("app.html")
 
-
-# ---------- Prediction helpers ----------
+# ---------- Prediction ----------
+# Synonym map and normalization helpers
 synonym_map = {
     "heart_disease": ["heart disease", "heart failure"],
     "liver_disease": ["liver disease", "poor liver function", "liver dysfunction"],
@@ -369,14 +335,12 @@ synonym_map = {
     "glaucoma": ["glaucoma"]
 }
 
-
 def normalize_condition(cond):
     if not cond:
         return ""
     cond = cond.lower().strip()
     cond = cond.split("(")[0].strip()
     return cond
-
 
 def condition_matches(user_cond, med_risk):
     med_risk_norm = normalize_condition(med_risk)
@@ -386,7 +350,7 @@ def condition_matches(user_cond, med_risk):
                 return True
     return False
 
-
+# --- Encode categorical inputs with fallback ---
 def safe_transform(enc, value):
     try:
         return enc.transform([value])[0]
@@ -394,8 +358,6 @@ def safe_transform(enc, value):
         if "unknown" in enc.classes_:
             return enc.transform(["unknown"])[0]
         return 0
-
-
 # -----------------------------
 # Flask route: Predict
 # -----------------------------
@@ -404,7 +366,7 @@ def predict():
     try:
         data = request.get_json()
 
-        # --- User inputs from frontend ---
+        # --- User inputs ---
         drug_name = data.get('drug_name', 'NewDrug')
         race = data['race']
         gender = data['gender']
@@ -414,23 +376,18 @@ def predict():
         health_conditions = [c.lower() for c in data.get("health_conditions", [])]
         input_line = str(data.get('line_of_treatment', 'general')).lower().strip()
 
-        # ✅ No pregnant male:
-        if gender and gender.lower() == "male":
-            health_conditions = [c for c in health_conditions if c != "pregnancy"]
-
-        # --- Cancer auto-suggest / oncology fields (optional from FE) ---
+        # --- Cancer auto-suggest ---
         cancer_type = data.get("cancer_type")
         cancer_line = data.get("cancer_line_of_treatment")
         cancer_risks = [r.lower() for r in data.get("cancer_risk_factors", [])]
 
-        # --- Normalize health conditions ---
+        # --- Normalize conditions ---
         user_conditions = [normalize_condition(c) for c in health_conditions if c]
 
-        # --- Dosage handling (mg/mL, mg, mL) ---
-        concentration = float(data.get("concentration", 0) or 0)
-        dosage_mg = float(data.get("dosage_mg", 0) or 0)
-        dosage_ml = float(data.get("dosage_ml", 0) or 0)
-
+        # --- Dosage handling ---
+        concentration = float(data.get("concentration", 0))
+        dosage_mg = float(data.get("dosage_mg", 0))
+        dosage_ml = float(data.get("dosage_ml", 0))
         if dosage_mg == 0 and dosage_ml > 0 and concentration > 0:
             dosage_mg = dosage_ml * concentration
         if dosage_ml == 0 and dosage_mg > 0 and concentration > 0:
@@ -462,7 +419,7 @@ def predict():
         else:
             side_effect_label = "High"
 
-        # --- Base explanations ---
+        # --- Age-based explanations ---
         explanations = {}
         if age > 60:
             explanations["success_rate"] = "Success rate slightly lower due to age factor."
@@ -471,6 +428,7 @@ def predict():
         else:
             explanations["success_rate"] = "Success rate remains stable."
 
+        # --- Dosage explanation ---
         if dosage_mg > 0 and dosage_mg > 500:
             explanations["side_effects"] = "Higher dosage increases side effect risk."
         elif side_effect_val > 0.66:
@@ -496,7 +454,6 @@ def predict():
         penalty_pct = 0
         explanations_new = []
         new_drug_warning = ""
-
         for cond in user_conditions:
             info = health_penalty_map.get(cond)
             if info:
@@ -513,7 +470,7 @@ def predict():
         else:
             explanations.setdefault("effectiveness", "Effectiveness remains stable.")
 
-        # --- Similarity matching with known medicines ---
+        # --- Similarity matching ---
         matches = []
         for _, row in known_meds.iterrows():
             percent, details = score_similarity(symptom, input_line, input_active, input_inactive, dosage_mg, row)
@@ -522,7 +479,6 @@ def predict():
             row_penalty = 0
             risk_reasons = []
             row_explanations = []
-
             if 'risk_factors' in row and isinstance(row['risk_factors'], str):
                 row_risks = [r.strip().lower() for r in row['risk_factors'].split(';')]
                 for risk in row_risks:
@@ -530,9 +486,7 @@ def predict():
                         if condition_matches(user_cond, risk):
                             row_penalty += 5
                             risk_reasons.append(f"Risk for condition: {user_cond}")
-                            row_explanations.append(
-                                f"Reduced by 5% due to {user_cond} (from {row['medicine_name']})"
-                            )
+                            row_explanations.append(f"Reduced by 5% due to {user_cond} (from {row['medicine_name']})")
 
             risky = row_penalty > 0
             percent_adjusted = max(0, percent - row_penalty)
@@ -546,7 +500,6 @@ def predict():
                 "line_of_treatment": str(row.get('line_of_treatment', 'general')).lower(),
                 "dosage_mg": row.get('dosage_mg', ''),
                 "percent": round(percent_adjusted, 2),
-                "similarity_percent": round(percent_adjusted, 2),  # 🔹 added alias for frontend
                 "details": details,
                 "ingredients_active": list(a),
                 "ingredients_inactive": list(i),
@@ -561,11 +514,9 @@ def predict():
                 "explanations": row_explanations
             })
 
-
-        # --- Line escalation logic ---
+        # --- Line escalation ---
         line_order = ["first-line", "second-line", "third-line", "general"]
         escalation_applied = False
-
         def filter_by_line(line):
             return [m for m in matches if m["line_of_treatment"] == line]
 
@@ -580,24 +531,19 @@ def predict():
                     input_line = next_line
                     break
 
-        matches_sorted = sorted(
-            filtered_matches,
-            key=lambda x: (x['percent'], -int(x['risky'])),
-            reverse=True
-        )
+        matches_sorted = sorted(filtered_matches, key=lambda x: (x['percent'], -int(x['risky'])), reverse=True)
         top_matches = matches_sorted[:3] if matches_sorted else []
 
         MATCH_THRESHOLD = 55.0
         best = next((m for m in top_matches if not m['risky']), top_matches[0] if top_matches else None)
         strong_match = bool(best and best['percent'] >= MATCH_THRESHOLD and not best['risky'])
 
-        # --- Cancer suggestions (for oncology slide) ---
+        # --- Cancer suggestions ---
         cancer_suggestions = []
         if cancer_type:
             for _, row in known_meds.iterrows():
                 if str(row.get("cancer_type", "")).lower() == cancer_type.lower():
-                    if (not cancer_line or
-                        str(row.get("line_of_treatment", "")).lower() == cancer_line.lower()):
+                    if not cancer_line or str(row.get("line_of_treatment", "")).lower() == cancer_line.lower():
                         cancer_suggestions.append({
                             "medicine_name": row["medicine_name"],
                             "cancer_type": row.get("cancer_type"),
@@ -607,13 +553,12 @@ def predict():
                             "risk_factors": row.get("risk_factors", "")
                         })
 
-        # --- Predict specific side effects for NEW drug ---
+        # --- Predict specific side effects for NEW drugs ---
         predicted_side_effects = []
 
         if best and best.get("known_side_effects"):
             predicted_side_effects.extend(best["known_side_effects"].split(";"))
 
-        # Ethnicity-based narrative (mock but medically plausible narrative)
         if race.lower() == "malay":
             predicted_side_effects.append("Skin rash (higher risk in Malays with sulfa drugs)")
         elif race.lower() == "chinese":
@@ -636,17 +581,15 @@ def predict():
 
         predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
 
-        # --- Ethnicity scores (for radar chart) ---
+        # --- Ethnicity scores (new addition) ---
         ethnicities = ["Malay", "Chinese", "Indian", "Indigenous"]
         ethnicity_scores = {"new_drug": {}, "known_medicine": {}}
         for eth in ethnicities:
             ethnicity_scores["new_drug"][eth] = round(effectiveness * (0.95 + 0.05 * np.random.rand()), 1)
             known_scores = [m["effectiveness"] for m in top_matches if m]
-            ethnicity_scores["known_medicine"][eth] = round(
-                np.mean(known_scores) * (0.95 + 0.05 * np.random.rand()), 1
-            ) if known_scores else 0
+            ethnicity_scores["known_medicine"][eth] = round(np.mean(known_scores) * (0.95 + 0.05 * np.random.rand()), 1) if known_scores else 0
 
-        # --- Response JSON to FE ---
+        # --- Response JSON ---
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
             "predicted_side_effect_risk": side_effect_label,
@@ -694,25 +637,34 @@ def predict():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
+      
 @app.route("/ethnicity-data", methods=["GET"])
 def ethnicity_data():
-    # Simple mock for extra chart (not critical to core logic)
+    # 🔥 For now, return mock numbers (later we can link to CSV or DB)
     data = {
         "labels": ["Effectiveness", "Success Rate", "Side Effect Risk"],
         "datasets": [
-            {"label": "Malay", "data": [70, 68, 75]},
-            {"label": "Chinese", "data": [72, 69, 78]},
-            {"label": "Indian", "data": [68, 65, 80]},
-            {"label": "Indigenous", "data": [73, 71, 77]},
+            {
+                "label": "Malay",
+                "data": [70, 68, 75]
+            },
+            {
+                "label": "Chinese",
+                "data": [72, 69, 78]
+            },
+            {
+                "label": "Indian",
+                "data": [68, 65, 80]
+            },
+            {
+                "label": "Indigenous",
+                "data": [73, 71, 77]
+            }
         ]
     }
     return jsonify(data)
-
-
 # -----------------------------
-# Run Flask (local)
+# Run Flask
 # -----------------------------
 if __name__ == "__main__":
     for fn in ["ingredient_map.json", "known_medicines.csv", "users.json", "sessions.json"]:
@@ -727,3 +679,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask app on port {port}")
     app.run(host="0.0.0.0", port=port, debug=True)
+
