@@ -110,6 +110,39 @@
     .scroll-smooth{
       scroll-behavior:smooth;
     }
+
+    /* === Result animations (2.2) === */
+      @keyframes fadeInUpSoft {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .fade-in-up-soft {
+        animation: fadeInUpSoft 0.35s ease-out;
+      }
+
+      @keyframes kpiPopOnce {
+        0% {
+          transform: scale(0.97);
+        }
+        60% {
+          transform: scale(1.02);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .kpi-pop-once {
+        animation: kpiPopOnce 0.3s ease-out;
+      }
+
   </style>
 </head>
 
@@ -478,32 +511,41 @@
                 Model-predicted performance for this candidate vs the closest known medicine in our dataset.
               </p>
             </div>
-            <div id="badge" class="badge-gradient px-3 py-1 text-[11px] text-slate-50">
-              Analysing match...
+            <div class="flex items-center gap-2">
+              <div id="badge" class="badge-gradient px-3 py-1 text-[11px] text-slate-50">
+                Analysing match...
+              </div>
+
+              <!-- NEW: Running virtual trial chip -->
+              <div
+                id="loadingChip"
+                class="hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                      bg-slate-900/90 border border-slate-700/80 text-[10px] text-slate-300"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Running virtual trial…</span>
+              </div>
             </div>
           </div>
 
           <!-- KPIs -->
           <div class="grid sm:grid-cols-3 gap-3 text-xs">
-            <div class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
+
+            <div class="kpi-card rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
               <p class="text-[11px] text-slate-400">Effectiveness</p>
-              <p id="effectiveness" class="text-xl font-semibold text-slate-50">
-                —
-              </p>
+              <p id="effectiveness" class="text-xl font-semibold text-slate-50">—</p>
               <p class="text-[10px] text-slate-400">Overall clinical response prediction</p>
             </div>
-            <div class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
+
+            <div class="kpi-card rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
               <p class="text-[11px] text-slate-400">Side Effect Risk</p>
-              <p id="sideEffect" class="text-lg font-semibold text-slate-50">
-                —
-              </p>
+              <p id="sideEffect" class="text-lg font-semibold text-slate-50">—</p>
               <p class="text-[10px] text-slate-400">Risk label (Low / Medium / High)</p>
             </div>
-            <div class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
+
+            <div class="kpi-card rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
               <p class="text-[11px] text-slate-400">Success Rate</p>
-              <p id="successRate" class="text-lg font-semibold text-slate-50">
-                —
-              </p>
+              <p id="successRate" class="text-lg font-semibold text-slate-50">—</p>
               <p class="text-[10px] text-slate-400">Probability of achieving clinical target</p>
             </div>
           </div>
@@ -898,12 +940,45 @@
     const matchedName = document.getElementById("matchedName");
     const comparisonTableBody = document.getElementById("comparisonTableBody");
     const badge = document.getElementById("badge");
+    const loadingChip = document.getElementById("loadingChip");
 
     const inputMoleculesSection = document.getElementById("inputMoleculesSection");
     const matchMoleculesSection = document.getElementById("matchMoleculesSection");
 
     const explanationSection = document.getElementById("explanationSection");
     const explanationText = document.getElementById("explanationText");
+
+        // ================ Helper: result animation ==================
+          function triggerResultAnimation() {
+            // animate whole panel
+            outputPanel.classList.remove("fade-in-up-soft");
+            void outputPanel.offsetWidth; // force reflow to restart animation
+            outputPanel.classList.add("fade-in-up-soft");
+
+            // animate KPI tiles
+            const kpiCards = document.querySelectorAll(".kpi-card");
+            kpiCards.forEach((card) => {
+              card.classList.remove("kpi-pop-once");
+              void card.offsetWidth; // restart animation
+              card.classList.add("kpi-pop-once");
+            });
+          }
+
+    function triggerResultAnimation() {
+      // animate whole panel
+      outputPanel.classList.remove("fade-in-up-soft");
+      void outputPanel.offsetWidth; // reset animation
+      outputPanel.classList.add("fade-in-up-soft");
+
+      // animate KPI cards
+      const kpiCards = document.querySelectorAll(".kpi-card");
+      kpiCards.forEach((card) => {
+        card.classList.remove("kpi-pop-once");
+        void card.offsetWidth; // reset animation
+        card.classList.add("kpi-pop-once");
+      });
+    }
+
 
     // ================ Helper: format percent safely ==================
     function formatPercent(value) {
@@ -1021,6 +1096,9 @@
 
         runMessage.textContent = "";
         outputPanel.style.display = "block";
+
+        // 🔥 animate the panel + KPI tiles
+        triggerResultAnimation();
 
         // === Input molecules ===
         displayInputMolecules(data.ingredients || "");
