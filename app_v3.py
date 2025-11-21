@@ -481,6 +481,10 @@ def predict():
         liver_function = data.get('liver_function', 'normal')
         kidney_function = data.get('kidney_function', 'normal')
 
+        # --- Initialize penalty variables ---
+        penalty_pct = 0.0
+        explanations_new = []
+
         # --- Ingredients ---
         tokens = [t.strip().lower() for t in ingredients_raw.split(';') if t.strip()]
         input_active = set(tokens)
