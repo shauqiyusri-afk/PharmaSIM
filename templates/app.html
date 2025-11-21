@@ -819,34 +819,6 @@
       "Nivolumab":"CC(=O)NC1=CC=C(O)C=C1"
     };
 
-    // Force RDKit to load and show molecules
-    function forceMoleculeDisplay() {
-      console.log("Force loading molecules...");
-      
-      // Re-render any existing molecules
-      const moleculeContainers = document.querySelectorAll('[id^="mol-"]');
-      moleculeContainers.forEach(container => {
-        const smiles = container.getAttribute('data-smiles');
-        if (smiles) {
-          renderMolecule(smiles, container.id);
-        }
-      });
-    }
-
-    // Check RDKit status every second until loaded
-    let rdkitCheckInterval = setInterval(() => {
-      if (rdkitModule) {
-        console.log("RDKit loaded, forcing molecule display");
-        clearInterval(rdkitCheckInterval);
-        forceMoleculeDisplay();
-      }
-    }, 1000);
-
-    // Also force display after form submission
-    form.addEventListener("submit", () => {
-      setTimeout(forceMoleculeDisplay, 2000);
-    });
-
      function createMoleculeCard(name, smiles) {
       const id = "mol-" + name.replace(/\s+/g, "-").toLowerCase() + "-" + Math.random().toString(36).slice(2, 7);
       const wrapper = document.createElement("div");
@@ -1172,10 +1144,6 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       runMessage.textContent = "Sending to server...";
-      // DEBUG: Check what's happening
-      console.log("=== DEBUG START ===");
-      console.log("RDKit status:", rdkitModule ? "LOADED" : "NOT LOADED");
-      console.log("Form data being sent:", data);
       runMessage.classList.remove("text-red-400");
       outputPanel.style.display = "none";
       emptyState.style.display = "none";
@@ -1218,11 +1186,6 @@
           emptyState.style.display = "block";
           return;
         }
-
-        // DEBUG: Check backend response
-        console.log("Backend response:", result);
-        console.log("Ethnicity predictions:", result.ethnicity_predictions);
-        console.log("=== DEBUG END ===");
 
         runMessage.textContent = "";
         outputPanel.style.display = "block";
@@ -1487,63 +1450,89 @@
           }
         });
 
+        // === Ethnicity Radar Chart - FIXED VERSION ===
         const ethCtx = document.getElementById("ethnicityRadarChart").getContext("2d");
         const labels = ["Malay", "Chinese", "Indian", "Indigenous"];
-        
-        // Get REAL data from backend ethnicity predictions
-        const newEth = labels.map(eth => {
-          const pred = result.ethnicity_predictions?.[eth.toLowerCase()];
-          return pred?.effectiveness || 75; // Fallback to 75 if no data
+
+        // Use the ethnicity scores from the prediction response
+        const newEth = labels.map(l => {
+            if (result.ethnicity_scores && result.ethnicity_scores.new_drug) {
+                return result.ethnicity_scores.new_drug[l] || 75;
+            }
+            return 75; // fallback
         });
-        
-        const knownEth = labels.map(eth => {
-          const pred = result.ethnicity_predictions?.[eth.toLowerCase()];
-          return (pred?.effectiveness || 75) * 0.9; // Known medicine is slightly lower
+
+        const knownEth = labels.map(l => {
+            if (result.ethnicity_scores && result.ethnicity_scores.known_medicine) {
+                return result.ethnicity_scores.known_medicine[l] || 68;
+            }
+            return 68; // fallback
         });
-        
+
         const selectedEthnicity = data.race || "";
 
         ethnicityChartInstance = new Chart(ethCtx, {
-          type: "radar",
-          data: {
-            labels,
-            datasets: [
-              {
-                label: "New Drug",
-                data: newEth,
-                borderColor: "rgba(129,140,248,1)",
-                backgroundColor: "rgba(129,140,248,0.25)",
-                pointBackgroundColor: newEth.map((_, i) =>
-                  labels[i] === selectedEthnicity ? "rgba(250,204,21,1)" : "rgba(129,140,248,1)"
-                )
-              },
-              {
-                label: "Known Medicine",
-                data: knownEth,
-                borderColor: "rgba(45,212,191,1)",
-                backgroundColor: "rgba(45,212,191,0.25)",
-                pointBackgroundColor: knownEth.map((_, i) =>
-                  labels[i] === selectedEthnicity ? "rgba(250,204,21,1)" : "rgba(45,212,191,1)"
-                )
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { labels: { color: "#e5e7eb", font: { size: 10 } } }
+            type: "radar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "New Drug",
+                        data: newEth,
+                        borderColor: "rgba(129,140,248,1)",
+                        backgroundColor: "rgba(129,140,248,0.25)",
+                        pointBackgroundColor: labels.map(l => 
+                            l === selectedEthnicity ? "rgba(250,204,21,1)" : "rgba(129,140,248,1)"
+                        )
+                    },
+                    {
+                        label: "Known Medicine",
+                        data: knownEth,
+                        borderColor: "rgba(45,212,191,1)",
+                        backgroundColor: "rgba(45,212,191,0.25)",
+                        pointBackgroundColor: labels.map(l => 
+                            l === selectedEthnicity ? "rgba(250,204,21,1)" : "rgba(45,212,191,1)"
+                        )
+                    }
+                ]
             },
-            scales: {
-              r: {
-                suggestedMin: 0,
-                suggestedMax: 100,
-                ticks: { color: "#9ca3af", showLabelBackdrop: false },
-                grid: { color: "rgba(148,163,184,0.4)" },
-                angleLines: { color: "rgba(148,163,184,0.4)" },
-                pointLabels: { color: "#e5e7eb", font: { size: 10 } }
-              }
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { 
+                        labels: { 
+                            color: "#e5e7eb", 
+                            font: { size: 10 } 
+                        } 
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                        ticks: { 
+                            color: "#9ca3af", 
+                            showLabelBackdrop: false,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        },
+                        grid: { color: "rgba(148,163,184,0.4)" },
+                        angleLines: { color: "rgba(148,163,184,0.4)" },
+                        pointLabels: { 
+                            color: "#e5e7eb", 
+                            font: { size: 10 } 
+                        }
+                    }
+                }
             }
-          }
         });
 
         // === Recovery curve ===

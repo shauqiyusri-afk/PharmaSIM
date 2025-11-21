@@ -974,7 +974,20 @@ def predict():
                 "clinical_insights": ethnicity_insights + organ_penalties,
                 "organ_function_considerations": organ_penalties,
                 "genetic_considerations": ethnicity_insights,
-                "ethnicity_scores": {"note": "Replaced with clinical insights system"},
+                "ethnicity_scores": {
+                "new_drug": {
+                    "Malay": ethnicity_predictions.get("malay", {}).get("effectiveness", 75),
+                    "Chinese": ethnicity_predictions.get("chinese", {}).get("effectiveness", 75), 
+                    "Indian": ethnicity_predictions.get("indian", {}).get("effectiveness", 75),
+                    "Indigenous": ethnicity_predictions.get("indigenous", {}).get("effectiveness", 75)
+                },
+                "known_medicine": {
+                    "Malay": ethnicity_predictions.get("malay", {}).get("effectiveness", 75) * 0.9,
+                    "Chinese": ethnicity_predictions.get("chinese", {}).get("effectiveness", 75) * 0.9,
+                    "Indian": ethnicity_predictions.get("indian", {}).get("effectiveness", 75) * 0.9,
+                    "Indigenous": ethnicity_predictions.get("indigenous", {}).get("effectiveness", 75) * 0.9
+                }
+            },
                 "escalation_applied": escalation_applied,
                 "model_narrative": model_narrative,
                         "debug": {
