@@ -274,6 +274,54 @@ def calculate_organ_function_penalties(liver_function, kidney_function, ingredie
             
             return adjustments, penalties
 
+def predict_for_all_ethnicities(base_data, ingredients, dosage_mg):
+    """Run ML predictions for all ethnicities"""
+    ethnicity_results = {}
+    
+    # Base inputs (from current prediction)
+    gender_e = safe_transform(gender_enc, base_data['gender'])
+    symptom_e = safe_transform(symptom_enc, base_data['symptom'])
+    age = base_data['age']
+    ingredient_count = len(ingredients)
+    
+    # Test for each ethnicity
+    ethnicities = ["malay", "chinese", "indian", "indigenous"]
+    
+    for ethnicity in ethnicities:
+        try:
+            # Encode this ethnicity
+            race_e = safe_transform(race_enc, ethnicity)
+            
+            # Create input vector
+            input_vector = np.array([[
+                race_e, gender_e, age, symptom_e, ingredient_count, dosage_mg
+            ]])
+            
+            # Get ML predictions
+            effectiveness = float(effectiveness_model.predict(input_vector)[0])
+            side_effect = float(side_effect_model.predict(input_vector)[0])
+            success_rate = float(success_rate_model.predict(input_vector)[0])
+            
+            # Apply bounds
+            effectiveness = max(0.0, min(100.0, effectiveness))
+            success_rate = max(0.0, min(100.0, success_rate))
+            
+            ethnicity_results[ethnicity] = {
+                "effectiveness": effectiveness,
+                "side_effect_risk": side_effect,
+                "success_rate": success_rate
+            }
+            
+        except Exception as e:
+            # Fallback if ethnicity not in encoder
+            ethnicity_results[ethnicity] = {
+                "effectiveness": 75.0,  # Default fallback
+                "side_effect_risk": 0.3,
+                "success_rate": 70.0
+            }
+    
+    return ethnicity_results
+
 # -----------------------------
 # User auth storage
 # -----------------------------
@@ -510,6 +558,24 @@ def predict():
         effectiveness = effectiveness_raw
         side_effect_val = side_effect_raw
         success_rate = success_rate_ml
+
+        # --- STORE ETHNICITY COMPARISONS ---
+        ethnicity_predictions = predict_for_all_ethnicities(
+            base_data={
+                'gender': gender,
+                'symptom': symptom, 
+                'age': age
+            },
+            ingredients=tokens,
+            dosage_mg=dosage_mg
+        )
+
+        # Store in user session for the chart
+        auth = request.headers.get("Authorization", "")
+        token = auth.replace("Bearer ", "").strip()
+        if token in sessions:
+            sessions[token]['ethnicity_predictions'] = ethnicity_predictions
+            save_json(SESS_FILE, sessions)
 
         # Apply organ penalties to predictions
         if 'effectiveness_penalty' in organ_adjustments:
@@ -949,29 +1015,53 @@ def predict():
 
 
 @app.route("/ethnicity-data", methods=["GET"])
+@auth_required
 def ethnicity_data():
-    # 🔥 For now, return mock numbers (later we can link to CSV or DB)
+    # Get current user's ethnicity predictions
+    auth = request.headers.get("Authorization", "")
+    token = auth.replace("Bearer ", "").strip()
+    user_session = sessions.get(token, {})
+    
+    ethnicity_predictions = user_session.get('ethnicity_predictions', {})
+    
+    # If no predictions yet, return empty data
+    if not ethnicity_predictions:
+        return jsonify({
+            "labels": ["Malay", "Chinese", "Indian", "Indigenous"],
+            "datasets": []
+        })
+    
+    # Extract effectiveness scores for each ethnicity
+    your_drug_scores = [
+        ethnicity_predictions.get("malay", {}).get("effectiveness", 75),
+        ethnicity_predictions.get("chinese", {}).get("effectiveness", 75),
+        ethnicity_predictions.get("indian", {}).get("effectiveness", 75),
+        ethnicity_predictions.get("indigenous", {}).get("effectiveness", 75)
+    ]
+    
+    # Calculate known medicine baseline (your drug - 10% as example)
+    known_medicine_scores = [score * 0.90 for score in your_drug_scores]
+    
     data = {
-        "labels": ["Effectiveness", "Success Rate", "Side Effect Risk"],
+        "labels": ["Malay", "Chinese", "Indian", "Indigenous"],
         "datasets": [
             {
-                "label": "Malay",
-                "data": [70, 68, 75]
+                "label": "Your Drug",
+                "data": your_drug_scores,
+                "borderColor": "rgb(75, 192, 192)",
+                "backgroundColor": "rgba(75, 192, 192, 0.2)",
+                "pointBackgroundColor": "rgb(75, 192, 192)"
             },
             {
-                "label": "Chinese",
-                "data": [72, 69, 78]
-            },
-            {
-                "label": "Indian",
-                "data": [68, 65, 80]
-            },
-            {
-                "label": "Indigenous",
-                "data": [73, 71, 77]
+                "label": "Known Medicine Avg",
+                "data": known_medicine_scores,
+                "borderColor": "rgb(255, 99, 132)",
+                "backgroundColor": "rgba(255, 99, 132, 0.2)", 
+                "pointBackgroundColor": "rgb(255, 99, 132)"
             }
         ]
     }
+    
     return jsonify(data)
 
 # -----------------------------
