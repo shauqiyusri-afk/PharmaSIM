@@ -97,14 +97,26 @@
 
     .molecule-viewer{
       width:100%;
-      height:200px;
+      height:180px;
       border-radius:0.9rem;
       border:1px solid rgba(148,163,184,0.4);
-      background:#f9fafb;
+      background:#0f172a !important;
       display:flex;
       align-items:center;
       justify-content:center;
       overflow:hidden;
+    }
+
+    .molecule-viewer svg{
+      max-width:100%;
+      max-height:100%;
+      background:#0f172a !important;
+    }
+
+    .molecule-card{
+      background:rgba(15,23,42,0.8) !important;
+      border:1px solid rgba(148,163,184,0.3) !important;
+      color:#e5e7eb !important;
     }
 
     .scroll-smooth{
@@ -442,7 +454,7 @@
               </div>
             </div>
           </div>
-          
+        </div>
         <!-- 🩺 CLINICAL SAFETY FACTORS - ADD THIS SECTION -->
         <div class="border border-slate-700/80 rounded-2xl p-3.5 space-y-3 bg-slate-950/60">
           <div class="flex items-center justify-between mb-1">
@@ -730,24 +742,56 @@
     async function initRDKit() {
       try {
         rdkitModule = await window.initRDKitModule();
+        console.log("RDKit loaded successfully");
       } catch (e) {
         console.error("RDKit init failed:", e);
+        // Show user-friendly message
+        const moleculeSections = document.querySelectorAll('#inputMoleculesSection, #matchMoleculesSection');
+        moleculeSections.forEach(section => {
+          if (section.style.display !== "none") {
+            section.innerHTML = '<div class="text-center text-slate-400 p-4">Molecule viewer unavailable</div>';
+          }
+        });
       }
     }
     window.addEventListener("load", initRDKit);
 
-    function renderMolecule(smiles, containerId, w = 230, h = 180) {
-      if (!rdkitModule) return false;
+    function renderMolecule(smiles, containerId, w = 200, h = 150) {
+      if (!rdkitModule) {
+        console.warn("RDKit not loaded");
+        const el = document.getElementById(containerId);
+        if (el) el.innerHTML = '<div class="text-[11px] text-slate-400">RDKit loading...</div>';
+        return false;
+      }
+      
       try {
-        const mol = rdkitModule.get_mol(smiles);
-        if (!mol) return false;
-        const svg = mol.get_svg(w, h);
+        const mol = rdkitModule.get_mol(smiles || "C");
+        if (!mol) {
+          console.warn("Invalid molecule:", smiles);
+          const el = document.getElementById(containerId);
+          if (el) el.innerHTML = '<div class="text-[11px] text-slate-400">Invalid structure</div>';
+          return false;
+        }
+        
+        // Better styling for dark theme
+        const svg = mol.get_svg(w, h, {
+          'background': '#0f172a',
+          'bondLineWidth': 1.5,
+          'addStereoAnnotation': true
+        });
+        
         mol.delete();
         const el = document.getElementById(containerId);
-        if (el) el.innerHTML = svg;
+        if (el) {
+          // Style the SVG for dark theme
+          const styledSVG = svg.replace('<svg', '<svg style="background:#0f172a; color:#e5e7eb;"');
+          el.innerHTML = styledSVG;
+        }
         return true;
       } catch (e) {
-        console.error(e);
+        console.error("RDKit render error:", e);
+        const el = document.getElementById(containerId);
+        if (el) el.innerHTML = '<div class="text-[11px] text-slate-400">Render error</div>';
         return false;
       }
     }
@@ -775,79 +819,101 @@
       "Nivolumab":"CC(=O)NC1=CC=C(O)C=C1"
     };
 
-    function createMoleculeCard(name, smiles) {
+     function createMoleculeCard(name, smiles) {
       const id = "mol-" + name.replace(/\s+/g, "-").toLowerCase() + "-" + Math.random().toString(36).slice(2, 7);
       const wrapper = document.createElement("div");
-      wrapper.className = "rounded-xl bg-slate-100 text-slate-900 p-2 space-y-1";
+      wrapper.className = "rounded-xl bg-slate-900/80 border border-slate-700/60 p-3 space-y-2 molecule-card";
       wrapper.innerHTML = `
-        <p class="text-[11px] font-semibold mb-1">${name}</p>
-        <div id="${id}" class="molecule-viewer text-[11px] text-slate-500">Loading structure...</div>
-        <p class="text-[10px] text-slate-500 mt-1">${smiles}</p>
+        <p class="text-[11px] font-semibold text-slate-200 text-center">${name}</p>
+        <div id="${id}" class="molecule-viewer flex items-center justify-center">
+          <div class="text-[11px] text-slate-400">Rendering...</div>
+        </div>
+        <p class="text-[10px] text-slate-400 text-center truncate" title="${smiles}">${smiles}</p>
       `;
+      
+      // Render with slight delay to ensure DOM is ready
       setTimeout(() => {
-        if (!renderMolecule(smiles, id)) {
+        if (!renderMolecule(smiles, id, 180, 140)) {
           const el = document.getElementById(id);
-          if (el) el.innerHTML = '<div class="text-[11px] text-slate-500">Structure not available</div>';
+          if (el) el.innerHTML = '<div class="text-[11px] text-slate-400 text-center">Structure not available</div>';
         }
       }, 100);
+      
       return wrapper;
     }
 
-    function displayInputMolecules(ingStr){
+    function displayInputMolecules(ingStr) {
       const ingredients = ingStr.split(";").map(s => s.trim()).filter(Boolean);
       const grid = document.getElementById("inputMoleculesGrid");
       const section = document.getElementById("inputMoleculesSection");
+      
       if (ingredients.length === 0) {
         section.style.display = "none";
         return;
       }
+      
       grid.innerHTML = "";
-      let any = false;
+      let anyRendered = false;
+      
       ingredients.forEach(name => {
-        const smiles = moleculesDB[name];
+        const smiles = moleculesDB[name.trim()];
         if (smiles) {
-          any = true;
-          grid.appendChild(createMoleculeCard(name, smiles));
+          anyRendered = true;
+          const card = createMoleculeCard(name, smiles);
+          grid.appendChild(card);
         } else {
-          const d = document.createElement("div");
-          d.className = "rounded-xl bg-slate-100 text-slate-900 p-2 space-y-1";
-          d.innerHTML = `
-            <p class="text-[11px] font-semibold mb-1">${name}</p>
-            <div class="molecule-viewer text-[11px] text-slate-500">Structure not available</div>
-            <p class="text-[10px] text-slate-500 mt-1">Unknown SMILES</p>
+          // Show placeholder for unknown molecules
+          const placeholder = document.createElement("div");
+          placeholder.className = "rounded-xl bg-slate-900/80 border border-slate-700/60 p-3 space-y-2";
+          placeholder.innerHTML = `
+            <p class="text-[11px] font-semibold text-slate-200 text-center">${name}</p>
+            <div class="molecule-viewer flex items-center justify-center">
+              <div class="text-[11px] text-slate-400 text-center">No structure<br/>available</div>
+            </div>
+            <p class="text-[10px] text-slate-400 text-center">Unknown molecule</p>
           `;
-          grid.appendChild(d);
+          grid.appendChild(placeholder);
         }
       });
-      section.style.display = any ? "block" : "none";
+      
+      section.style.display = anyRendered ? "block" : "none";
     }
 
-    function displayMatchMolecules(best){
+    function displayMatchMolecules(best) {
       const grid = document.getElementById("matchMoleculesGrid");
       const section = document.getElementById("matchMoleculesSection");
+      
       if (!best || !best.medicine_name) {
         section.style.display = "none";
         return;
       }
+      
       grid.innerHTML = "";
+      let anyRendered = false;
       let ingredients = [];
+      
+      // Try to get ingredients from best match
       if (best.ingredients_active && Array.isArray(best.ingredients_active)) {
         ingredients = best.ingredients_active;
       } else if (moleculesDB[best.medicine_name]) {
         ingredients = [best.medicine_name];
       }
+      
       if (ingredients.length === 0) {
         section.style.display = "none";
         return;
       }
-      let any = false;
-      ingredients.forEach(n => {
-        if (moleculesDB[n]) {
-          any = true;
-          grid.appendChild(createMoleculeCard(n, moleculesDB[n]));
+      
+      ingredients.forEach(name => {
+        const smiles = moleculesDB[name];
+        if (smiles) {
+          anyRendered = true;
+          const card = createMoleculeCard(name, smiles);
+          grid.appendChild(card);
         }
       });
-      section.style.display = any ? "block" : "none";
+      
+      section.style.display = anyRendered ? "block" : "none";
     }
 
     // ================ Dosage auto conversion ==================
