@@ -454,7 +454,6 @@
               </div>
             </div>
           </div>
-        </div>
 
         <!-- 🩺 CLINICAL SAFETY FACTORS - ADD THIS SECTION -->
         <div class="border border-slate-700/80 rounded-2xl p-3.5 space-y-3 bg-slate-950/60">
@@ -503,31 +502,29 @@
           </div>
         </div>
 
-        <!-- Buttons -->
-        <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-
           <!-- Buttons -->
-          <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-            <button
-              type="submit"
-              class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-full text-xs font-semibold text-slate-950
-                     bg-gradient-to-r from-violet-400 via-sky-300 to-emerald-300 hover:brightness-110 transition shadow-lg shadow-violet-900/50">
-              <span class="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center text-[10px]">
-                ▶
-              </span>
-              Run Simulation
-            </button>
+          <!-- Buttons -->
+            <div class="flex flex-col sm:flex-row gap-3 items-center justify-between pt-1">
+              <button
+                type="submit"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold text-slate-950
+                      bg-gradient-to-r from-violet-400 via-sky-300 to-emerald-300 hover:brightness-110 transition shadow-lg shadow-violet-900/50">
+                <span class="w-5 h-5 rounded-full bg-slate-950/20 flex items-center justify-center text-[10px]">
+                  ▶
+                </span>
+                Run Simulation
+              </button>
 
-            <button
-              type="button"
-              id="clearBtn"
-              class="px-3 py-2.5 rounded-full text-xs font-medium text-slate-200 border border-slate-600/70 bg-slate-900/70 hover:bg-slate-800 transition"
-            >
-              Reset form
-            </button>
-          </div>
+              <button
+                type="button"
+                id="clearBtn"
+                class="px-4 py-2.5 rounded-full text-xs font-medium text-slate-200 border border-slate-600/70 
+                      bg-slate-900/70 hover:bg-slate-800 transition">
+                Reset form
+              </button>
+            </div>
+            <p id="runMessage" class="text-[11px] text-slate-400 mt-1 h-4"></p>
 
-          <p id="runMessage" class="text-[11px] text-slate-400 mt-1 h-4"></p>
         </form>
       </div>
 
