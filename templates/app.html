@@ -530,37 +530,38 @@
         </form>
       </div>
 
-      <!-- RIGHT: Outputs -->
+            <!-- RIGHT: Outputs -->
       <div id="outputs" class="space-y-5">
         <div class="glass p-5 space-y-4" id="outputPanel" style="display:none;">
-          <!-- Header -->
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <p class="text-[11px] uppercase tracking-[0.18em] text-slate-400">Step 2</p>
-              <h2 class="text-sm font-semibold text-slate-50">Simulation Insights</h2>
-              <p class="text-[11px] text-slate-400 max-w-md">
-                Model-predicted performance for this candidate vs the closest known medicine in our dataset.
-              </p>
-            </div>
-            <div class="flex items-center gap-2">
+          <!-- Header - More compact -->
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+            <div class="flex items-center gap-3">
+              <div>
+                <p class="text-[11px] uppercase tracking-[0.18em] text-slate-400">Step 2</p>
+                <h2 class="text-sm font-semibold text-slate-50">Simulation Insights</h2>
+              </div>
               <div id="badge" class="badge-gradient px-3 py-1 text-[11px] text-slate-50">
                 Analysing match...
               </div>
-
-              <!-- NEW: Running virtual trial chip -->
-              <div
-                id="loadingChip"
-                class="hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-full
-                      bg-slate-900/90 border border-slate-700/80 text-[10px] text-slate-300"
-              >
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Running virtual trial…</span>
-              </div>
+            </div>
+            
+            <!-- Loading chip moved to top right -->
+            <div
+              id="loadingChip"
+              class="hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                    bg-slate-900/90 border border-slate-700/80 text-[10px] text-slate-300"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Running virtual trial…</span>
             </div>
           </div>
 
+          <p class="text-[11px] text-slate-400 mb-3 -mt-1">
+            Model-predicted performance for this candidate vs the closest known medicine in our dataset.
+          </p>
+
           <!-- KPIs -->
-          <div class="grid sm:grid-cols-3 gap-3 text-xs">
+          <div class="grid sm:grid-cols-3 gap-2 text-xs mb-3">
 
             <div class="kpi-card rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
               <p class="text-[11px] text-slate-400">Effectiveness</p>
@@ -582,7 +583,7 @@
           </div>
 
           <!-- Best match + explanation -->
-          <div class="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-4 items-start mt-2">
+          <div class="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-3 items-start">
             <div class="space-y-3 text-xs">
               <div id="bestMatchBox" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
                 <!-- populated by JS -->
@@ -638,24 +639,26 @@
           </div>
 
           <!-- Molecules -->
-          <div class="grid md:grid-cols-2 gap-4 mt-4 text-xs">
-            <div id="inputMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2" style="display:none;">
-              <p class="text-[11px] font-semibold text-slate-200 text-center">
-                Input drug — molecular structures
-              </p>
-              <div id="inputMoleculesGrid" class="grid gap-2"></div>
-            </div>
+          <div id="moleculesContainer" class="hidden mt-3">
+            <div class="grid md:grid-cols-2 gap-3 text-xs">
+              <div id="inputMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2">
+                <p class="text-[11px] font-semibold text-slate-200 text-center">
+                  Input drug — molecular structures
+                </p>
+                <div id="inputMoleculesGrid" class="grid gap-2"></div>
+              </div>
 
-            <div id="matchMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2" style="display:none;">
-              <p class="text-[11px] font-semibold text-slate-200 text-center">
-                Best match medicine — molecular structures
-              </p>
-              <div id="matchMoleculesGrid" class="grid gap-2"></div>
+              <div id="matchMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2">
+                <p class="text-[11px] font-semibold text-slate-200 text-center">
+                  Best match medicine — molecular structures
+                </p>
+                <div id="matchMoleculesGrid" class="grid gap-2"></div>
+              </div>
             </div>
           </div>
 
           <!-- Comparison + charts -->
-          <div class="mt-4 grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-4 items-start">
+          <div class="mt-3 grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-3 items-start">
             <div class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 text-[11px] overflow-x-auto">
               <p class="font-semibold text-slate-200 mb-2">Side-by-side comparison</p>
               <table class="min-w-full text-[11px] text-left border-collapse">
@@ -691,7 +694,7 @@
           </div>
 
           <!-- Recovery curve -->
-          <div class="mt-5 rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
+          <div class="mt-3 rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
             <p class="text-[11px] font-semibold text-slate-200 text-center mb-1.5">
               Patient recovery simulation (6-month horizon)
             </p>
@@ -701,7 +704,7 @@
           </div>
 
           <!-- Explanation -->
-          <div id="explanationSection" class="mt-4 rounded-2xl bg-slate-950/90 border border-slate-700/90 px-3.5 py-3 space-y-2" style="display:none;">
+          <div id="explanationSection" class="mt-3 rounded-2xl bg-slate-950/90 border border-slate-700/90 px-3.5 py-3 space-y-2" style="display:none;">
             <p id="explanation" class="text-[11px] uppercase tracking-[0.18em] text-slate-400">
               Model narrative
             </p>
@@ -845,10 +848,11 @@
     function displayInputMolecules(ingStr) {
       const ingredients = ingStr.split(";").map(s => s.trim()).filter(Boolean);
       const grid = document.getElementById("inputMoleculesGrid");
+      const container = document.getElementById("moleculesContainer");
       const section = document.getElementById("inputMoleculesSection");
       
       if (ingredients.length === 0) {
-        section.style.display = "none";
+        container.style.display = "none";
         return;
       }
       
@@ -861,30 +865,21 @@
           anyRendered = true;
           const card = createMoleculeCard(name, smiles);
           grid.appendChild(card);
-        } else {
-          // Show placeholder for unknown molecules
-          const placeholder = document.createElement("div");
-          placeholder.className = "rounded-xl bg-slate-900/80 border border-slate-700/60 p-3 space-y-2";
-          placeholder.innerHTML = `
-            <p class="text-[11px] font-semibold text-slate-200 text-center">${name}</p>
-            <div class="molecule-viewer flex items-center justify-center">
-              <div class="text-[11px] text-slate-400 text-center">No structure<br/>available</div>
-            </div>
-            <p class="text-[10px] text-slate-400 text-center">Unknown molecule</p>
-          `;
-          grid.appendChild(placeholder);
         }
       });
       
+      container.style.display = anyRendered ? "block" : "none";
       section.style.display = anyRendered ? "block" : "none";
     }
 
     function displayMatchMolecules(best) {
       const grid = document.getElementById("matchMoleculesGrid");
+      const container = document.getElementById("moleculesContainer");
       const section = document.getElementById("matchMoleculesSection");
       
       if (!best || !best.medicine_name) {
         section.style.display = "none";
+        // Don't hide container - input molecules might be showing
         return;
       }
       
@@ -892,7 +887,6 @@
       let anyRendered = false;
       let ingredients = [];
       
-      // Try to get ingredients from best match
       if (best.ingredients_active && Array.isArray(best.ingredients_active)) {
         ingredients = best.ingredients_active;
       } else if (moleculesDB[best.medicine_name]) {
@@ -914,6 +908,10 @@
       });
       
       section.style.display = anyRendered ? "block" : "none";
+      // Show container if either section has content
+      if (anyRendered || document.getElementById("inputMoleculesGrid").children.length > 0) {
+        container.style.display = "block";
+      }
     }
 
     // ================ Dosage auto conversion ==================
@@ -1114,6 +1112,7 @@
     }
 
     // ================ Clear form ==================
+        // ================ Clear form ==================
     clearBtn.addEventListener("click", () => {
       form.reset();
       runMessage.textContent = "";
@@ -1134,6 +1133,9 @@
       explanationSection.style.display = "none";
       inputMoleculesSection.style.display = "none";
       matchMoleculesSection.style.display = "none";
+      
+      // ADD THIS LINE - Hide the molecules container
+      document.getElementById("moleculesContainer").style.display = "none";
 
       if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
       if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
