@@ -429,37 +429,6 @@
                   <option value="elderly">Elderly (Sedation Risk)</option>
                 </select>
               </div>
-
-              <!-- NEW: Organ Function -->
-              <div class="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Liver Function
-                  </label>
-                  <select name="liver_function">
-                    <option value="">Select...</option>
-                    <option value="normal">Normal</option>
-                    <option value="mild_impairment">Mild impairment</option>
-                    <option value="moderate_impairment">Moderate impairment</option>
-                    <option value="severe_impairment">Severe impairment</option>
-                    <option value="failure_dialysis">Failure / on dialysis</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block mb-1 text-[11px] text-slate-300">
-                    Kidney Function
-                  </label>
-                  <select name="kidney_function">
-                    <option value="">Select...</option>
-                    <option value="normal">Normal</option>
-                    <option value="mild_impairment">Mild impairment</option>
-                    <option value="moderate_impairment">Moderate impairment</option>
-                    <option value="severe_impairment">Severe impairment</option>
-                    <option value="failure_dialysis">Failure / on dialysis</option>
-                  </select>
-                </div>
-              </div>
-
               <div>
                 <label class="block mb-1 text-[11px] text-slate-300">
                   Ingredients
@@ -473,6 +442,59 @@
               </div>
             </div>
           </div>
+
+                    </div>
+        </div>
+
+        <!-- 🩺 CLINICAL SAFETY FACTORS - ADD THIS SECTION -->
+        <div class="border border-slate-700/80 rounded-2xl p-3.5 space-y-3 bg-slate-950/60">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-[11px] font-semibold text-slate-200">🩺 Clinical Safety Factors</p>
+            <span class="text-[10px] text-slate-400">Optional but recommended</span>
+          </div>
+
+          <div class="space-y-2.5">
+            <div>
+              <label class="block mb-1 text-[11px] text-slate-300">
+                Known Genetic Risks
+              </label>
+              <select name="genetic_risks" class="w-full">
+                <option value="">None identified</option>
+                <option value="cyp2d6_poor">CYP2D6 Poor Metabolizer</option>
+                <option value="hla_b1502">HLA-B*1502 (SJS Risk)</option>
+                <option value="tpmt_deficient">TPMT Deficiency</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block mb-1 text-[11px] text-slate-300">
+                  Liver Function
+                </label>
+                <select name="liver_function" class="w-full">
+                  <option value="normal">Normal</option>
+                  <option value="mild_impairment">Mild Impairment</option>
+                  <option value="moderate_impairment">Moderate Impairment</option>
+                  <option value="severe_impairment">Severe Impairment</option>
+                </select>
+              </div>
+              <div>
+                <label class="block mb-1 text-[11px] text-slate-300">
+                  Kidney Function
+                </label>
+                <select name="kidney_function" class="w-full">
+                  <option value="normal">Normal</option>
+                  <option value="mild_impairment">Mild Impairment</option>
+                  <option value="moderate_impairment">Moderate Impairment</option>
+                  <option value="severe_impairment">Severe Impairment</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
 
           <!-- Buttons -->
           <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
@@ -561,6 +583,14 @@
                 <p class="text-[11px] font-semibold text-slate-200">Why did the model choose these numbers?</p>
                 <div id="newDrugReasons" class="text-[11px] text-slate-300 space-y-1.5">
                   <!-- explanation bullets -->
+                </div>
+              </div>
+
+                            <!-- 🩺 CLINICAL INSIGHTS DISPLAY - ADD THIS -->
+              <div class="rounded-2xl bg-slate-950/80 border border-blue-700/80 px-3.5 py-3 space-y-2">
+                <p class="text-[11px] font-semibold text-blue-200">🩺 Clinical Safety Insights</p>
+                <div id="clinicalInsights" class="text-[11px] text-blue-100 space-y-1">
+                  <!-- Will be populated by backend -->
                 </div>
               </div>
 
@@ -1112,6 +1142,16 @@
         // === Narrative + new drug explanations ===
         const reasonsBox = document.getElementById("newDrugReasons");
         reasonsBox.innerHTML = "";
+
+                // === 🩺 Clinical Insights Display ===
+        const clinicalInsightsEl = document.getElementById("clinicalInsights");
+        if (result.clinical_insights && result.clinical_insights.length > 0) {
+          clinicalInsightsEl.innerHTML = result.clinical_insights
+            .map(insight => `<div class="flex items-start gap-2"><span class="mt-0.5">•</span><span>${insight}</span></div>`)
+            .join('');
+        } else {
+          clinicalInsightsEl.innerHTML = '<div class="text-[11px] text-slate-400">No specific clinical safety concerns identified.</div>';
+        }
 
         // 1) MAIN MODEL NARRATIVE (prefer backend string)
         if (explanationSection && explanationText) {

@@ -429,6 +429,20 @@ def predict():
         if dosage_ml == 0 and dosage_mg > 0 and concentration > 0:
             dosage_ml = dosage_mg / concentration
 
+        # --- Get clinical safety factors ---
+        genetic_risks = data.get('genetic_risks', '')
+        liver_function = data.get('liver_function', 'normal')
+        kidney_function = data.get('kidney_function', 'normal')
+
+        # Calculate REAL organ function penalties
+        organ_adjustments, organ_penalties = calculate_organ_function_penalties(liver_function, kidney_function, tokens)
+
+        # Apply organ penalties to predictions
+        if 'effectiveness_penalty' in organ_adjustments:
+            effectiveness *= (1 - organ_adjustments['effectiveness_penalty'])
+        if 'success_penalty' in organ_adjustments:
+            success_rate *= (1 - organ_adjustments['success_penalty'])
+
         # --- Ingredients ---
         tokens = [t.strip().lower() for t in ingredients_raw.split(';') if t.strip()]
         input_active = set(tokens)
@@ -443,17 +457,49 @@ def predict():
         input_vector = np.array([[race_e, gender_e, age, symptom_e, ingredient_count, dosage_mg]])
 
         # --- ML predictions ---
-        effectiveness = float(effectiveness_model.predict(input_vector)[0])
-        side_effect_val = float(side_effect_model.predict(input_vector)[0])
-        success_rate = float(success_rate_model.predict(input_vector)[0])
+        effectiveness_raw = float(effectiveness_model.predict(input_vector)[0])
+        side_effect_raw   = float(side_effect_model.predict(input_vector)[0])
+        success_rate_ml   = float(success_rate_model.predict(input_vector)[0])
 
-        # --- Side effect label ---
+        # working copies for adjustments
+        effectiveness = effectiveness_raw
+        side_effect_val = side_effect_raw
+        success_rate = success_rate_ml
+
+
+        # --- Basic bounds on raw outputs ---
+        # side_effect_val is a probability-like 0–1; others are %
+        side_effect_val = max(0.0, min(1.0, side_effect_val))
+        effectiveness = max(0.0, min(100.0, effectiveness))
+        success_rate = max(0.0, min(100.0, success_rate))
+
+        # --- Side effect label (first pass from model) ---
         if side_effect_val < 0.33:
             side_effect_label = "Low"
         elif side_effect_val < 0.66:
             side_effect_label = "Medium"
         else:
             side_effect_label = "High"
+
+        # Helper: is this a generally "healthy, low-risk" profile?
+        def is_healthy_profile():
+            conds_empty = len(user_conditions) == 0
+            liver_ok = (not liver_function) or ("normal" in liver_function)
+            kidney_ok = (not kidney_function) or ("normal" in kidney_function)
+            age_ok = 18 <= age <= 60
+            # simple dose sanity for common symptomatic drugs in this prototype
+            dose_ok = (dosage_mg <= 500) if dosage_mg > 0 else True
+            return conds_empty and liver_ok and kidney_ok and age_ok and dose_ok
+
+        healthy_profile = is_healthy_profile()
+
+        # Refine side-effect label to behave more like real clinical reasoning
+        if healthy_profile and side_effect_label == "High" and side_effect_val < 0.90:
+            # healthy adult: only call it "High" if model is extremely sure
+            side_effect_label = "Medium"
+        elif (not healthy_profile) and side_effect_label == "Low" and side_effect_val > 0.25:
+            # higher-risk patients: avoid over-optimistic "Low" labels
+            side_effect_label = "Medium"
 
         # --- Age-based explanations ---
         explanations = {}
@@ -474,68 +520,140 @@ def predict():
         else:
             explanations["side_effects"] = "Side effect risk is low."
 
+        # --- Hybrid clinical success rate (Option C) ---
+        # OG logic: real-world success drops if side-effects are high,
+        # so we combine model success with an adjusted term:
+        #   success_from_tolerability = effectiveness × (1 – side_effect_val)
+        success_from_tolerability = effectiveness * (1.0 - side_effect_val)
+
+        # Blend: 70% ML success model + 30% physics-style formula
+        success_rate_after_blend = 0.7 * success_rate + 0.3 * success_from_tolerability
+        success_rate = success_rate_after_blend
+
+        # Clinical sanity: overall success should not meaningfully exceed effectiveness
+        if success_rate > effectiveness:
+            success_rate = effectiveness
+
         # --- Health condition penalties ---
+                # --- Health condition penalties (improved version) ---
+        # Lighter weights so penalties don't destroy predictions
         health_penalty_map = {
-            "liver_disease": {"note": "Effectiveness and success adjusted due to liver disease.", "weight": 0.08},
-            "kidney_disease": {"note": "Adjusted for kidney disease.", "weight": 0.10},
-            "asthma": {"note": "Higher risk predicted due to asthma.", "weight": 0.07},
-            "heart_disease": {"note": "Adjusted due to cardiovascular risk.", "weight": 0.09},
-            "hypertension": {"note": "Reduced success rate due to hypertension risk.", "weight": 0.05},
-            "pregnancy": {"note": "Special caution due to pregnancy safety.", "weight": 0.12},
-            "glaucoma": {"note": "Warning: contraindicated risk for glaucoma.", "weight": 0.06},
-            "elderly": {"note": "Adjusted for elderly patient.", "weight": 0.05},
-            "diabetes": {"note": "Effectiveness slightly reduced due to diabetes.", "weight": 0.04}
+            "liver_disease": {"note": "Liver disease may reduce drug metabolism.", "weight": 0.05},
+            "kidney_disease": {"note": "Kidney impairment affects drug clearance.", "weight": 0.06},
+            "asthma": {"note": "Adjusted due to asthma-related risk.", "weight": 0.03},
+            "heart_disease": {"note": "Cardiovascular conditions impact drug tolerance.", "weight": 0.05},
+            "hypertension": {"note": "Adjusted due to elevated blood pressure.", "weight": 0.03},
+            "pregnancy": {"note": "Special safety adjustments applied for pregnancy.", "weight": 0.08},
+            "glaucoma": {"note": "Certain drugs contraindicated in glaucoma.", "weight": 0.03},
+            "elderly": {"note": "Elderly profile affects drug processing.", "weight": 0.04},
+            "diabetes": {"note": "Metabolic changes from diabetes considered.", "weight": 0.03}
         }
 
-        # Extra penalties from structured liver/kidney function inputs (if provided)
-        def _organ_penalty(label, value_str):
-            lvl = (value_str or "").lower()
-            if not lvl or "normal" in lvl:
-                return 0.0, None
-            if "mild" in lvl:
-                w = 0.05
-                severity = "mild"
-            elif "moderate" in lvl:
-                w = 0.10
-                severity = "moderate"
-            elif "severe" in lvl:
-                w = 0.15
-                severity = "severe"
-            else:
-                w = 0.07
-                severity = "impaired"
-            note = f"{label} function {severity} — effectiveness and success further reduced."
-            return w, note
-
+        # Organ-specific structured penalties (mild/moderate/severe)
+        def calculate_organ_function_penalties(liver_function, kidney_function, ingredients):
+            """Realistic organ function adjustments based on drug metabolism"""
+            penalties = []
+            adjustments = {}
+            
+            # Convert to consistent format
+            liver_status = liver_function.lower() if liver_function else "normal"
+            kidney_status = kidney_function.lower() if kidney_function else "normal"
+            
+            # Liver impairment penalties
+            if "mild" in liver_status or "moderate" in liver_status or "severe" in liver_status:
+                # Drugs that are hepatically metabolized
+                hepatically_cleared = ['paracetamol', 'ibuprofen', 'diazepam', 'simvastatin', 'warfarin', 'codeine']
+                if any(drug in ' '.join(ingredients).lower() for drug in hepatically_cleared):
+                    if "mild" in liver_status:
+                        penalty = 0.15
+                        adjustments['effectiveness_penalty'] = penalty
+                        penalties.append("Liver impairment reduces metabolism of hepatically-cleared drugs")
+                    elif "moderate" in liver_status:
+                        penalty = 0.25
+                        adjustments['effectiveness_penalty'] = penalty
+                        penalties.append("Moderate liver impairment significantly affects drug metabolism")
+                    elif "severe" in liver_status:
+                        penalty = 0.40
+                        adjustments['effectiveness_penalty'] = penalty
+                        penalties.append("Severe liver impairment - consider alternative medications")
+            
+            # Kidney impairment penalties  
+            if "mild" in kidney_status or "moderate" in kidney_status or "severe" in kidney_status:
+                # Drugs that are renally cleared
+                renally_cleared = ['metformin', 'digoxin', 'gentamicin', 'lisinopril', 'penicillin']
+                if any(drug in ' '.join(ingredients).lower() for drug in renally_cleared):
+                    if "mild" in kidney_status:
+                        penalty = 0.10
+                        adjustments['success_penalty'] = penalty
+                        penalties.append("Kidney impairment affects clearance of renally-excreted drugs")
+                    elif "moderate" in kidney_status:
+                        penalty = 0.20
+                        adjustments['success_penalty'] = penalty
+                        penalties.append("Moderate kidney impairment requires dose adjustment")
+                    elif "severe" in kidney_status:
+                        penalty = 0.35
+                        adjustments['success_penalty'] = penalty
+                        penalties.append("Severe kidney impairment - avoid renally cleared drugs")
+            
+            return adjustments, penalties
+        
         penalty_pct = 0.0
         explanations_new = []
         new_drug_warning = ""
 
-        # Penalty from discrete health conditions
+        # Apply discrete conditions
         for cond in user_conditions:
             info = health_penalty_map.get(cond)
             if info:
                 penalty_pct += info["weight"]
                 explanations_new.append(info["note"])
 
-        # Penalty from structured liver/kidney function levels
-        extra_liver_penalty, liver_note = _organ_penalty("Liver", liver_function)
-        extra_kidney_penalty, kidney_note = _organ_penalty("Kidney", kidney_function)
-        for w, note in [(extra_liver_penalty, liver_note), (extra_kidney_penalty, kidney_note)]:
-            if w > 0:
-                penalty_pct += w
-                if note:
-                    explanations_new.append(note)
+        # Calculate REAL organ function penalties
+            organ_adjustments, organ_penalties = calculate_organ_function_penalties(liver_function, kidney_function, tokens)
 
+            # Apply organ penalties to predictions
+            if 'effectiveness_penalty' in organ_adjustments:
+                effectiveness *= (1 - organ_adjustments['effectiveness_penalty'])
+            if 'success_penalty' in organ_adjustments:
+                success_rate *= (1 - organ_adjustments['success_penalty'])
+
+        # Add organ penalties to the total
+            if 'effectiveness_penalty' in organ_adjustments:
+                penalty_pct += organ_adjustments['effectiveness_penalty']
+            if 'success_penalty' in organ_adjustments:
+                penalty_pct += organ_adjustments['success_penalty']
+
+        # Add organ penalty explanations
+        explanations_new.extend(organ_penalties)
+
+        # --- CAP THE TOTAL PENALTY ---
+        penalty_pct = min(penalty_pct, 0.35)  # max 35%
+
+        # Apply penalty to effectiveness + success rate
         if penalty_pct > 0:
             effectiveness = max(0.0, effectiveness * (1 - penalty_pct))
             success_rate = max(0.0, success_rate * (1 - penalty_pct))
-            new_drug_warning = f"⚠ Predicted effectiveness/success reduced by {round(penalty_pct*100)}% due to patient risk factors."
-            explanations["effectiveness"] = "Effectiveness adjusted due to health conditions and organ function."
-            explanations["success_rate"] = "Success rate adjusted due to health conditions and organ function."
-            explanations["side_effects"] = "Side effect risk may be higher due to selected conditions."
+
+            new_drug_warning = (
+                f"⚠ Adjusted for patient risk factors (approx {round(penalty_pct*100)}% reduction)."
+            )
+
+            # If organ issues exist, bump side-effect label upward
+            if organ_penalties:  # If there are any organ penalties
+                if side_effect_label == "Low":
+                    side_effect_label = "Medium"
+                elif side_effect_label == "Medium":
+                    # If we have moderate/severe organ issues, increase risk
+                    if any("moderate" in penalty.lower() or "severe" in penalty.lower() for penalty in organ_penalties):
+                        side_effect_label = "High"
+
+            explanations["effectiveness"] = "Adjusted for metabolism/clearance factors."
+            explanations["success_rate"] = "Adjusted for patient-specific risks."
+            explanations["side_effects"] = "Adjusted due to physiological risk factors."
+
         else:
             explanations.setdefault("effectiveness", "Effectiveness remains stable.")
+
 
         # --- Similarity matching ---
         matches = []
@@ -650,13 +768,37 @@ def predict():
         predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
 
         # --- Ethnicity scores (mocked from prediction + matches) ---
-        ethnicities = ["Malay", "Chinese", "Indian", "Indigenous"]
-        ethnicity_scores = {"new_drug": {}, "known_medicine": {}}
-        for eth in ethnicities:
-            ethnicity_scores["new_drug"][eth] = round(effectiveness * (0.95 + 0.05 * np.random.rand()), 1)
-            known_scores = [m["effectiveness"] for m in top_matches if m]
-            ethnicity_scores["known_medicine"][eth] = round(np.mean(known_scores) * (0.95 + 0.05 * np.random.rand()), 1) if known_scores else 0
+        def get_credible_ethnicity_insights(race, ingredients, genetic_risks):
+            """Real clinical insights based on pharmacogenomics"""
+            insights = []
+            
+            # CYP2D6 Poor Metabolizers (very common in Malays)
+            if race.lower() == "malay" and any('codeine' in ing.lower() for ing in ingredients):
+                insights.append("50% of Malays are CYP2D6 poor metabolizers → codeine may be ineffective")
+            
+            # HLA-B*1502 Risk (Asian populations)
+            if race.lower() in ["chinese", "malay", "indian"]:
+                if genetic_risks == "hla_b1502" and any('carbamazepine' in ing.lower() for ing in ingredients):
+                    insights.append("🚫 CONTRAINDICATED: High Stevens-Johnson syndrome risk in HLA-B*1502 carriers")
+                elif any('carbamazepine' in ing.lower() for ing in ingredients):
+                    insights.append("Screen for HLA-B*1502 before prescribing carbamazepine")
+            
+            # Warfarin dosing (Asian populations)
+            if race.lower() in ["chinese", "malay", "indian"] and any('warfarin' in ing.lower() for ing in ingredients):
+                insights.append("Asian patients typically require 30-50% lower warfarin doses")
+            
+            # TPMT Deficiency
+            if genetic_risks == "tpmt_deficient" and any('azathioprine' in ing.lower() for ing in ingredients):
+                insights.append("🚫 CONTRAINDICATED: Severe myelosuppression risk in TPMT deficient patients")
+            
+            # DPYD Deficiency (Fluoropyrimidines)
+            if any('fluorouracil' in ing.lower() for ing in ingredients) or any('capecitabine' in ing.lower() for ing in ingredients):
+                insights.append("Screen for DPYD deficiency before prescribing fluoropyrimidines")
+            return insights
 
+        # USAGE - Add this where you deleted the old code:
+        genetic_risks = data.get('genetic_risks', '')
+        ethnicity_insights = get_credible_ethnicity_insights(race, tokens, genetic_risks)
         # --- Clamp predictions to 0–100 range just in case ---
         effectiveness = max(0.0, min(100.0, effectiveness))
         success_rate = max(0.0, min(100.0, success_rate))
@@ -707,8 +849,30 @@ def predict():
             treatment_str = f", given {inner}"
 
         narrative_intro = base_sentence + treatment_str + "."
-        narrative_outcome = f" The model predicts approximately {effectiveness:.2f}% effectiveness and {success_rate:.2f}% overall success rate, with {side_effect_label.lower()} side-effect risk."
+        narrative_outcome = (
+            f" The model predicts an estimated effectiveness of {effectiveness:.2f}%, and an overall "
+            f"success rate of {success_rate:.2f}%. The success rate is computed using a hybrid method "
+            f"that combines the machine-learning prediction with a clinical adjustment term "
+            f"(effectiveness × tolerability), reflecting how real-world treatment success depends on both "
+            f"drug efficacy and expected side-effect burden. Side-effect risk is assessed as "
+            f"{side_effect_label.lower()}, influenced by dose level, patient characteristics, and any "
+            f"organ-function concerns."
+        )
         model_narrative = narrative_intro + narrative_outcome
+                # --- Append penalty explanation if any physiological penalties applied ---
+        if penalty_pct > 0:
+            model_narrative += (
+                f" Due to identified physiological or health-related risk factors, the system "
+                f"applied an adjustment of approximately {round(penalty_pct*100)}% to both effectiveness "
+                f"and success rate. This reflects clinical considerations such as reduced metabolism, "
+                f"slower drug clearance, altered pharmacodynamics, or comorbidity-associated risks that "
+                f"may realistically diminish treatment response or tolerability."
+            )
+        else:
+            model_narrative += (
+                " No significant physiological risk factors were detected, so no additional penalties "
+                "were applied to the predicted outcomes."
+            )
 
         # --- Response JSON ---
         response = {
@@ -746,13 +910,35 @@ def predict():
                 "liver_function": liver_function,
                 "kidney_function": kidney_function,
             },
-            "ethnicity_scores": ethnicity_scores,
-            "escalation_applied": escalation_applied,
-            "model_narrative": model_narrative,
-            "debug": {
+                "clinical_insights": ethnicity_insights + organ_penalties,
+                "organ_function_considerations": organ_penalties,
+                "genetic_considerations": ethnicity_insights,
+                "ethnicity_scores": {"note": "Replaced with clinical insights system"},
+                "escalation_applied": escalation_applied,
+                "model_narrative": model_narrative,
+                        "debug": {
                 "input_vector": input_vector.tolist(),
-                "raw_predictions": [effectiveness, side_effect_val, success_rate],
-                "matches_raw": [(m["medicine_name"], m["percent"]) for m in matches]
+                "raw_predictions": {
+                    "effectiveness_raw": effectiveness_raw,
+                    "side_effect_raw": side_effect_raw,
+                    "success_rate_ml_raw": success_rate_ml
+                },
+                "hybrid_success_components": {
+                    "success_from_tolerability": success_from_tolerability,
+                    "success_after_blend_before_penalty": success_rate_after_blend,
+                    "penalty_pct": penalty_pct
+                },
+                "final_outputs": {
+                    "effectiveness": effectiveness,
+                    "success_rate": success_rate,
+                    "side_effect_label": side_effect_label
+                },
+                "flags": {
+                    "healthy_profile": healthy_profile
+                },
+                "matches_raw": [
+                    (m["medicine_name"], m["percent"]) for m in matches
+                ]
             }
         }
 
