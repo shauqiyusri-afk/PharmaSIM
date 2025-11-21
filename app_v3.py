@@ -227,6 +227,53 @@ def score_similarity(input_symptom,
         "input_group": inp_group
     }
 
+def calculate_organ_function_penalties(liver_function, kidney_function, ingredients):
+            """Realistic organ function adjustments based on drug metabolism"""
+            penalties = []
+            adjustments = {}
+            
+            # Convert to consistent format
+            liver_status = liver_function.lower() if liver_function else "normal"
+            kidney_status = kidney_function.lower() if kidney_function else "normal"
+            
+            # Liver impairment penalties
+            if "mild" in liver_status or "moderate" in liver_status or "severe" in liver_status:
+                # Drugs that are hepatically metabolized
+                hepatically_cleared = ['paracetamol', 'ibuprofen', 'diazepam', 'simvastatin', 'warfarin', 'codeine']
+                if any(drug in ' '.join(ingredients).lower() for drug in hepatically_cleared):
+                    if "mild" in liver_status:
+                        penalty = 0.15
+                        adjustments['effectiveness_penalty'] = penalty
+                        penalties.append("Liver impairment reduces metabolism of hepatically-cleared drugs")
+                    elif "moderate" in liver_status:
+                        penalty = 0.25
+                        adjustments['effectiveness_penalty'] = penalty
+                        penalties.append("Moderate liver impairment significantly affects drug metabolism")
+                    elif "severe" in liver_status:
+                        penalty = 0.40
+                        adjustments['effectiveness_penalty'] = penalty
+                        penalties.append("Severe liver impairment - consider alternative medications")
+            
+            # Kidney impairment penalties  
+            if "mild" in kidney_status or "moderate" in kidney_status or "severe" in kidney_status:
+                # Drugs that are renally cleared
+                renally_cleared = ['metformin', 'digoxin', 'gentamicin', 'lisinopril', 'penicillin']
+                if any(drug in ' '.join(ingredients).lower() for drug in renally_cleared):
+                    if "mild" in kidney_status:
+                        penalty = 0.10
+                        adjustments['success_penalty'] = penalty
+                        penalties.append("Kidney impairment affects clearance of renally-excreted drugs")
+                    elif "moderate" in kidney_status:
+                        penalty = 0.20
+                        adjustments['success_penalty'] = penalty
+                        penalties.append("Moderate kidney impairment requires dose adjustment")
+                    elif "severe" in kidney_status:
+                        penalty = 0.35
+                        adjustments['success_penalty'] = penalty
+                        penalties.append("Severe kidney impairment - avoid renally cleared drugs")
+            
+            return adjustments, penalties
+
 # -----------------------------
 # User auth storage
 # -----------------------------
@@ -434,19 +481,13 @@ def predict():
         liver_function = data.get('liver_function', 'normal')
         kidney_function = data.get('kidney_function', 'normal')
 
-        # Calculate REAL organ function penalties
-        organ_adjustments, organ_penalties = calculate_organ_function_penalties(liver_function, kidney_function, tokens)
-
-        # Apply organ penalties to predictions
-        if 'effectiveness_penalty' in organ_adjustments:
-            effectiveness *= (1 - organ_adjustments['effectiveness_penalty'])
-        if 'success_penalty' in organ_adjustments:
-            success_rate *= (1 - organ_adjustments['success_penalty'])
-
         # --- Ingredients ---
         tokens = [t.strip().lower() for t in ingredients_raw.split(';') if t.strip()]
         input_active = set(tokens)
         input_inactive = set()
+
+        # Calculate REAL organ function penalties
+        organ_adjustments, organ_penalties = calculate_organ_function_penalties(liver_function, kidney_function, tokens)
 
         # --- Encode categorical ---
         race_e = safe_transform(race_enc, race)
@@ -466,6 +507,20 @@ def predict():
         side_effect_val = side_effect_raw
         success_rate = success_rate_ml
 
+        # Apply organ penalties to predictions
+        if 'effectiveness_penalty' in organ_adjustments:
+            effectiveness *= (1 - organ_adjustments['effectiveness_penalty'])
+        if 'success_penalty' in organ_adjustments:
+            success_rate *= (1 - organ_adjustments['success_penalty'])
+
+        # Add organ penalties to the total penalty percentage
+        if 'effectiveness_penalty' in organ_adjustments:
+            penalty_pct += organ_adjustments['effectiveness_penalty']
+        if 'success_penalty' in organ_adjustments:
+            penalty_pct += organ_adjustments['success_penalty']
+
+        # Add organ penalty explanations
+        explanations_new.extend(organ_penalties)
 
         # --- Basic bounds on raw outputs ---
         # side_effect_val is a probability-like 0–1; others are %
@@ -550,52 +605,6 @@ def predict():
         }
 
         # Organ-specific structured penalties (mild/moderate/severe)
-        def calculate_organ_function_penalties(liver_function, kidney_function, ingredients):
-            """Realistic organ function adjustments based on drug metabolism"""
-            penalties = []
-            adjustments = {}
-            
-            # Convert to consistent format
-            liver_status = liver_function.lower() if liver_function else "normal"
-            kidney_status = kidney_function.lower() if kidney_function else "normal"
-            
-            # Liver impairment penalties
-            if "mild" in liver_status or "moderate" in liver_status or "severe" in liver_status:
-                # Drugs that are hepatically metabolized
-                hepatically_cleared = ['paracetamol', 'ibuprofen', 'diazepam', 'simvastatin', 'warfarin', 'codeine']
-                if any(drug in ' '.join(ingredients).lower() for drug in hepatically_cleared):
-                    if "mild" in liver_status:
-                        penalty = 0.15
-                        adjustments['effectiveness_penalty'] = penalty
-                        penalties.append("Liver impairment reduces metabolism of hepatically-cleared drugs")
-                    elif "moderate" in liver_status:
-                        penalty = 0.25
-                        adjustments['effectiveness_penalty'] = penalty
-                        penalties.append("Moderate liver impairment significantly affects drug metabolism")
-                    elif "severe" in liver_status:
-                        penalty = 0.40
-                        adjustments['effectiveness_penalty'] = penalty
-                        penalties.append("Severe liver impairment - consider alternative medications")
-            
-            # Kidney impairment penalties  
-            if "mild" in kidney_status or "moderate" in kidney_status or "severe" in kidney_status:
-                # Drugs that are renally cleared
-                renally_cleared = ['metformin', 'digoxin', 'gentamicin', 'lisinopril', 'penicillin']
-                if any(drug in ' '.join(ingredients).lower() for drug in renally_cleared):
-                    if "mild" in kidney_status:
-                        penalty = 0.10
-                        adjustments['success_penalty'] = penalty
-                        penalties.append("Kidney impairment affects clearance of renally-excreted drugs")
-                    elif "moderate" in kidney_status:
-                        penalty = 0.20
-                        adjustments['success_penalty'] = penalty
-                        penalties.append("Moderate kidney impairment requires dose adjustment")
-                    elif "severe" in kidney_status:
-                        penalty = 0.35
-                        adjustments['success_penalty'] = penalty
-                        penalties.append("Severe kidney impairment - avoid renally cleared drugs")
-            
-            return adjustments, penalties
         
         penalty_pct = 0.0
         explanations_new = []
@@ -607,24 +616,6 @@ def predict():
             if info:
                 penalty_pct += info["weight"]
                 explanations_new.append(info["note"])
-
-        # Calculate REAL organ function penalties
-            organ_adjustments, organ_penalties = calculate_organ_function_penalties(liver_function, kidney_function, tokens)
-
-            # Apply organ penalties to predictions
-            if 'effectiveness_penalty' in organ_adjustments:
-                effectiveness *= (1 - organ_adjustments['effectiveness_penalty'])
-            if 'success_penalty' in organ_adjustments:
-                success_rate *= (1 - organ_adjustments['success_penalty'])
-
-        # Add organ penalties to the total
-            if 'effectiveness_penalty' in organ_adjustments:
-                penalty_pct += organ_adjustments['effectiveness_penalty']
-            if 'success_penalty' in organ_adjustments:
-                penalty_pct += organ_adjustments['success_penalty']
-
-        # Add organ penalty explanations
-        explanations_new.extend(organ_penalties)
 
         # --- CAP THE TOTAL PENALTY ---
         penalty_pct = min(penalty_pct, 0.35)  # max 35%
