@@ -14,7 +14,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <!-- RDKit for molecule structures -->
-  <script src="https://unpkg.com/@rdkit/rdkit@2022.3.5/dist/RDKit_minimal.js"></script>
+  <script src="https://unpkg.com/@rdkit/rdkit@2025.3.4-1.0.0/dist/RDKit_minimal.js"></script>
 
   <style>
     :root{
@@ -530,38 +530,37 @@
         </form>
       </div>
 
-            <!-- RIGHT: Outputs -->
+      <!-- RIGHT: Outputs -->
       <div id="outputs" class="space-y-5">
         <div class="glass p-5 space-y-4" id="outputPanel" style="display:none;">
-          <!-- Header - More compact -->
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-            <div class="flex items-center gap-3">
-              <div>
-                <p class="text-[11px] uppercase tracking-[0.18em] text-slate-400">Step 2</p>
-                <h2 class="text-sm font-semibold text-slate-50">Simulation Insights</h2>
-              </div>
+          <!-- Header -->
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.18em] text-slate-400">Step 2</p>
+              <h2 class="text-sm font-semibold text-slate-50">Simulation Insights</h2>
+              <p class="text-[11px] text-slate-400 max-w-md">
+                Model-predicted performance for this candidate vs the closest known medicine in our dataset.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
               <div id="badge" class="badge-gradient px-3 py-1 text-[11px] text-slate-50">
                 Analysing match...
               </div>
-            </div>
-            
-            <!-- Loading chip moved to top right -->
-            <div
-              id="loadingChip"
-              class="hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-full
-                    bg-slate-900/90 border border-slate-700/80 text-[10px] text-slate-300"
-            >
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Running virtual trial…</span>
+
+              <!-- NEW: Running virtual trial chip -->
+              <div
+                id="loadingChip"
+                class="hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                      bg-slate-900/90 border border-slate-700/80 text-[10px] text-slate-300"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Running virtual trial…</span>
+              </div>
             </div>
           </div>
 
-          <p class="text-[11px] text-slate-400 mb-3 -mt-1">
-            Model-predicted performance for this candidate vs the closest known medicine in our dataset.
-          </p>
-
           <!-- KPIs -->
-          <div class="grid sm:grid-cols-3 gap-2 text-xs mb-3">
+          <div class="grid sm:grid-cols-3 gap-3 text-xs">
 
             <div class="kpi-card rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3 py-3 space-y-1.5">
               <p class="text-[11px] text-slate-400">Effectiveness</p>
@@ -583,7 +582,7 @@
           </div>
 
           <!-- Best match + explanation -->
-          <div class="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-3 items-start">
+          <div class="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-4 items-start mt-2">
             <div class="space-y-3 text-xs">
               <div id="bestMatchBox" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
                 <!-- populated by JS -->
@@ -639,26 +638,24 @@
           </div>
 
           <!-- Molecules -->
-          <div id="moleculesContainer" class="hidden mt-3">
-            <div class="grid md:grid-cols-2 gap-3 text-xs">
-              <div id="inputMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2">
-                <p class="text-[11px] font-semibold text-slate-200 text-center">
-                  Input drug — molecular structures
-                </p>
-                <div id="inputMoleculesGrid" class="grid gap-2"></div>
-              </div>
+          <div class="grid md:grid-cols-2 gap-4 mt-4 text-xs">
+            <div id="inputMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2" style="display:none;">
+              <p class="text-[11px] font-semibold text-slate-200 text-center">
+                Input drug — molecular structures
+              </p>
+              <div id="inputMoleculesGrid" class="grid gap-2"></div>
+            </div>
 
-              <div id="matchMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2">
-                <p class="text-[11px] font-semibold text-slate-200 text-center">
-                  Best match medicine — molecular structures
-                </p>
-                <div id="matchMoleculesGrid" class="grid gap-2"></div>
-              </div>
+            <div id="matchMoleculesSection" class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 space-y-2" style="display:none;">
+              <p class="text-[11px] font-semibold text-slate-200 text-center">
+                Best match medicine — molecular structures
+              </p>
+              <div id="matchMoleculesGrid" class="grid gap-2"></div>
             </div>
           </div>
 
           <!-- Comparison + charts -->
-          <div class="mt-3 grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-3 items-start">
+          <div class="mt-4 grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.2fr)] gap-4 items-start">
             <div class="rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3 text-[11px] overflow-x-auto">
               <p class="font-semibold text-slate-200 mb-2">Side-by-side comparison</p>
               <table class="min-w-full text-[11px] text-left border-collapse">
@@ -694,7 +691,7 @@
           </div>
 
           <!-- Recovery curve -->
-          <div class="mt-3 rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
+          <div class="mt-5 rounded-2xl bg-slate-950/80 border border-slate-700/80 px-3.5 py-3">
             <p class="text-[11px] font-semibold text-slate-200 text-center mb-1.5">
               Patient recovery simulation (6-month horizon)
             </p>
@@ -704,7 +701,7 @@
           </div>
 
           <!-- Explanation -->
-          <div id="explanationSection" class="mt-3 rounded-2xl bg-slate-950/90 border border-slate-700/90 px-3.5 py-3 space-y-2" style="display:none;">
+          <div id="explanationSection" class="mt-4 rounded-2xl bg-slate-950/90 border border-slate-700/90 px-3.5 py-3 space-y-2" style="display:none;">
             <p id="explanation" class="text-[11px] uppercase tracking-[0.18em] text-slate-400">
               Model narrative
             </p>
@@ -739,88 +736,99 @@
   </main>
 
   <script>
-    // ================== RDKit Init ==================
-    let rdkitModule = null;
+    // ================== RDKit Init (robust) ==================
+    let rdkitModulePromise = null;
 
-    async function initRDKit() {
-      try {
-        rdkitModule = await window.initRDKitModule();
-        console.log("RDKit loaded successfully");
-      } catch (e) {
-        console.error("RDKit init failed:", e);
-        // Show user-friendly message
-        const moleculeSections = document.querySelectorAll('#inputMoleculesSection, #matchMoleculesSection');
-        moleculeSections.forEach(section => {
-          if (section.style.display !== "none") {
-            section.innerHTML = '<div class="text-center text-slate-400 p-4">Molecule viewer unavailable</div>';
-          }
-        });
+    function ensureRDKitReady() {
+      // Only init once
+      if (!rdkitModulePromise) {
+        rdkitModulePromise = window.initRDKitModule()
+          .then((instance) => {
+            console.log("RDKit loaded successfully");
+            return instance;
+          })
+          .catch((e) => {
+            console.error("RDKit init failed:", e);
+            const moleculeSections = document.querySelectorAll(
+              "#inputMoleculesSection, #matchMoleculesSection"
+            );
+            moleculeSections.forEach((section) => {
+              if (section && section.style.display !== "none") {
+                section.innerHTML =
+                  '<div class="text-center text-slate-400 p-4">Molecule viewer unavailable</div>';
+              }
+            });
+            throw e;
+          });
       }
+      return rdkitModulePromise;
     }
-    window.addEventListener("load", initRDKit);
 
-    function renderMolecule(smiles, containerId, w = 200, h = 150) {
-      if (!rdkitModule) {
-        console.warn("RDKit not loaded");
-        const el = document.getElementById(containerId);
-        if (el) el.innerHTML = '<div class="text-[11px] text-slate-400">RDKit loading...</div>';
-        return false;
-      }
-      
+    // We still kick off loading on page load (optional but nice)
+    window.addEventListener("load", () => {
+      ensureRDKitReady().catch(() => {});
+    });
+
+    async function renderMolecule(smiles, containerId, w = 200, h = 150) {
+      const el = document.getElementById(containerId);
+      if (!el) return false;
+
+      // Show temporary message
+      el.innerHTML = '<div class="text-[11px] text-slate-400">Rendering…</div>';
+
       try {
-        const mol = rdkitModule.get_mol(smiles || "C");
+        const rdkit = await ensureRDKitReady();
+
+        const mol = rdkit.get_mol(smiles || "C");
         if (!mol) {
           console.warn("Invalid molecule:", smiles);
-          const el = document.getElementById(containerId);
-          if (el) el.innerHTML = '<div class="text-[11px] text-slate-400">Invalid structure</div>';
+          el.innerHTML =
+            '<div class="text-[11px] text-slate-400">Invalid structure</div>';
           return false;
         }
-        
-        // Better styling for dark theme
-        const svg = mol.get_svg(w, h, {
-          'background': '#0f172a',
-          'bondLineWidth': 1.5,
-          'addStereoAnnotation': true
-        });
-        
+
+        // Simple 2D SVG (no extra options = less chance of breaking)
+        // RDKit expects width/height as strings in some builds
+        const svg = mol.get_svg(String(w), String(h));
         mol.delete();
-        const el = document.getElementById(containerId);
-        if (el) {
-          // Style the SVG for dark theme
-          const styledSVG = svg.replace('<svg', '<svg style="background:#0f172a; color:#e5e7eb;"');
-          el.innerHTML = styledSVG;
-        }
+
+        const styledSVG = svg.replace(
+          "<svg",
+          '<svg style="background:#0f172a; color:#e5e7eb;"'
+        );
+        el.innerHTML = styledSVG;
+
         return true;
       } catch (e) {
         console.error("RDKit render error:", e);
-        const el = document.getElementById(containerId);
-        if (el) el.innerHTML = '<div class="text-[11px] text-slate-400">Render error</div>';
+        el.innerHTML =
+          '<div class="text-[11px] text-slate-400">Render error</div>';
         return false;
       }
     }
-
     const moleculesDB = {
-      "Paracetamol":"CC(=O)NC1=CC=C(O)C=C1",
-      "Ibuprofen":"CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
-      "Clarinase":"CC1=CC=C(C=C1)C(CO)NC(C)C",
-      "Cetirizine":"C1=CC(=CC=C1CCN2CCN(CC2)CCOCCO)Cl",
-      "Diphenhydramine":"CN(C)CCOC(C1=CC=CC=C1)C2=CC=CC=C2",
-      "5-FU":"C1=CN=C(C(=O)N1)F",
-      "Leucovorin":"CC1=C(C(=O)N(C(=O)C1C(=O)O)C)N",
-      "Oxaliplatin":"CC(=O)NC1=CC=C(O)C=C1",
-      "Irinotecan":"CC1=CC2=C(C=C1)N(C(=O)C2O)C",
-      "Gemcitabine":"C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)F",
-      "Paclitaxel":"CC1=CC2=C(C=C1)OC3=C(C(=C(C(=C3O2)C(=O)OC)C)C)C",
-      "Doxorubicin":"CC1=CC(=CC(=C1)O)C(=O)C2=CC=CC=C2",
-      "Cyclophosphamide":"C1CN2CCOCC2O1",
-      "Methotrexate":"CC1=CC(=CC=C1)NC2=NC(=NC(=N2)N)N",
-      "Cisplatin":"CC(=O)NC1=CC=C(O)C=C1",
-      "Carboplatin":"CC(=O)NC1=CC=C(O)C=C1",
-      "Imatinib":"CC1=CC(=C(C=C1)NC(=O)C2=CC=CC=N2)NC3=CC=CC=C3",
-      "Trastuzumab":"CC(=O)NC1=CC=C(O)C=C1",
-      "Bevacizumab":"CC(=O)NC1=CC=C(O)C=C1",
-      "Nivolumab":"CC(=O)NC1=CC=C(O)C=C1"
+      "paracetamol": "CC(=O)NC1=CC=C(O)C=C1",
+      "ibuprofen": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+      "clarinase": "CC1=CC=C(C=C1)C(CO)NC(C)C",
+      "cetirizine": "C1=CC(=CC=C1CCN2CCN(CC2)CCOCCO)Cl",
+      "diphenhydramine": "CN(C)CCOC(C1=CC=CC=C1)C2=CC=CC=C2",
+      "5-fu": "C1=CN=C(C(=O)N1)F",
+      "leucovorin": "CC1=C(C(=O)N(C(=O)C1C(=O)O)C)N",
+      "oxaliplatin": "CC(=O)NC1=CC=C(O)C=C1",
+      "irinotecan": "CC1=CC2=C(C=C1)N(C(=O)C2O)C",
+      "gemcitabine": "C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)F",
+      "paclitaxel": "CC1=CC2=C(C=C1)OC3=C(C(=C(C(=C3O2)C(=O)OC)C)C)C",
+      "doxorubicin": "CC1=CC(=CC(=C1)O)C(=O)C2=CC=CC=C2",
+      "cyclophosphamide": "C1CN2CCOCC2O1",
+      "methotrexate": "CC1=CC(=CC=C1)NC2=NC(=NC(=N2)N)N",
+      "cisplatin": "CC(=O)NC1=CC=C(O)C=C1",
+      "carboplatin": "CC(=O)NC1=CC=C(O)C=C1",
+      "imatinib": "CC1=CC(=C(C=C1)NC(=O)C2=CC=CC=N2)NC3=CC=CC=C3",
+      "trastuzumab": "CC(=O)NC1=CC=C(O)C=C1",
+      "bevacizumab": "CC(=O)NC1=CC=C(O)C=C1",
+      "nivolumab": "CC(=O)NC1=CC=C(O)C=C1"
     };
+
 
      function createMoleculeCard(name, smiles) {
       const id = "mol-" + name.replace(/\s+/g, "-").toLowerCase() + "-" + Math.random().toString(36).slice(2, 7);
@@ -848,11 +856,10 @@
     function displayInputMolecules(ingStr) {
       const ingredients = ingStr.split(";").map(s => s.trim()).filter(Boolean);
       const grid = document.getElementById("inputMoleculesGrid");
-      const container = document.getElementById("moleculesContainer");
       const section = document.getElementById("inputMoleculesSection");
       
       if (ingredients.length === 0) {
-        container.style.display = "none";
+        section.style.display = "none";
         return;
       }
       
@@ -860,26 +867,36 @@
       let anyRendered = false;
       
       ingredients.forEach(name => {
-        const smiles = moleculesDB[name.trim()];
+        const key = name.trim().toLowerCase();
+        const smiles = moleculesDB[key];
         if (smiles) {
           anyRendered = true;
           const card = createMoleculeCard(name, smiles);
           grid.appendChild(card);
+        } else {
+          // Show placeholder for unknown molecules
+          const placeholder = document.createElement("div");
+          placeholder.className = "rounded-xl bg-slate-900/80 border border-slate-700/60 p-3 space-y-2";
+          placeholder.innerHTML = `
+            <p class="text-[11px] font-semibold text-slate-200 text-center">${name}</p>
+            <div class="molecule-viewer flex items-center justify-center">
+              <div class="text-[11px] text-slate-400 text-center">No structure<br/>available</div>
+            </div>
+            <p class="text-[10px] text-slate-400 text-center">Unknown molecule</p>
+          `;
+          grid.appendChild(placeholder);
         }
       });
       
-      container.style.display = anyRendered ? "block" : "none";
       section.style.display = anyRendered ? "block" : "none";
     }
 
     function displayMatchMolecules(best) {
       const grid = document.getElementById("matchMoleculesGrid");
-      const container = document.getElementById("moleculesContainer");
       const section = document.getElementById("matchMoleculesSection");
       
       if (!best || !best.medicine_name) {
         section.style.display = "none";
-        // Don't hide container - input molecules might be showing
         return;
       }
       
@@ -887,6 +904,7 @@
       let anyRendered = false;
       let ingredients = [];
       
+      // Try to get ingredients from best match
       if (best.ingredients_active && Array.isArray(best.ingredients_active)) {
         ingredients = best.ingredients_active;
       } else if (moleculesDB[best.medicine_name]) {
@@ -908,10 +926,6 @@
       });
       
       section.style.display = anyRendered ? "block" : "none";
-      // Show container if either section has content
-      if (anyRendered || document.getElementById("inputMoleculesGrid").children.length > 0) {
-        container.style.display = "block";
-      }
     }
 
     // ================ Dosage auto conversion ==================
@@ -1112,7 +1126,6 @@
     }
 
     // ================ Clear form ==================
-        // ================ Clear form ==================
     clearBtn.addEventListener("click", () => {
       form.reset();
       runMessage.textContent = "";
@@ -1133,9 +1146,6 @@
       explanationSection.style.display = "none";
       inputMoleculesSection.style.display = "none";
       matchMoleculesSection.style.display = "none";
-      
-      // ADD THIS LINE - Hide the molecules container
-      document.getElementById("moleculesContainer").style.display = "none";
 
       if (radarChartInstance) { radarChartInstance.destroy(); radarChartInstance = null; }
       if (ethnicityChartInstance) { ethnicityChartInstance.destroy(); ethnicityChartInstance = null; }
