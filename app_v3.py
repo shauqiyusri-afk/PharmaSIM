@@ -9,9 +9,7 @@ import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 
-# -----------------------------
 # Models / encoders
-# -----------------------------
 effectiveness_model = joblib.load('effectiveness_model.pkl')
 side_effect_model   = joblib.load('side_effect_model.pkl')
 success_rate_model  = joblib.load('success_model.pkl')
@@ -20,9 +18,8 @@ race_enc    = joblib.load('race_encoder.pkl')
 gender_enc  = joblib.load('gender_encoder.pkl')
 symptom_enc = joblib.load('symptom_encoder.pkl')
 
-# -----------------------------
+
 # Known medicines + ingredients
-# -----------------------------
 known_meds = pd.read_csv("known_medicines.csv")
 
 with open("ingredient_map.json", "r", encoding="utf-8") as f:
@@ -38,7 +35,7 @@ def get_ingredients_for(med_name):
         )
     return set(), set()
 
-# ----------------- Indication ontology / hints -----------------
+# Indication ontology
 def _norm(s):
     return (s or "").strip().lower()
 
@@ -322,9 +319,8 @@ def predict_for_all_ethnicities(base_data, ingredients, dosage_mg):
     
     return ethnicity_results
 
-# -----------------------------
+
 # User auth storage
-# -----------------------------
 USERS_FILE = "users.json"
 SESS_FILE  = "sessions.json"
 
@@ -356,9 +352,7 @@ def auth_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-# -----------------------------
 # Flask app setup
-# -----------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(
@@ -368,7 +362,7 @@ app = Flask(
 )
 CORS(app)
 
-# ---------- Auth API ----------
+#  Auth API 
 @app.route("/api/register", methods=["POST"])
 def api_register():
     data = request.get_json(force=True)
@@ -414,7 +408,7 @@ def api_logout():
         save_json(SESS_FILE, sessions)
     return jsonify({"message": "Logged out"})
 
-# ---------- Page routes ----------
+# Page routes 
 @app.route("/", methods=["GET"])
 def welcome_page():
     return render_template("welcome.html")
@@ -431,7 +425,7 @@ def register_page():
 def app_page():
     return render_template("app.html")
 
-# ---------- Prediction ----------
+# Prediction 
 # Synonym map and normalization helpers
 synonym_map = {
     "heart_disease": ["heart disease", "heart failure"],
@@ -459,7 +453,7 @@ def condition_matches(user_cond, med_risk):
                 return True
     return False
 
-# --- Encode categorical inputs with fallback ---
+#  Encode categorical inputs with fallback 
 def safe_transform(enc, value):
     try:
         return enc.transform([value])[0]
@@ -468,15 +462,15 @@ def safe_transform(enc, value):
             return enc.transform(["unknown"])[0]
         return 0
 
-# -----------------------------
+
 # Flask route: Predict
-# -----------------------------
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.get_json()
 
-        # --- User inputs ---
+        #  User inputs 
         drug_name = data.get('drug_name', 'NewDrug')
         race = data['race']
         gender = data['gender']
@@ -486,7 +480,7 @@ def predict():
         health_conditions = [c.lower() for c in data.get("health_conditions", [])]
         input_line = str(data.get('line_of_treatment', 'general')).lower().strip()
 
-        # --- Optional extra clinical inputs (for narrative + rule-based tweaks) ---
+        # Optional extra clinical inputs (for narrative + rule-based tweaks)
         weight_kg_raw = data.get("weight_kg")
         try:
             weight_kg = float(weight_kg_raw) if weight_kg_raw not in (None, "",) else 0.0
@@ -502,12 +496,12 @@ def predict():
         liver_function = (data.get("liver_function") or "").strip().lower()
         kidney_function = (data.get("kidney_function") or "").strip().lower()
 
-        # --- Cancer auto-suggest ---
+        # Cancer auto-suggest
         cancer_type = data.get("cancer_type")
         cancer_line = data.get("cancer_line_of_treatment")
         cancer_risks = [r.lower() for r in data.get("cancer_risk_factors", [])]
 
-        # --- Normalize conditions ---
+        #  Normalize conditions
         user_conditions = [normalize_condition(c) for c in health_conditions if c]
 
         # Male cannot be pregnant → strip pregnancy from conditions for male patients
@@ -515,7 +509,7 @@ def predict():
             user_conditions = [c for c in user_conditions if "pregnan" not in c]
             health_conditions = [c for c in health_conditions if "pregnan" not in c]
 
-        # --- Dosage handling ---
+        # Dosage handling
         concentration = float(data.get("concentration", 0))
         dosage_mg = float(data.get("dosage_mg", 0))
         dosage_ml = float(data.get("dosage_ml", 0))
@@ -524,16 +518,16 @@ def predict():
         if dosage_ml == 0 and dosage_mg > 0 and concentration > 0:
             dosage_ml = dosage_mg / concentration
 
-        # --- Get clinical safety factors ---
+        #  Get clinical safety factors 
         genetic_risks = data.get('genetic_risks', '')
         liver_function = data.get('liver_function', 'normal')
         kidney_function = data.get('kidney_function', 'normal')
 
-        # --- Initialize penalty variables ---
+        # Initialize penalty variables
         penalty_pct = 0.0
         explanations_new = []
 
-        # --- Ingredients ---
+        # Ingredients
         tokens = [t.strip().lower() for t in ingredients_raw.split(';') if t.strip()]
         input_active = set(tokens)
         input_inactive = set()
@@ -541,7 +535,7 @@ def predict():
         # Calculate REAL organ function penalties
         organ_adjustments, organ_penalties = calculate_organ_function_penalties(liver_function, kidney_function, tokens)
 
-        # --- Encode categorical ---
+        # Encode categorical 
         race_e = safe_transform(race_enc, race)
         gender_e = safe_transform(gender_enc, gender)
         symptom_e = safe_transform(symptom_enc, symptom)
@@ -549,7 +543,7 @@ def predict():
         ingredient_count = len(tokens)
         input_vector = np.array([[race_e, gender_e, age, symptom_e, ingredient_count, dosage_mg]])
 
-        # --- ML predictions ---
+        #  ML predictions 
         effectiveness_raw = float(effectiveness_model.predict(input_vector)[0])
         side_effect_raw   = float(side_effect_model.predict(input_vector)[0])
         success_rate_ml   = float(success_rate_model.predict(input_vector)[0])
@@ -559,7 +553,7 @@ def predict():
         side_effect_val = side_effect_raw
         success_rate = success_rate_ml
 
-        # --- STORE ETHNICITY COMPARISONS ---
+        # STORE ETHNICITY COMPARISONS
         ethnicity_predictions = predict_for_all_ethnicities(
             base_data={
                 'gender': gender,
@@ -592,13 +586,13 @@ def predict():
         # Add organ penalty explanations
         explanations_new.extend(organ_penalties)
 
-        # --- Basic bounds on raw outputs ---
+        # Basic bounds on raw outputs
         # side_effect_val is a probability-like 0–1; others are %
         side_effect_val = max(0.0, min(1.0, side_effect_val))
         effectiveness = max(0.0, min(100.0, effectiveness))
         success_rate = max(0.0, min(100.0, success_rate))
 
-        # --- Side effect label (first pass from model) ---
+        # Side effect label (first pass from model) 
         if side_effect_val < 0.33:
             side_effect_label = "Low"
         elif side_effect_val < 0.66:
@@ -626,7 +620,7 @@ def predict():
             # higher-risk patients: avoid over-optimistic "Low" labels
             side_effect_label = "Medium"
 
-        # --- Age-based explanations ---
+        # Age-based explanations
         explanations = {}
         if age > 60:
             explanations["success_rate"] = "Success rate slightly lower due to age factor."
@@ -635,7 +629,7 @@ def predict():
         else:
             explanations["success_rate"] = "Success rate remains stable."
 
-        # --- Dosage explanation ---
+        # Dosage explanation
         if dosage_mg > 0 and dosage_mg > 500:
             explanations["side_effects"] = "Higher dosage increases side effect risk."
         elif side_effect_val > 0.66:
@@ -645,10 +639,10 @@ def predict():
         else:
             explanations["side_effects"] = "Side effect risk is low."
 
-        # --- Hybrid clinical success rate (Option C) ---
-        # OG logic: real-world success drops if side-effects are high,
+        # Hybrid clinical success rate (Option C)
+        # logic: real-world success drops if side-effects are high,
         # so we combine model success with an adjusted term:
-        #   success_from_tolerability = effectiveness × (1 – side_effect_val)
+        # success_from_tolerability = effectiveness × (1 – side_effect_val)
         success_from_tolerability = effectiveness * (1.0 - side_effect_val)
 
         # Blend: 70% ML success model + 30% physics-style formula
@@ -659,8 +653,8 @@ def predict():
         if success_rate > effectiveness:
             success_rate = effectiveness
 
-        # --- Health condition penalties ---
-                # --- Health condition penalties (improved version) ---
+        #  Health condition penalties 
+                #  Health condition penalties (improved version) 
         # Lighter weights so penalties don't destroy predictions
         health_penalty_map = {
             "liver_disease": {"note": "Liver disease may reduce drug metabolism.", "weight": 0.05},
@@ -675,7 +669,6 @@ def predict():
         }
 
         # Organ-specific structured penalties (mild/moderate/severe)
-        
         penalty_pct = 0.0
         explanations_new = []
         new_drug_warning = ""
@@ -687,7 +680,7 @@ def predict():
                 penalty_pct += info["weight"]
                 explanations_new.append(info["note"])
 
-        # --- CAP THE TOTAL PENALTY ---
+        # CAP THE TOTAL PENALTY 
         penalty_pct = min(penalty_pct, 0.35)  # max 35%
 
         # Apply penalty to effectiveness + success rate
@@ -716,7 +709,7 @@ def predict():
             explanations.setdefault("effectiveness", "Effectiveness remains stable.")
 
 
-        # --- Similarity matching ---
+        # Similarity matching
         matches = []
         for _, row in known_meds.iterrows():
             percent, details = score_similarity(symptom, input_line, input_active, input_inactive, dosage_mg, row)
@@ -738,7 +731,7 @@ def predict():
             percent_adjusted = max(0, percent - row_penalty)
             display_effectiveness = max(0, float(row.get('effectiveness', 0)) - row_penalty)
             display_success_rate = max(0, float(row.get('success_rate', 0)) - row_penalty)
-            warning_note = "⚠ Reduced effectiveness/success due to health condition risk." if risky else ""
+            warning_note = "Reduced effectiveness/success due to health condition risk." if risky else ""
 
             matches.append({
                 "medicine_name": row['medicine_name'],
@@ -760,7 +753,7 @@ def predict():
                 "explanations": row_explanations
             })
 
-        # --- Line escalation ---
+        #  Line escalation 
         line_order = ["first-line", "second-line", "third-line", "general"]
         escalation_applied = False
 
@@ -785,7 +778,7 @@ def predict():
         best = next((m for m in top_matches if not m['risky']), top_matches[0] if top_matches else None)
         strong_match = bool(best and best['percent'] >= MATCH_THRESHOLD and not best['risky'])
 
-        # --- Cancer suggestions ---
+        # Cancer suggestions
         cancer_suggestions = []
         if cancer_type:
             for _, row in known_meds.iterrows():
@@ -800,7 +793,7 @@ def predict():
                             "risk_factors": row.get("risk_factors", "")
                         })
 
-        # --- Predict specific side effects for NEW drugs ---
+        # Predict specific side effects for new drugs 
         predicted_side_effects = []
 
         if best and best.get("known_side_effects"):
@@ -828,7 +821,7 @@ def predict():
 
         predicted_side_effects = list({s.strip() for s in predicted_side_effects if s.strip()})
 
-        # --- Ethnicity scores (mocked from prediction + matches) ---
+        # Ethnicity scores (mocked from prediction + matches)
         def get_credible_ethnicity_insights(race, ingredients, genetic_risks):
             """Real clinical insights based on pharmacogenomics"""
             insights = []
@@ -857,14 +850,12 @@ def predict():
                 insights.append("Screen for DPYD deficiency before prescribing fluoropyrimidines")
             return insights
 
-        # USAGE - Add this where you deleted the old code:
         genetic_risks = data.get('genetic_risks', '')
         ethnicity_insights = get_credible_ethnicity_insights(race, tokens, genetic_risks)
-        # --- Clamp predictions to 0–100 range just in case ---
         effectiveness = max(0.0, min(100.0, effectiveness))
         success_rate = max(0.0, min(100.0, success_rate))
 
-        # --- Narrative generation for frontend explanation ---
+        #  Narrative generation for frontend explanation 
         gender_label = (gender or "").lower()
         if gender_label == "male":
             gender_phrase = "male"
@@ -920,7 +911,7 @@ def predict():
             f"organ-function concerns."
         )
         model_narrative = narrative_intro + narrative_outcome
-                # --- Append penalty explanation if any physiological penalties applied ---
+                # Append penalty explanation if any physiological penalties applied 
         if penalty_pct > 0:
             model_narrative += (
                 f" Due to identified physiological or health-related risk factors, the system "
@@ -935,7 +926,7 @@ def predict():
                 "were applied to the predicted outcomes."
             )
 
-        # --- Response JSON ---
+        # Response JSON
         response = {
             "predicted_effectiveness": round(effectiveness, 2),
             "predicted_side_effect_risk": side_effect_label,
@@ -1052,7 +1043,7 @@ def ethnicity_data():
         ethnicity_predictions.get("indigenous", {}).get("effectiveness", 75)
     ]
     
-    # Calculate known medicine baseline (your drug - 10% as example)
+    # Calculate known medicine baseline
     known_medicine_scores = [score * 0.90 for score in your_drug_scores]
     
     data = {
@@ -1077,9 +1068,8 @@ def ethnicity_data():
     
     return jsonify(data)
 
-# -----------------------------
+
 # Run Flask
-# -----------------------------
 if __name__ == "__main__":
     for fn in ["ingredient_map.json", "known_medicines.csv", "users.json", "sessions.json"]:
         if not os.path.exists(fn):

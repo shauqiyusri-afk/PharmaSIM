@@ -1,0 +1,92 @@
+biogeographic_group	allele	n_haplotype	frequencies	in_cpic	notes	n_subjects_genotyped
+afr	A	278	0.003347663258793637			41521.5
+afr	A- 202A_376G	196	0.0023602230169911973			41521.5
+afr	A- 968C_376G	11	0.00013246149585154678			41521.5
+afr	Asahi	2	2.408390833664487e-05			41521.5
+afr	B (reference)	1047	0.01260792601423359			41521.5
+afr	Gond	0	0.0			41521.5
+afr	Indeterminate	4	4.816781667328974e-05			41521.5
+afr	Mediterranean, Dallas, Panama, Sassari, Cagliari, Birmingham	1	1.2041954168322435e-05			41521.5
+afr	Mira d'Aire	2	2.408390833664487e-05			41521.5
+afr	Quing Yan	0	0.0			41521.5
+afr	Santa Maria	1	1.2041954168322435e-05			41521.5
+afr	Seattle, Lodi, Modena, Ferrara II, Athens-like	0	0.0			41521.5
+afr	Union,Maewo, Chinese-2, Kalo	0	0.0			41521.5
+amr	A	14	0.0002076288782108323			33714.0
+amr	A- 202A_376G	7	0.00010381443910541615			33714.0
+amr	A- 968C_376G	3	4.4491902473749775e-05			33714.0
+amr	Asahi	0	0.0			33714.0
+amr	B (reference)	640	0.00949160586106662			33714.0
+amr	Gond	0	0.0			33714.0
+amr	Indeterminate	0	0.0			33714.0
+amr	Mediterranean, Dallas, Panama, Sassari, Cagliari, Birmingham	0	0.0			33714.0
+amr	Mira d'Aire	1	1.4830634157916592e-05			33714.0
+amr	Quing Yan	0	0.0			33714.0
+amr	Santa Maria	0	0.0			33714.0
+amr	Seattle, Lodi, Modena, Ferrara II, Athens-like	0	0.0			33714.0
+amr	Union,Maewo, Chinese-2, Kalo	0	0.0			33714.0
+eas	A	0	0.0			4375.5
+eas	A- 202A_376G	0	0.0			4375.5
+eas	A- 968C_376G	0	0.0			4375.5
+eas	Asahi	0	0.0			4375.5
+eas	B (reference)	54	0.0061707233459033254			4375.5
+eas	Gond	0	0.0			4375.5
+eas	Indeterminate	0	0.0			4375.5
+eas	Mediterranean, Dallas, Panama, Sassari, Cagliari, Birmingham	0	0.0			4375.5
+eas	Mira d'Aire	0	0.0			4375.5
+eas	Quing Yan	1	0.00011427265455376528			4375.5
+eas	Santa Maria	0	0.0			4375.5
+eas	Seattle, Lodi, Modena, Ferrara II, Athens-like	0	0.0			4375.5
+eas	Union,Maewo, Chinese-2, Kalo	1	0.00011427265455376528			4375.5
+eur	A	3	1.5343149539449795e-05			97763.5
+eur	A- 202A_376G	0	0.0			97763.5
+eur	A- 968C_376G	0	0.0			97763.5
+eur	Asahi	0	0.0			97763.5
+eur	B (reference)	1705	0.0087200233215873			97763.5
+eur	Gond	0	0.0			97763.5
+eur	Indeterminate	0	0.0			97763.5
+eur	Mediterranean, Dallas, Panama, Sassari, Cagliari, Birmingham	0	0.0			97763.5
+eur	Mira d'Aire	0	0.0			97763.5
+eur	Quing Yan	0	0.0			97763.5
+eur	Santa Maria	0	0.0			97763.5
+eur	Seattle, Lodi, Modena, Ferrara II, Athens-like	4	2.0457532719266392e-05			97763.5
+eur	Union,Maewo, Chinese-2, Kalo	0	0.0			97763.5
+mid	A	0	0.0			400.0
+mid	A- 202A_376G	0	0.0			400.0
+mid	A- 968C_376G	0	0.0			400.0
+mid	Asahi	0	0.0			400.0
+mid	B (reference)	21	0.02625			400.0
+mid	Gond	0	0.0			400.0
+mid	Indeterminate	0	0.0			400.0
+mid	Mediterranean, Dallas, Panama, Sassari, Cagliari, Birmingham	1	0.00125			400.0
+mid	Mira d'Aire	0	0.0			400.0
+mid	Quing Yan	0	0.0			400.0
+mid	Santa Maria	0	0.0			400.0
+mid	Seattle, Lodi, Modena, Ferrara II, Athens-like	0	0.0			400.0
+mid	Union,Maewo, Chinese-2, Kalo	0	0.0			400.0
+oth	A	8	0.00026180580554373793			15278.5
+oth	A- 202A_376G	2	6.545145138593448e-05			15278.5
+oth	A- 968C_376G	0	0.0			15278.5
+oth	Asahi	0	0.0			15278.5
+oth	B (reference)	279	0.009130477468337861			15278.5
+oth	Gond	0	0.0			15278.5
+oth	Indeterminate	0	0.0			15278.5
+oth	Mediterranean, Dallas, Panama, Sassari, Cagliari, Birmingham	2	6.545145138593448e-05			15278.5
+oth	Mira d'Aire	0	0.0			15278.5
+oth	Quing Yan	0	0.0			15278.5
+oth	Santa Maria	0	0.0			15278.5
+oth	Seattle, Lodi, Modena, Ferrara II, Athens-like	0	0.0			15278.5
+oth	Union,Maewo, Chinese-2, Kalo	0	0.0			15278.5
+sas	A	0	0.0			1742.0
+sas	A- 202A_376G	0	0.0			1742.0
+sas	A- 968C_376G	0	0.0			1742.0
+sas	Asahi	0	0.0			1742.0
+sas	B (reference)	21	0.006027554535017222			1742.0
+sas	Gond	1	0.0002870264064293915			1742.0
+sas	Indeterminate	0	0.0			1742.0
+sas	Mediterranean, Dallas, Panama, Sassari, Cagliari, Birmingham	0	0.0			1742.0
+sas	Mira d'Aire	0	0.0			1742.0
+sas	Quing Yan	0	0.0			1742.0
+sas	Santa Maria	0	0.0			1742.0
+sas	Seattle, Lodi, Modena, Ferrara II, Athens-like	0	0.0			1742.0
+sas	Union,Maewo, Chinese-2, Kalo	0	0.0			1742.0

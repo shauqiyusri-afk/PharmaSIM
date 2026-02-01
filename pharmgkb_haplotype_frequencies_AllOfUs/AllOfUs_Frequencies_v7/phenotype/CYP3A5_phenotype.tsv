@@ -1,0 +1,29 @@
+biogeographic_group	phenotype	n_phenotype	frequencies	in_cpic	notes	n_subjects_genotyped
+afr	CYP3A5 Indeterminate	12	0.00011122645706658758			53944
+afr	CYP3A5 Intermediate Metabolizer	26832	0.2487023580008898			53944
+afr	CYP3A5 Normal Metabolizer	12233	0.11338610410796382			53944
+afr	CYP3A5 Poor Metabolizer	14867	0.13780031143407978			53944
+amr	CYP3A5 Indeterminate	0	0.0			40838
+amr	CYP3A5 Intermediate Metabolizer	12449	0.15241931534355257			40838
+amr	CYP3A5 Normal Metabolizer	1565	0.019161075468926002			40838
+amr	CYP3A5 Poor Metabolizer	26824	0.32841960918752144			40838
+eas	CYP3A5 Indeterminate	1	9.291953168556031e-05			5381
+eas	CYP3A5 Intermediate Metabolizer	2127	0.19763984389518677			5381
+eas	CYP3A5 Normal Metabolizer	428	0.03976955956141981			5381
+eas	CYP3A5 Poor Metabolizer	2825	0.26249767701170784			5381
+eur	CYP3A5 Indeterminate	4	1.6250650026001042e-05			123072
+eur	CYP3A5 Intermediate Metabolizer	14931	0.06065961388455538			123072
+eur	CYP3A5 Normal Metabolizer	549	0.0022304017160686427			123072
+eur	CYP3A5 Poor Metabolizer	107588	0.43709373374934996			123072
+mid	CYP3A5 Indeterminate	0	0.0			528
+mid	CYP3A5 Intermediate Metabolizer	88	0.08333333333333333			528
+mid	CYP3A5 Normal Metabolizer	5	0.004734848484848485			528
+mid	CYP3A5 Poor Metabolizer	435	0.4119318181818182			528
+oth	CYP3A5 Indeterminate	0	0.0			19289
+oth	CYP3A5 Intermediate Metabolizer	4887	0.12667841775104982			19289
+oth	CYP3A5 Normal Metabolizer	492	0.012753382757011768			19289
+oth	CYP3A5 Poor Metabolizer	13910	0.3605681994919384			19289
+sas	CYP3A5 Indeterminate	0	0.0			2342
+sas	CYP3A5 Intermediate Metabolizer	918	0.1959863364645602			2342
+sas	CYP3A5 Normal Metabolizer	175	0.03736122971818958			2342
+sas	CYP3A5 Poor Metabolizer	1249	0.26665243381725023			2342

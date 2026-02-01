@@ -1,0 +1,15 @@
+biogeographic_group	phenotype	n_phenotype	frequencies	in_cpic	notes	n_subjects_genotyped
+afr	CACNA1S Malignant Hyperthermia Susceptibility	1	9.26887142221563e-06			53944
+afr	CACNA1S Uncertain Susceptibility	53943	0.4999907311285778			53944
+amr	CACNA1S Malignant Hyperthermia Susceptibility	5	6.121749351094569e-05			40838
+amr	CACNA1S Uncertain Susceptibility	40833	0.49993878250648904			40838
+eas	CACNA1S Malignant Hyperthermia Susceptibility	2	0.00018583906337112061			5381
+eas	CACNA1S Uncertain Susceptibility	5379	0.4998141609366289			5381
+eur	CACNA1S Malignant Hyperthermia Susceptibility	7	2.843863754550182e-05			123072
+eur	CACNA1S Uncertain Susceptibility	123065	0.4999715613624545			123072
+mid	CACNA1S Malignant Hyperthermia Susceptibility	0	0.0			528
+mid	CACNA1S Uncertain Susceptibility	528	0.5			528
+oth	CACNA1S Malignant Hyperthermia Susceptibility	1	2.5921509668723107e-05			19289
+oth	CACNA1S Uncertain Susceptibility	19288	0.49997407849033126			19289
+sas	CACNA1S Malignant Hyperthermia Susceptibility	1	0.0002134927412467976			2342
+sas	CACNA1S Uncertain Susceptibility	2341	0.4997865072587532			2342

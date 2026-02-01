@@ -1,0 +1,57 @@
+biogeographic_group	phenotype	n_phenotype	frequencies	in_cpic	notes	n_subjects_genotyped
+afr	CYP2C19 Indeterminate	1644	0.015238024618122497			53944
+afr	CYP2C19 Intermediate Metabolizer	16632	0.15415986949429036			53944
+afr	CYP2C19 Likely Intermediate Metabolizer	1390	0.012883731276879726			53944
+afr	CYP2C19 Likely Poor Metabolizer	396	0.00367047308319739			53944
+afr	CYP2C19 Normal Metabolizer	16051	0.14877465519798308			53944
+afr	CYP2C19 Poor Metabolizer	2213	0.020512012457363192			53944
+afr	CYP2C19 Rapid Metabolizer	12990	0.12040263977458104			53944
+afr	CYP2C19 Ultrarapid Metabolizer	2628	0.02435859409758268			53944
+amr	CYP2C19 Indeterminate	160	0.001958959792350262			40838
+amr	CYP2C19 Intermediate Metabolizer	8957	0.1096650178755081			40838
+amr	CYP2C19 Likely Intermediate Metabolizer	163	0.0019956902884568292			40838
+amr	CYP2C19 Likely Poor Metabolizer	22	0.000269356971448161			40838
+amr	CYP2C19 Normal Metabolizer	22644	0.2772417846123708			40838
+amr	CYP2C19 Poor Metabolizer	708	0.00866839708114991			40838
+amr	CYP2C19 Rapid Metabolizer	7514	0.09199764924824919			40838
+amr	CYP2C19 Ultrarapid Metabolizer	670	0.008203144130466722			40838
+eas	CYP2C19 Indeterminate	14	0.0013008734435978444			5381
+eas	CYP2C19 Intermediate Metabolizer	2548	0.23675896673480765			5381
+eas	CYP2C19 Likely Intermediate Metabolizer	1	9.291953168556031e-05			5381
+eas	CYP2C19 Likely Poor Metabolizer	0	0.0			5381
+eas	CYP2C19 Normal Metabolizer	2046	0.19011336182865637			5381
+eas	CYP2C19 Poor Metabolizer	710	0.06597286749674781			5381
+eas	CYP2C19 Rapid Metabolizer	62	0.005761010964504739			5381
+eas	CYP2C19 Ultrarapid Metabolizer	0	0.0			5381
+eur	CYP2C19 Indeterminate	204	0.0008287831513260531			123072
+eur	CYP2C19 Intermediate Metabolizer	31779	0.12910735179407176			123072
+eur	CYP2C19 Likely Intermediate Metabolizer	37	0.00015031851274050962			123072
+eur	CYP2C19 Likely Poor Metabolizer	3	1.218798751950078e-05			123072
+eur	CYP2C19 Normal Metabolizer	48664	0.19770540821632865			123072
+eur	CYP2C19 Poor Metabolizer	2863	0.011631402756110245			123072
+eur	CYP2C19 Rapid Metabolizer	33553	0.13631451508060322			123072
+eur	CYP2C19 Ultrarapid Metabolizer	5969	0.02425003250130005			123072
+mid	CYP2C19 Indeterminate	2	0.001893939393939394			528
+mid	CYP2C19 Intermediate Metabolizer	83	0.07859848484848485			528
+mid	CYP2C19 Likely Intermediate Metabolizer	0	0.0			528
+mid	CYP2C19 Likely Poor Metabolizer	0	0.0			528
+mid	CYP2C19 Normal Metabolizer	249	0.23579545454545456			528
+mid	CYP2C19 Poor Metabolizer	9	0.008522727272727272			528
+mid	CYP2C19 Rapid Metabolizer	165	0.15625			528
+mid	CYP2C19 Ultrarapid Metabolizer	20	0.01893939393939394			528
+oth	CYP2C19 Indeterminate	127	0.0032920317279278347			19289
+oth	CYP2C19 Intermediate Metabolizer	5261	0.13637306236715227			19289
+oth	CYP2C19 Likely Intermediate Metabolizer	109	0.0028254445538908185			19289
+oth	CYP2C19 Likely Poor Metabolizer	23	0.0005961947223806314			19289
+oth	CYP2C19 Normal Metabolizer	7783	0.20174710975167193			19289
+oth	CYP2C19 Poor Metabolizer	609	0.015786199388252372			19289
+oth	CYP2C19 Rapid Metabolizer	4634	0.12012027580486287			19289
+oth	CYP2C19 Ultrarapid Metabolizer	743	0.019259681683861267			19289
+sas	CYP2C19 Indeterminate	62	0.013236549957301452			2342
+sas	CYP2C19 Intermediate Metabolizer	1005	0.2145602049530316			2342
+sas	CYP2C19 Likely Intermediate Metabolizer	0	0.0			2342
+sas	CYP2C19 Likely Poor Metabolizer	0	0.0			2342
+sas	CYP2C19 Normal Metabolizer	541	0.1154995730145175			2342
+sas	CYP2C19 Poor Metabolizer	293	0.0625533731853117			2342
+sas	CYP2C19 Rapid Metabolizer	368	0.07856532877882152			2342
+sas	CYP2C19 Ultrarapid Metabolizer	73	0.015584970111016226			2342

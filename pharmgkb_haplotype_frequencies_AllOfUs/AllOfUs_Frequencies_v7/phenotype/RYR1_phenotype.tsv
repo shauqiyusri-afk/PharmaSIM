@@ -1,0 +1,15 @@
+biogeographic_group	phenotype	n_phenotype	frequencies	in_cpic	notes	n_subjects_genotyped
+afr	RYR1 Malignant Hyperthermia Susceptibility	13	0.0001204953284888032			53944
+afr	RYR1 Uncertain Susceptibility	53931	0.4998795046715112			53944
+amr	RYR1 Malignant Hyperthermia Susceptibility	11	0.0001346784857240805			40838
+amr	RYR1 Uncertain Susceptibility	40827	0.49986532151427593			40838
+eas	RYR1 Malignant Hyperthermia Susceptibility	0	0.0			5381
+eas	RYR1 Uncertain Susceptibility	5381	0.5			5381
+eur	RYR1 Malignant Hyperthermia Susceptibility	120	0.0004875195007800312			123072
+eur	RYR1 Uncertain Susceptibility	122952	0.49951248049922			123072
+mid	RYR1 Malignant Hyperthermia Susceptibility	1	0.000946969696969697			528
+mid	RYR1 Uncertain Susceptibility	527	0.4990530303030303			528
+oth	RYR1 Malignant Hyperthermia Susceptibility	10	0.00025921509668723106			19289
+oth	RYR1 Uncertain Susceptibility	19279	0.49974078490331275			19289
+sas	RYR1 Malignant Hyperthermia Susceptibility	1	0.0002134927412467976			2342
+sas	RYR1 Uncertain Susceptibility	2341	0.4997865072587532			2342

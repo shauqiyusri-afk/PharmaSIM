@@ -1,0 +1,36 @@
+biogeographic_group	phenotype	n_phenotype	frequencies	in_cpic	notes	n_subjects_genotyped
+afr	TPMT Indeterminate	4939	0.045778955954323			53944
+afr	TPMT Intermediate Metabolizer	5324	0.04934747145187602			53944
+afr	TPMT Normal Metabolizer	43219	0.40059135399673734			53944
+afr	TPMT Poor Metabolizer	177	0.0016405902417321668			53944
+afr	TPMT Possible Intermediate Metabolizer	285	0.002641628355331455			53944
+amr	TPMT Indeterminate	510	0.00624418433811646			40838
+amr	TPMT Intermediate Metabolizer	4022	0.04924335178020471			40838
+amr	TPMT Normal Metabolizer	36162	0.4427494000685636			40838
+amr	TPMT Poor Metabolizer	113	0.0013835153533473725			40838
+amr	TPMT Possible Intermediate Metabolizer	31	0.00037954845976786327			40838
+eas	TPMT Indeterminate	27	0.002508827355510128			5381
+eas	TPMT Intermediate Metabolizer	219	0.020349377439137707			5381
+eas	TPMT Normal Metabolizer	5133	0.47695595614198105			5381
+eas	TPMT Poor Metabolizer	1	9.291953168556031e-05			5381
+eas	TPMT Possible Intermediate Metabolizer	1	9.291953168556031e-05			5381
+eur	TPMT Indeterminate	382	0.0015519370774830993			123072
+eur	TPMT Intermediate Metabolizer	10512	0.042706708268330736			123072
+eur	TPMT Normal Metabolizer	111892	0.4545794331773271			123072
+eur	TPMT Poor Metabolizer	266	0.0010806682267290692			123072
+eur	TPMT Possible Intermediate Metabolizer	20	8.12532501300052e-05			123072
+mid	TPMT Indeterminate	6	0.005681818181818182			528
+mid	TPMT Intermediate Metabolizer	10	0.00946969696969697			528
+mid	TPMT Normal Metabolizer	512	0.48484848484848486			528
+mid	TPMT Poor Metabolizer	0	0.0			528
+mid	TPMT Possible Intermediate Metabolizer	0	0.0			528
+oth	TPMT Indeterminate	322	0.00834672611332884			19289
+oth	TPMT Intermediate Metabolizer	1230	0.03188345689252942			19289
+oth	TPMT Normal Metabolizer	17684	0.4583959769816994			19289
+oth	TPMT Poor Metabolizer	40	0.0010368603867489242			19289
+oth	TPMT Possible Intermediate Metabolizer	13	0.00033697962569340036			19289
+sas	TPMT Indeterminate	8	0.0017079419299743809			2342
+sas	TPMT Intermediate Metabolizer	73	0.015584970111016226			2342
+sas	TPMT Normal Metabolizer	2261	0.4827070879590094			2342
+sas	TPMT Poor Metabolizer	0	0.0			2342
+sas	TPMT Possible Intermediate Metabolizer	0	0.0			2342

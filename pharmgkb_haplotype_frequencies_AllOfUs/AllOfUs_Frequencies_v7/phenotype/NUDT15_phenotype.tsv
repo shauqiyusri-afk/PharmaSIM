@@ -1,0 +1,36 @@
+biogeographic_group	phenotype	n_phenotype	frequencies	in_cpic	notes	n_subjects_genotyped
+afr	NUDT15 Indeterminate	361	0.0033460625834198427			53944
+afr	NUDT15 Intermediate Metabolizer	139	0.0012883731276879728			53944
+afr	NUDT15 Normal Metabolizer	53443	0.49535629541746995			53944
+afr	NUDT15 Poor Metabolizer	1	9.26887142221563e-06			53944
+afr	NUDT15 Possible Intermediate Metabolizer	0	0.0			53944
+amr	NUDT15 Indeterminate	1096	0.013418874577599296			40838
+amr	NUDT15 Intermediate Metabolizer	3137	0.038407855428767325			40838
+amr	NUDT15 Normal Metabolizer	36434	0.44607963171555903			40838
+amr	NUDT15 Poor Metabolizer	121	0.0014814633429648856			40838
+amr	NUDT15 Possible Intermediate Metabolizer	50	0.0006121749351094568			40838
+eas	NUDT15 Indeterminate	202	0.018769745400483182			5381
+eas	NUDT15 Intermediate Metabolizer	883	0.08204794647834975			5381
+eas	NUDT15 Normal Metabolizer	4223	0.39239918230812115			5381
+eas	NUDT15 Poor Metabolizer	56	0.005203493774391377			5381
+eas	NUDT15 Possible Intermediate Metabolizer	17	0.0015796320386545252			5381
+eur	NUDT15 Indeterminate	738	0.002998244929797192			123072
+eur	NUDT15 Intermediate Metabolizer	1245	0.005058014820592823			123072
+eur	NUDT15 Normal Metabolizer	121085	0.491927489599584			123072
+eur	NUDT15 Poor Metabolizer	4	1.6250650026001042e-05			123072
+eur	NUDT15 Possible Intermediate Metabolizer	0	0.0			123072
+mid	NUDT15 Indeterminate	1	0.000946969696969697			528
+mid	NUDT15 Intermediate Metabolizer	11	0.010416666666666666			528
+mid	NUDT15 Normal Metabolizer	516	0.48863636363636365			528
+mid	NUDT15 Poor Metabolizer	0	0.0			528
+mid	NUDT15 Possible Intermediate Metabolizer	0	0.0			528
+oth	NUDT15 Indeterminate	164	0.00425112758567059			19289
+oth	NUDT15 Intermediate Metabolizer	386	0.01000570273212712			19289
+oth	NUDT15 Normal Metabolizer	18735	0.4856394836435274			19289
+oth	NUDT15 Poor Metabolizer	3	7.776452900616932e-05			19289
+oth	NUDT15 Possible Intermediate Metabolizer	1	2.5921509668723107e-05			19289
+sas	NUDT15 Indeterminate	8	0.0017079419299743809			2342
+sas	NUDT15 Intermediate Metabolizer	266	0.056789069171648165			2342
+sas	NUDT15 Normal Metabolizer	2054	0.4385140905209223			2342
+sas	NUDT15 Poor Metabolizer	14	0.0029888983774551663			2342
+sas	NUDT15 Possible Intermediate Metabolizer	0	0.0			2342
